@@ -1,0 +1,8 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+.header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; min-height: $header-height; padding: $space-3 $space-8; color: $color-white; background: $color-brand-dark;
+  &__eyebrow, &__mentor span { display: block; font-size: $font-size-xs; color: $color-brand-muted; }
+  &__title { display: block; font-size: $font-size-lg; }
+  &__mentor { text-align: right; font-size: $font-size-sm; }
+  @include respond-to-mobile { padding-inline: $space-5; &__mentor span { display: none; } }
+}
