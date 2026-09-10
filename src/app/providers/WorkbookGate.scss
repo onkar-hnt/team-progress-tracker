@@ -1,0 +1,79 @@
+@use '../../styles/variables' as *;
+
+.workbook-gate {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: $space-4;
+  background: $color-surface-subtle;
+
+  &__card {
+    width: min(560px, 100%);
+    padding: $space-6;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    background: $color-white;
+    box-shadow: $shadow-sm;
+
+    h1 {
+      margin: 0 0 $space-3;
+      font-size: $font-size-2xl;
+    }
+
+    p {
+      margin: 0 0 $space-4;
+      color: $color-text-muted;
+      line-height: 1.6;
+    }
+
+    code {
+      padding: 0.1em 0.35em;
+      border-radius: $radius-sm;
+      background: $color-surface-subtle;
+      font-size: 0.875em;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-2;
+    margin-bottom: $space-4;
+  }
+
+  &__hint {
+    font-size: $font-size-sm;
+  }
+
+  &__error {
+    padding: $space-2 $space-3;
+    border-radius: $radius-md;
+    background: #fef3f2;
+    color: #b42318;
+    font-size: $font-size-sm;
+  }
+
+  &__details {
+    margin-top: $space-5;
+    padding-top: $space-5;
+    border-top: 1px solid $color-border;
+    font-size: $font-size-sm;
+
+    summary {
+      cursor: pointer;
+      color: $color-text;
+      font-weight: 600;
+    }
+
+    ul {
+      margin: $space-3 0 0;
+      padding-left: $space-5;
+      color: $color-text-muted;
+      line-height: 1.6;
+    }
+
+    strong {
+      color: $color-text;
+    }
+  }
+}

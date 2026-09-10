@@ -2,13 +2,16 @@ import { appConfig } from '@config/app.config'
 
 import type { DataProvider } from './data-provider.interface'
 import { ExcelDataProvider } from './excel/excel-data-provider'
+import { FileWorkbookGateway } from './excel/file-workbook-gateway'
 import { GraphWorkbookGateway } from './excel/graph-workbook-gateway'
 import { UnconfiguredWorkbookGateway } from './excel/workbook-gateway'
 import type { WorkbookGateway } from './excel/workbook-gateway'
 import { MockDataProvider } from './mock/mock-data-provider'
+import { getWorkbookFileStore, subscribeToWorkbookConnection } from './workbook-connection'
 
 export type { DataProvider, DataProviderCapabilities } from './data-provider.interface'
 export * from './data-provider.errors'
+export * from './workbook-connection'
 
 /**
  * Builds the transport for the Excel provider.
@@ -42,6 +45,17 @@ function createWorkbookGateway(): WorkbookGateway {
  */
 export function createDataProvider(): DataProvider {
   switch (appConfig.dataSource) {
+    case 'local-excel': {
+      const store = getWorkbookFileStore()
+
+      // Until somebody picks the file there is nothing to read. The
+      // placeholder reports that as an explanatory error, and the connection
+      // screen in the UI is what resolves it.
+      return new ExcelDataProvider({
+        gateway: store === null ? new UnconfiguredWorkbookGateway() : new FileWorkbookGateway(store),
+      })
+    }
+
     case 'sharepoint-excel':
       return new ExcelDataProvider({ gateway: createWorkbookGateway() })
 
@@ -62,3 +76,9 @@ export function getDataProvider(): DataProvider {
   cachedProvider ??= createDataProvider()
   return cachedProvider
 }
+
+// Choosing a different workbook has to produce a provider bound to the new
+// file, so the cached one is discarded whenever the connection changes.
+subscribeToWorkbookConnection(() => {
+  cachedProvider = undefined
+})

@@ -153,7 +153,7 @@ function PasswordForm({
         <input
           autoComplete="username"
           id="login-email"
-          placeholder="name@handt.ai"
+          placeholder="you@company.com"
           type="email"
           {...register('email')}
           aria-describedby={errors.email ? 'login-email-error' : undefined}

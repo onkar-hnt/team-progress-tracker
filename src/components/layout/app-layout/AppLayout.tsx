@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 
+import { DataSourceNotice } from '@components/layout/data-source-notice/DataSourceNotice'
 import { Header } from '@components/layout/header/Header'
 import { Sidebar } from '@components/layout/sidebar/Sidebar'
 
@@ -66,6 +67,7 @@ export function AppLayout() {
       />
 
       <main className="app-layout__content" id="main-content">
+        <DataSourceNotice />
         <Outlet />
       </main>
     </div>

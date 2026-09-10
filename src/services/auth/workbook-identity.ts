@@ -1,6 +1,8 @@
 import type { AppUser, UserRole } from '@models/user.model'
 import type { DataProvider } from '@services/data-provider/data-provider.interface'
 
+import { bootstrapAdmin, bootstrapAdminUser, isBootstrapAdminEmail } from './bootstrap-admin'
+
 /**
  * Resolves who a person is, and what they may do, from the workbook.
  *
@@ -38,6 +40,13 @@ export async function resolveWorkbookIdentity(
 ): Promise<WorkbookIdentity | null> {
   const normalised = email.trim().toLowerCase()
   if (normalised === '') return null
+
+  // Resolved before the workbook is read, so the administrator can still sign
+  // in when it is empty, unreachable or malformed — which is precisely when
+  // somebody needs to get in and fix it.
+  if (isBootstrapAdminEmail(normalised)) {
+    return { user: bootstrapAdminUser(), expectedPassword: bootstrapAdmin.password }
+  }
 
   const [developers, mentors] = await Promise.all([
     provider.getDevelopers(),

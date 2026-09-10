@@ -1,4 +1,4 @@
-import { EXCEL_BOOLEAN_VALUES } from './excel-schema'
+import { EXCEL_BOOLEAN_VALUES, EXCEL_RECORD_STATUS_VALUES } from './excel-schema'
 
 /**
  * Coercion helpers for raw workbook cells.
@@ -185,11 +185,13 @@ export function parseExcelBooleanCell(value: unknown): boolean | null {
     case 'y':
     case 'true':
     case '1':
+    case 'active':
       return true
     case 'no':
     case 'n':
     case 'false':
     case '0':
+    case 'inactive':
       return false
     default:
       return null
@@ -198,6 +200,17 @@ export function parseExcelBooleanCell(value: unknown): boolean | null {
 
 export function formatExcelBoolean(value: boolean): string {
   return value ? EXCEL_BOOLEAN_VALUES.true : EXCEL_BOOLEAN_VALUES.false
+}
+
+/**
+ * Formats the `Status` column on people, mappings and similar records.
+ *
+ * Reads go through `parseExcelBooleanCell`, which understands Active/Inactive
+ * alongside Yes/No, so switching a column between the two conventions never
+ * breaks existing rows.
+ */
+export function formatExcelRecordStatus(value: boolean): string {
+  return value ? EXCEL_RECORD_STATUS_VALUES.true : EXCEL_RECORD_STATUS_VALUES.false
 }
 
 /**

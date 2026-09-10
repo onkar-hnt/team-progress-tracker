@@ -23,6 +23,18 @@ export interface DailyWorkEntry {
   taskTitle: string
   description?: string
 
+  /**
+   * What was actually achieved on the day.
+   *
+   * Distinct from `taskTitle`, which names the piece of work: the title stays
+   * the same across the days it takes, while this changes daily and is what a
+   * mentor reads to see movement.
+   */
+  workDone?: string
+
+  /** What the developer intends to pick up next. */
+  plannedWork?: string
+
   status: TaskStatus
   priority: TaskPriority
 

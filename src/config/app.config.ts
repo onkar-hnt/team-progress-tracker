@@ -1,8 +1,23 @@
 import { WORKBOOK_FILE_NAME } from '@services/data-provider/excel/excel-schema'
 
-export const DATA_SOURCE_MODES = ['mock', 'sharepoint-excel'] as const
+/**
+ * Where records are read from and written to.
+ *
+ * - `local-excel` opens the `.xlsx` itself, pointed at the OneDrive-synced
+ *   copy on disk. Real Excel read and write with no app registration.
+ * - `sharepoint-excel` goes through Microsoft Graph, which needs an Entra
+ *   registration but works without a synced copy of the file.
+ * - `mock` reads the fixtures in `src/data`, for development only.
+ */
+export const DATA_SOURCE_MODES = ['local-excel', 'mock', 'sharepoint-excel'] as const
 
 export type DataSourceMode = (typeof DATA_SOURCE_MODES)[number]
+
+export const DATA_SOURCE_LABELS: Readonly<Record<DataSourceMode, string>> = {
+  'local-excel': 'Excel workbook on this computer',
+  mock: 'Sample data built into the app',
+  'sharepoint-excel': 'SharePoint workbook via Microsoft Graph',
+}
 
 /**
  * Vite injects `import.meta.env` at build time. Falling back to an empty

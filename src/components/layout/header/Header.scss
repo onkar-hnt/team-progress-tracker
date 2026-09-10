@@ -24,6 +24,17 @@
     &:focus-visible { @include focus-ring; }
   }
 
+  &__workbook { display: inline-flex; align-items: center; gap: $space-2; padding: $space-2 $space-3; border: 1px solid rgb(255 255 255 / 35%); border-radius: $radius-md; color: $color-white; font-size: $font-size-sm; font-weight: 600; text-decoration: none; white-space: nowrap;
+    &:hover { background: rgb(255 255 255 / 12%); }
+    &:focus-visible { @include focus-ring; }
+  }
+
+  @include respond-to-tablet {
+    /// The label is dropped before the icon, so the action survives on a
+    /// narrow header instead of disappearing.
+    &__workbook-label { @include visually-hidden; }
+  }
+
   @include respond-to-mobile { padding-inline: $space-4; gap: $space-3;
     &__eyebrow { display: none; }
     &__identity span { display: none; }

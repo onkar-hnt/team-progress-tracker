@@ -1,0 +1,35 @@
+@use '@styles/variables' as *;
+
+.settings { display: grid; gap: $space-6;
+
+  &__facts { display: grid; gap: $space-4; margin: 0; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+  &__fact { padding: $space-3 $space-4; border: 1px solid $color-border; border-radius: $radius-md; background: $color-surface-subtle;
+    dt { color: $color-text-muted; font-size: $font-size-xs; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    dd { margin: $space-1 0 0; font-weight: 600; }
+  }
+
+  &__value--positive { color: #067647; }
+  &__value--attention { color: #b54708; }
+
+  &__steps { margin-top: $space-6;
+    h3 { margin: 0 0 $space-3; font-size: $font-size-md; }
+    ol { display: grid; gap: $space-2; margin: 0; padding-left: $space-5; color: $color-text; font-size: $font-size-sm; }
+  }
+
+  &__actions { display: flex; gap: $space-2; margin-top: $space-5; flex-wrap: wrap; }
+
+  &__sheets { display: grid; gap: $space-3; margin: 0; }
+  &__sheet { padding: $space-3 $space-4; border: 1px solid $color-border; border-radius: $radius-md;
+    dt { margin-bottom: $space-1; }
+    dd { margin: 0;
+      p { margin: 0; color: $color-text-muted; font-size: $font-size-sm; }
+    }
+  }
+  /// Wraps rather than scrolls: the column list is reference material, not
+  /// something to be read in one line.
+  &__columns { margin-top: $space-2 !important; font-family: monospace; font-size: $font-size-xs !important; overflow-wrap: anywhere; }
+
+  code { padding: 0 $space-1; border-radius: $radius-sm; font-size: $font-size-xs; background: rgb(15 23 42 / 7%); }
+
+  &__note { margin: $space-4 0 0; color: $color-text-muted; font-size: $font-size-sm; }
+}

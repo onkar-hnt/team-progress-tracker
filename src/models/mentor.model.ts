@@ -13,6 +13,9 @@ export interface Mentor {
   name: string
   email: string
   active: boolean
+
+  /** ISO date the record was added. */
+  createdDate?: string
 }
 
 export type CreateMentorRequest = Omit<Mentor, 'id'>
@@ -29,4 +32,24 @@ export type UpdateMentorRequest = Partial<CreateMentorRequest>
 export interface MentorAssignment {
   mentorId: string
   developerId: string
+
+  /**
+   * Row key.
+   *
+   * Optional because the pair of ids already identifies the assignment; it
+   * exists so a row can be addressed directly, and so a reassignment can be
+   * recorded and ended rather than silently overwritten.
+   */
+  id?: string
+
+  /** ISO date the developer was assigned to this mentor. */
+  assignedDate?: string
+
+  /**
+   * Whether the assignment is current.
+   *
+   * Defaults to `true` when the column is blank. An inactive row keeps the
+   * history without granting the mentor any visibility.
+   */
+  active?: boolean
 }

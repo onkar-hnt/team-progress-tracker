@@ -14,6 +14,15 @@ import type { UserRole } from './user.model'
 export interface Developer {
   id: string
   name: string
+
+  /**
+   * Payroll or HR reference.
+   *
+   * Kept separate from `id` so that the relational key stays under this
+   * application's control even if HR renumbers people.
+   */
+  employeeId?: string
+
   /** Job title, such as "Software Engineer". */
   role?: string
   location?: string
@@ -24,6 +33,17 @@ export interface Developer {
 
   /** Access level. Absent rows are treated as developers. */
   accessRole?: UserRole
+
+  /**
+   * Primary project.
+   *
+   * A convenience for reporting; the authoritative assignment list is
+   * `AssignedDevelopers` on each project, since people work on several.
+   */
+  primaryProjectId?: string
+
+  /** ISO date the record was added. */
+  createdDate?: string
 }
 
 export type CreateDeveloperRequest = Omit<Developer, 'id'>

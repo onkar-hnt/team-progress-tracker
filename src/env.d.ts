@@ -9,8 +9,18 @@
  * nothing secret may go here.
  */
 interface ImportMetaEnv {
-  /** `mock` or `sharepoint-excel`. Defaults to `mock`. */
+  /** `local-excel`, `sharepoint-excel` or `mock`. Defaults to `mock`. */
   readonly VITE_DATA_SOURCE?: string
+
+  /**
+   * The bootstrap administrator, the only account not held in the workbook.
+   *
+   * Override all three on any deployment reachable beyond the team: the
+   * defaults are in the public bundle.
+   */
+  readonly VITE_ADMIN_EMAIL?: string
+  readonly VITE_ADMIN_NAME?: string
+  readonly VITE_ADMIN_PASSWORD?: string
 
   /** Artificial delay for the mock provider, in milliseconds. */
   readonly VITE_MOCK_LATENCY_MS?: string

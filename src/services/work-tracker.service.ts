@@ -204,9 +204,12 @@ export class WorkTrackerService {
       this.provider.getDailyWorkEntries({ developerIds: visibleIds }),
     ])
 
+    // Re-filtered rather than trusted: if the provider ignored the developer
+    // predicate, deriving involvement from its rows would widen the project
+    // list to include projects the viewer has nothing to do with.
     const involved = new Set<string>([
-      ...tasks.map((task) => task.projectId),
-      ...entries.map((entry) => entry.projectId),
+      ...filterByScope(scope, tasks).map((task) => task.projectId),
+      ...filterByScope(scope, entries).map((entry) => entry.projectId),
     ])
 
     return projects.filter(
@@ -243,24 +246,18 @@ export class WorkTrackerService {
     scope: AccessScope,
     query?: AssignedTaskQuery,
   ): Promise<AssignedTaskView[]> {
-    const scopedQuery: AssignedTaskQuery = {
-      ...query,
-      ...withDeveloperIds(restrictDeveloperIds(scope, query?.developerIds)),
-    }
+    const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
 
     const [tasks, developers, projects, mentors] = await Promise.all([
-      this.provider.getTasks(scopedQuery),
+      this.provider.getTasks({ ...query, ...withDeveloperIds(effectiveIds) }),
       this.provider.getDevelopers(),
       this.provider.getProjects(),
       this.provider.getMentors(),
     ])
 
-    // Filtered again after the query: a provider is free to satisfy filters
-    // however it likes, and this layer must not depend on it having honoured
-    // the developer predicate.
     const today = todayIsoDate()
 
-    return filterByScope(scope, tasks).map((task) => {
+    return narrowToDevelopers(effectiveIds, tasks).map((task) => {
       const mentor = mentors.find((candidate) => candidate.id === task.mentorId)
 
       return {
@@ -278,19 +275,16 @@ export class WorkTrackerService {
     scope: AccessScope,
     query?: MentorCommentQuery,
   ): Promise<MentorCommentView[]> {
-    const scopedQuery: MentorCommentQuery = {
-      ...query,
-      ...withDeveloperIds(restrictDeveloperIds(scope, query?.developerIds)),
-    }
+    const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
 
     const [comments, developers, projects, mentors] = await Promise.all([
-      this.provider.getComments(scopedQuery),
+      this.provider.getComments({ ...query, ...withDeveloperIds(effectiveIds) }),
       this.provider.getDevelopers(),
       this.provider.getProjects(),
       this.provider.getMentors(),
     ])
 
-    return filterByScope(scope, comments)
+    return narrowToDevelopers(effectiveIds, comments)
       .sort((left, right) => right.date.localeCompare(left.date))
       .map((comment) => {
         const project = projects.find((candidate) => candidate.id === comment.projectId)
@@ -443,13 +437,13 @@ export class WorkTrackerService {
     scope: AccessScope,
     query?: DailyWorkQuery,
   ): Promise<DailyWorkEntry[]> {
-    const scopedQuery: DailyWorkQuery = {
+    const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
+    const entries = await this.provider.getDailyWorkEntries({
       ...query,
-      ...withDeveloperIds(restrictDeveloperIds(scope, query?.developerIds)),
-    }
+      ...withDeveloperIds(effectiveIds),
+    })
 
-    const entries = await this.provider.getDailyWorkEntries(scopedQuery)
-    return filterByScope(scope, entries)
+    return narrowToDevelopers(effectiveIds, entries)
   }
 
   private async decorateEntries(
@@ -484,6 +478,24 @@ function withDeveloperIds(
   developerIds: readonly string[] | undefined,
 ): { developerIds?: readonly string[] } {
   return developerIds === undefined ? {} : { developerIds }
+}
+
+/**
+ * Re-applies the developer filter in memory after the provider has answered.
+ *
+ * The same set is passed to the provider as a query predicate so a capable
+ * backend can filter at source, but the guarantee cannot rest on that: a
+ * provider that ignores the predicate, or a future backend that implements it
+ * incorrectly, must still not be able to widen the result.
+ *
+ * `undefined` means unrestricted access with no filter requested.
+ */
+function narrowToDevelopers<TRecord extends { developerId: string }>(
+  effectiveIds: readonly string[] | undefined,
+  records: readonly TRecord[],
+): TRecord[] {
+  if (effectiveIds === undefined) return [...records]
+  return records.filter((record) => effectiveIds.includes(record.developerId))
 }
 
 /**

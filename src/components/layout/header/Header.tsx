@@ -2,7 +2,9 @@ import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
 import { Icon } from '@components/ui/icons/Icon'
-import { isAdmin } from '@services/auth/index'
+import { appConfig } from '@config/app.config'
+import { USER_ROLE_LABELS } from '@models/user.model'
+import { canOpenWorkbook } from '@services/auth/index'
 
 import './Header.scss'
 
@@ -17,6 +19,10 @@ interface HeaderProps {
 export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: HeaderProps) {
   const { signOut, user } = useAuth()
   const navigate = useNavigate()
+
+  // Available whatever the data source is: the workbook is where the team
+  // maintains its records even while the app is still reading fixtures.
+  const workbookUrl = appConfig.sharePoint.workbookUrl
 
   const handleSignOut = async () => {
     await signOut()
@@ -55,8 +61,24 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
       </div>
 
       <div className="header__account">
+        {/* Opening the master file is a maintenance action for the people who
+            own the data, so it sits with the account controls rather than in
+            the navigation. `noreferrer` keeps the app's URL out of the
+            referrer sent to SharePoint. */}
+        {canOpenWorkbook(user) && workbookUrl !== '' ? (
+          <a
+            className="header__workbook"
+            href={workbookUrl}
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            <Icon name="table" size={18} />
+            <span className="header__workbook-label">Open Excel Sheet</span>
+          </a>
+        ) : null}
+
         <div className="header__identity">
-          <span>{user === null ? 'Mentor' : isAdmin(user) ? 'Mentor (Admin)' : 'Developer'}</span>
+          <span>{user === null ? 'Signed out' : USER_ROLE_LABELS[user.role]}</span>
           <strong>{user?.name ?? 'Signed out'}</strong>
         </div>
 

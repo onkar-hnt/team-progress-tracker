@@ -19,6 +19,7 @@ export const WORKBOOK_FILE_NAME = 'Team-Progress-Tracker.xlsx'
  * worksheet layout, cell ranges or row numbers.
  */
 export const EXCEL_TABLES = {
+  admin: 'tblAdmin',
   /** The Employees table of the workbook. */
   developers: 'tblDevelopers',
   mentors: 'tblMentors',
@@ -29,90 +30,147 @@ export const EXCEL_TABLES = {
   dailyWork: 'tblDailyWork',
 } as const
 
+/**
+ * Worksheet names, paired with the table each sheet holds.
+ *
+ * Two names exist for the same data because the two transports address it
+ * differently: Microsoft Graph reads a named Excel *table*, while a file read
+ * directly from disk has only worksheets to go on. Keeping both here means
+ * one workbook satisfies either route.
+ */
+export const EXCEL_SHEETS: Readonly<Record<keyof typeof EXCEL_TABLES, string>> = {
+  admin: 'Admin',
+  developers: 'Developers',
+  mentors: 'Mentors',
+  mentorMapping: 'MentorMapping',
+  projects: 'Projects',
+  tasks: 'Tasks',
+  comments: 'Comments',
+  dailyWork: 'DailyWork',
+}
+
+/** Resolves the worksheet holding a given Excel table. */
+export function sheetNameForTable(tableName: string): string {
+  const key = (Object.keys(EXCEL_TABLES) as (keyof typeof EXCEL_TABLES)[]).find(
+    (candidate) => EXCEL_TABLES[candidate] === tableName,
+  )
+
+  // Falling back to the table name keeps an unknown table addressable rather
+  // than silently reading the wrong sheet.
+  return key === undefined ? tableName : EXCEL_SHEETS[key]
+}
+
+/**
+ * Administrator records.
+ *
+ * Read-only as far as access is concerned: the bootstrap administrator built
+ * into the application is what guarantees somebody can always sign in, and
+ * this sheet is the register of everyone who has been granted the role since.
+ */
+export const ADMIN_COLUMNS = {
+  adminId: 'AdminID',
+  adminName: 'AdminName',
+  email: 'Email',
+  role: 'Role',
+  createdDate: 'CreatedDate',
+  status: 'Status',
+} as const
+
 export const DEVELOPER_COLUMNS = {
-  developerId: 'DeveloperId',
+  developerId: 'DeveloperID',
+  employeeId: 'EmployeeID',
   developerName: 'DeveloperName',
+  email: 'Email',
+
+  /** Job title, as distinct from `AccessRole`, which governs permissions. */
   role: 'Role',
   location: 'Location',
-  active: 'Active',
 
-  /// Appended columns. Existing workbooks without them still read correctly:
-  /// a missing column is treated as a blank cell, so `Email` simply means the
-  /// row cannot sign in and `AccessRole` defaults to developer.
-  email: 'Email',
+  /** Primary project. Fuller assignments live in `Projects.AssignedDevelopers`. */
+  projectId: 'ProjectID',
   accessRole: 'AccessRole',
+  status: 'Status',
+  createdDate: 'CreatedDate',
 } as const
 
 export const MENTOR_COLUMNS = {
-  mentorId: 'MentorId',
+  mentorId: 'MentorID',
   mentorName: 'MentorName',
   email: 'Email',
-  active: 'Active',
+  status: 'Status',
+  createdDate: 'CreatedDate',
 } as const
 
 export const MENTOR_MAPPING_COLUMNS = {
-  mentorId: 'MentorId',
-  developerId: 'DeveloperId',
+  mappingId: 'MappingID',
+  mentorId: 'MentorID',
+  developerId: 'DeveloperID',
+  assignedDate: 'AssignedDate',
+  status: 'Status',
 } as const
 
 export const PROJECT_COLUMNS = {
-  projectId: 'ProjectId',
+  projectId: 'ProjectID',
   projectName: 'ProjectName',
-  client: 'Client',
-  active: 'Active',
-
+  clientName: 'ClientName',
   description: 'Description',
-  status: 'Status',
   startDate: 'StartDate',
   endDate: 'EndDate',
-  mentorId: 'MentorId',
+
+  /** Lifecycle: Planned, Active, On Hold or Completed. */
+  status: 'Status',
+  mentorId: 'MentorID',
   assignedDevelopers: 'AssignedDevelopers',
 } as const
 
 export const TASK_COLUMNS = {
-  taskId: 'TaskId',
-  taskName: 'TaskName',
+  taskId: 'TaskID',
+  projectId: 'ProjectID',
+  developerId: 'DeveloperID',
+  mentorId: 'MentorID',
+  taskTitle: 'TaskTitle',
   taskDescription: 'TaskDescription',
-  projectId: 'ProjectId',
-  developerId: 'DeveloperId',
-  mentorId: 'MentorId',
   priority: 'Priority',
   status: 'Status',
   createdDate: 'CreatedDate',
   dueDate: 'DueDate',
-  updatedAt: 'UpdatedAt',
+  updatedDate: 'UpdatedDate',
 } as const
 
 export const COMMENT_COLUMNS = {
-  commentId: 'CommentId',
-  developerId: 'DeveloperId',
-  mentorId: 'MentorId',
-  projectId: 'ProjectId',
-  commentDate: 'CommentDate',
+  commentId: 'CommentID',
+  projectId: 'ProjectID',
+  developerId: 'DeveloperID',
+  mentorId: 'MentorID',
   comment: 'Comment',
+  commentDate: 'CommentDate',
   progressUpdate: 'ProgressUpdate',
   blockers: 'Blockers',
   recommendations: 'Recommendations',
-  createdAt: 'CreatedAt',
-  updatedAt: 'UpdatedAt',
+  createdDate: 'CreatedDate',
+  updatedDate: 'UpdatedDate',
 } as const
 
 export const DAILY_WORK_COLUMNS = {
-  entryId: 'EntryId',
+  entryId: 'EntryID',
+  developerId: 'DeveloperID',
+  projectId: 'ProjectID',
   date: 'Date',
-  developerId: 'DeveloperId',
-  projectId: 'ProjectId',
   taskTitle: 'TaskTitle',
   taskDescription: 'TaskDescription',
+
+  /** What was actually achieved, as opposed to the task it belonged to. */
+  workDone: 'WorkDone',
+  plannedWork: 'PlannedWork',
   status: 'Status',
   priority: 'Priority',
   progress: 'Progress',
   hoursSpent: 'HoursSpent',
   isBlocked: 'IsBlocked',
-  blockerDescription: 'BlockerDescription',
+  blockers: 'Blockers',
   remarks: 'Remarks',
-  createdAt: 'CreatedAt',
-  updatedAt: 'UpdatedAt',
+  createdDate: 'CreatedDate',
+  updatedDate: 'UpdatedDate',
 } as const
 
 /**
@@ -121,16 +179,22 @@ export const DAILY_WORK_COLUMNS = {
  * Descriptive columns are omitted deliberately: a blank `Remarks` column is
  * normal, whereas a missing `EntryId` column means the workbook is wrong.
  */
+export const REQUIRED_ADMIN_COLUMNS: readonly string[] = [
+  ADMIN_COLUMNS.adminId,
+  ADMIN_COLUMNS.adminName,
+  ADMIN_COLUMNS.email,
+]
+
 export const REQUIRED_DEVELOPER_COLUMNS: readonly string[] = [
   DEVELOPER_COLUMNS.developerId,
   DEVELOPER_COLUMNS.developerName,
-  DEVELOPER_COLUMNS.active,
+  DEVELOPER_COLUMNS.status,
 ]
 
 export const REQUIRED_PROJECT_COLUMNS: readonly string[] = [
   PROJECT_COLUMNS.projectId,
   PROJECT_COLUMNS.projectName,
-  PROJECT_COLUMNS.active,
+  PROJECT_COLUMNS.status,
 ]
 
 export const REQUIRED_MENTOR_COLUMNS: readonly string[] = [
@@ -146,7 +210,7 @@ export const REQUIRED_MENTOR_MAPPING_COLUMNS: readonly string[] = [
 
 export const REQUIRED_TASK_COLUMNS: readonly string[] = [
   TASK_COLUMNS.taskId,
-  TASK_COLUMNS.taskName,
+  TASK_COLUMNS.taskTitle,
   TASK_COLUMNS.projectId,
   TASK_COLUMNS.developerId,
   TASK_COLUMNS.status,
@@ -157,7 +221,6 @@ export const REQUIRED_COMMENT_COLUMNS: readonly string[] = [
   COMMENT_COLUMNS.commentId,
   COMMENT_COLUMNS.developerId,
   COMMENT_COLUMNS.mentorId,
-  COMMENT_COLUMNS.commentDate,
   COMMENT_COLUMNS.comment,
 ]
 
@@ -206,8 +269,18 @@ export const EXCEL_ACCESS_ROLE_VALUES: Readonly<Record<UserRole, string>> = {
   developer: 'Developer',
 }
 
-/** Canonical strings written to boolean columns (`Active`, `IsBlocked`). */
+/** Canonical strings written to yes/no columns such as `IsBlocked`. */
 export const EXCEL_BOOLEAN_VALUES = { true: 'Yes', false: 'No' } as const
+
+/**
+ * Canonical strings for the `Status` column on people and mappings.
+ *
+ * Distinct from `EXCEL_BOOLEAN_VALUES` because "Active" reads far better than
+ * "Yes" against a person's name, and because this is the column that revokes
+ * access: setting it to `Inactive` is how somebody is off-boarded without
+ * deleting their history. Reads also accept Yes/No/true/false.
+ */
+export const EXCEL_RECORD_STATUS_VALUES = { true: 'Active', false: 'Inactive' } as const
 
 /**
  * Separator for columns holding several ids in one cell.

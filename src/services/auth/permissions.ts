@@ -49,6 +49,17 @@ export function canWriteFeedback(user: AppUser | null): boolean {
 }
 
 /**
+ * Whether the source workbook may be opened directly.
+ *
+ * Restricted to the people who maintain it. A developer opening the raw file
+ * would see every colleague's records, which is exactly what the rest of the
+ * application prevents, so the link is not offered to them.
+ */
+export function canOpenWorkbook(user: AppUser | null): boolean {
+  return isAdmin(user) || isMentor(user)
+}
+
+/**
  * Whether the person can see anybody other than themselves.
  *
  * Used to decide whether a screen offers team-wide views at all, rather than

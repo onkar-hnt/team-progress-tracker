@@ -41,11 +41,14 @@ const emailSchema = z
 export const developerSchema = z.object({
   id: nonEmptyStringSchema,
   name: nonEmptyStringSchema,
+  employeeId: nonEmptyStringSchema.optional(),
   role: nonEmptyStringSchema.optional(),
   location: nonEmptyStringSchema.optional(),
   active: z.boolean(),
   email: emailSchema.optional(),
   accessRole: z.enum(USER_ROLES).optional(),
+  primaryProjectId: nonEmptyStringSchema.optional(),
+  createdDate: isoDateSchema.optional(),
 })
 
 export const mentorSchema = z.object({
@@ -53,11 +56,15 @@ export const mentorSchema = z.object({
   name: nonEmptyStringSchema,
   email: emailSchema,
   active: z.boolean(),
+  createdDate: isoDateSchema.optional(),
 })
 
 export const mentorAssignmentSchema = z.object({
   mentorId: nonEmptyStringSchema,
   developerId: nonEmptyStringSchema,
+  id: nonEmptyStringSchema.optional(),
+  assignedDate: isoDateSchema.optional(),
+  active: z.boolean().optional(),
 })
 
 export const projectSchema = z
@@ -122,6 +129,8 @@ export const dailyWorkEntrySchema = z
     projectId: nonEmptyStringSchema,
     taskTitle: nonEmptyStringSchema,
     description: nonEmptyStringSchema.optional(),
+    workDone: nonEmptyStringSchema.optional(),
+    plannedWork: nonEmptyStringSchema.optional(),
     status: z.enum(TASK_STATUSES),
     priority: z.enum(TASK_PRIORITIES),
     progress: z

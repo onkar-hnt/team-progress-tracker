@@ -21,6 +21,7 @@ export type IconName =
   | 'mentors'
   | 'projects'
   | 'settings'
+  | 'table'
   | 'tasks'
   | 'users'
 
@@ -85,6 +86,12 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <circle cx="16" cy="7" r="2" />
       <circle cx="10" cy="12" r="2" />
       <circle cx="15" cy="17" r="2" />
+    </>
+  ),
+  table: (
+    <>
+      <rect height="16" rx="2" width="18" x="3" y="4" />
+      <path d="M3 9h18M9 9v11" />
     </>
   ),
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
