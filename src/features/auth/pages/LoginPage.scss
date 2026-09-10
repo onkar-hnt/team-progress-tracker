@@ -19,11 +19,18 @@
   }
   &__error { margin: 0; color: #b42318; font-size: $font-size-xs; }
   &__alert { margin: 0; padding: $space-3; border: 1px solid #fda29b; border-radius: $radius-md; color: #912018; font-size: $font-size-sm; background: #fef3f2; }
-  &__submit { padding: $space-3 $space-4; border: 0; border-radius: $radius-md; color: $color-white; font: inherit; font-weight: 600; background: $color-brand; cursor: pointer;
+  &__submit { display: flex; align-items: center; justify-content: center; gap: $space-3; padding: $space-3 $space-4; border: 0; border-radius: $radius-md; color: $color-white; font: inherit; font-weight: 600; background: $color-brand; cursor: pointer;
     &:hover:not(:disabled) { background: $color-brand-dark; }
     &:focus-visible { @include focus-ring; }
     &:disabled { opacity: 0.65; cursor: progress; }
+
+    /// Microsoft's brand guidance requires their button on a neutral surface
+    /// with the mark in full colour, so it cannot take the brand fill.
+    &--microsoft { border: 1px solid $color-border; color: $color-text; background: $color-white;
+      &:hover:not(:disabled) { background: $color-surface-subtle; }
+    }
   }
+  &__hint { margin: 0; color: $color-text-muted; font-size: $font-size-xs; text-align: center; }
   &__footer { margin-top: $space-6; color: $color-text-muted; font-size: $font-size-xs; text-align: center; }
   @include respond-to-mobile { padding: $space-4; &__card { padding: $space-6; } }
 }

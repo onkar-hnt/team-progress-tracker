@@ -27,6 +27,23 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
   )
 }
 
+/**
+ * Fills the viewport while the application decides what to show.
+ *
+ * Used by route guards, where rendering the destination early would either
+ * flash an empty state or briefly reveal a screen the person may not open.
+ */
+export function FullPageLoader({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div className="feedback feedback--full-page">
+      <span className="feedback__spinner" aria-hidden="true" />
+      <p className="feedback__message" role="status">
+        {label}
+      </p>
+    </div>
+  )
+}
+
 interface SkeletonProps {
   /** Number of placeholder rows to show. */
   rows?: number
