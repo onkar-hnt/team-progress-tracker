@@ -246,6 +246,33 @@ export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpd
         ) : null}
       </div>
 
+      <div className="daily-update-form__field">
+        <label htmlFor="update-work-done">What you got done today (optional)</label>
+        <textarea
+          id="update-work-done"
+          placeholder="The progress you made, as opposed to the task itself"
+          rows={2}
+          {...register('workDone')}
+          aria-invalid={errors.workDone ? 'true' : undefined}
+        />
+        {errors.workDone ? (
+          <p className="daily-update-form__error">{errors.workDone.message}</p>
+        ) : null}
+      </div>
+
+      <div className="daily-update-form__field">
+        <label htmlFor="update-planned-work">What you plan to do next (optional)</label>
+        <textarea
+          id="update-planned-work"
+          rows={2}
+          {...register('plannedWork')}
+          aria-invalid={errors.plannedWork ? 'true' : undefined}
+        />
+        {errors.plannedWork ? (
+          <p className="daily-update-form__error">{errors.plannedWork.message}</p>
+        ) : null}
+      </div>
+
       <div className="daily-update-form__grid">
         <div className="daily-update-form__field">
           <label htmlFor="update-status">Status</label>

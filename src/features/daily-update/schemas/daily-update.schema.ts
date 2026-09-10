@@ -50,6 +50,16 @@ export const dailyUpdateFormSchema = z
       .trim()
       .max(DESCRIPTION_MAX, { message: `Keep the description under ${DESCRIPTION_MAX} characters` }),
 
+    workDone: z
+      .string()
+      .trim()
+      .max(DESCRIPTION_MAX, { message: `Keep this under ${DESCRIPTION_MAX} characters` }),
+
+    plannedWork: z
+      .string()
+      .trim()
+      .max(DESCRIPTION_MAX, { message: `Keep this under ${DESCRIPTION_MAX} characters` }),
+
     status: z.enum(TASK_STATUSES),
 
     priority: z.enum(TASK_PRIORITIES),
@@ -123,6 +133,8 @@ export function toFormValues(entry: DailyWorkEntry): DailyUpdateFormValues {
     projectId: entry.projectId,
     taskTitle: entry.taskTitle,
     description: entry.description ?? '',
+    workDone: entry.workDone ?? '',
+    plannedWork: entry.plannedWork ?? '',
     status: entry.status,
     priority: entry.priority,
     progress: String(entry.progress),
@@ -143,6 +155,8 @@ export function createEmptyFormValues(options: {
     projectId: '',
     taskTitle: '',
     description: '',
+    workDone: '',
+    plannedWork: '',
     status: 'in-progress',
     priority: 'medium',
     progress: '0',
@@ -176,6 +190,8 @@ export function toCreateDailyWorkEntryRequest(
     progress: Number(values.progress),
     isBlocked,
     ...(values.description === '' ? {} : { description: values.description.trim() }),
+    ...(values.workDone === '' ? {} : { workDone: values.workDone.trim() }),
+    ...(values.plannedWork === '' ? {} : { plannedWork: values.plannedWork.trim() }),
     ...(values.hoursSpent === '' ? {} : { hoursSpent: Number(values.hoursSpent) }),
     ...(isBlocked && values.blockerDescription !== ''
       ? { blockerDescription: values.blockerDescription.trim() }
