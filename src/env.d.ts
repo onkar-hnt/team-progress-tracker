@@ -30,6 +30,38 @@ interface ImportMetaEnv {
   /** Artificial delay for the mock provider, in milliseconds. */
   readonly VITE_MOCK_LATENCY_MS?: string
 
+  /**
+   * `supabase`, `entra` or `local`. Leave unset for automatic selection.
+   *
+   * Only needed to force the offline workbook password provider (`local`),
+   * which is never selected automatically when Supabase is configured.
+   */
+  readonly VITE_AUTH_MODE?: string
+
+  /**
+   * Supabase project URL, such as `https://abcdefgh.supabase.co`.
+   *
+   * Also accepts the local `http://127.0.0.1:54321` used by `supabase start`.
+   */
+  readonly VITE_SUPABASE_URL?: string
+
+  /**
+   * Supabase publishable key, as shown in the dashboard.
+   *
+   * Public by design: it names the project rather than the caller, and Row
+   * Level Security is what decides access. A `service_role` or `sb_secret_…`
+   * key here would bypass every policy, so the client rejects one outright.
+   */
+  readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string
+
+  /**
+   * Former name for {@link VITE_SUPABASE_PUBLISHABLE_KEY}.
+   *
+   * Still read, so a deployment configured before Supabase renamed the key
+   * keeps working. Prefer the publishable name for anything new.
+   */
+  readonly VITE_SUPABASE_ANON_KEY?: string
+
   /** Sharing URL of the live workbook, as copied from SharePoint or OneDrive. */
   readonly VITE_SHAREPOINT_WORKBOOK_URL?: string
 

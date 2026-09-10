@@ -10,12 +10,16 @@ import { WORKBOOK_FILE_NAME } from '@services/data-provider/excel/excel-schema'
  * - `memory-excel` holds a workbook in memory, exercising the same tables,
  *   mappers and structure checks as the real thing. Development only.
  * - `mock` reads the fixtures in `src/data`, for development only.
+ * - `supabase` is PostgreSQL through Supabase, with row-level security. The
+ *   intended production source; the Excel modes remain for import, export and
+ *   reporting rather than as the live database.
  */
 export const DATA_SOURCE_MODES = [
   'local-excel',
   'memory-excel',
   'mock',
   'sharepoint-excel',
+  'supabase',
 ] as const
 
 export type DataSourceMode = (typeof DATA_SOURCE_MODES)[number]
@@ -25,6 +29,7 @@ export const DATA_SOURCE_LABELS: Readonly<Record<DataSourceMode, string>> = {
   'memory-excel': 'Temporary in-memory workbook (development only)',
   mock: 'Sample data built into the app',
   'sharepoint-excel': 'SharePoint workbook via Microsoft Graph',
+  supabase: 'Supabase (PostgreSQL)',
 }
 
 /**
@@ -87,6 +92,47 @@ export const appConfig = {
 
   mock: {
     latencyMs: readPositiveInteger(env.VITE_MOCK_LATENCY_MS, 0),
+  },
+
+  /**
+   * The Supabase project records are stored in.
+   *
+   * Both values are public. The URL identifies the project and the anon key
+   * identifies the *project*, not the caller, so it is designed to ship in a
+   * browser bundle. What a caller may read or write is decided by Supabase
+   * Auth and Row Level Security in the database, never by keeping this key
+   * hidden.
+   *
+   * Blank until a project exists, which is why nothing here throws: the
+   * application still runs on the in-memory workbook without it. Validation
+   * lives in `@services/supabase`, which refuses to build a client — rather
+   * than failing later with a network error — when these are missing,
+   * malformed, or a `service_role` key.
+   */
+  /**
+   * Which identity source to use, overriding automatic selection.
+   *
+   * Left blank normally: `createAuthProvider` picks Supabase when a project
+   * is configured, Entra when an app registration is, and the offline
+   * workbook password otherwise. Setting this pins the choice, which is how
+   * the offline fallback becomes an explicit decision rather than something
+   * the application can slip into on its own.
+   */
+  authMode: readText(env.VITE_AUTH_MODE, ''),
+
+  supabase: {
+    url: readText(env.VITE_SUPABASE_URL, ''),
+
+    /**
+     * Supabase renamed the browser-facing key from "anon" to "publishable"
+     * when it introduced the `sb_publishable_…` format. Both variables are
+     * read, preferring the current name, so that a value copied straight out
+     * of the dashboard works and an older deployment keeps running.
+     */
+    publishableKey: readText(
+      env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      readText(env.VITE_SUPABASE_ANON_KEY, ''),
+    ),
   },
 
   /**

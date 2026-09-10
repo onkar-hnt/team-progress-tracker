@@ -14,6 +14,20 @@ export interface Mentor {
   email: string
   active: boolean
 
+  /**
+   * The human-readable reference, `MEN001` and up.
+   *
+   * Display and export data, never a key — `id` is the only thing to match
+   * on. Kept because it is what a person writes in a message or reads back
+   * over a call, which a UUID cannot be used for.
+   *
+   * Optional because only a backend that issues codes populates it, and
+   * generating one here is exactly what must not happen: two browsers
+   * counting rows independently will both decide the next mentor is MEN004.
+   * The database assigns it from a sequence, which cannot collide.
+   */
+  code?: string
+
   /** ISO date the record was added. */
   createdDate?: string
 }

@@ -52,6 +52,29 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   }, [authProvider])
 
   /**
+   * Follows identity changes made outside this component.
+   *
+   * Signing out in another tab, or a session expiring beyond recovery, would
+   * otherwise leave this page rendering a user who is no longer signed in.
+   * Providers whose accounts live in a workbook have nothing to observe and
+   * omit the subscription entirely.
+   *
+   * Subscribing is idempotent and the cleanup unsubscribes, so StrictMode's
+   * double effect pass leaves exactly one listener. The provider ignores the
+   * initial-session event, so this never races the restore above.
+   */
+  useEffect(() => {
+    return authProvider.onSessionChange?.((nextUser) => {
+      setUser(nextUser)
+
+      if (nextUser === null) {
+        queryClient.clear()
+        resetAdminWorkbookInitialisation()
+      }
+    })
+  }, [authProvider, queryClient])
+
+  /**
    * Prepares the Admin workbook once a session belonging to an administrator
    * exists, whether it was just signed into or restored on load.
    *
@@ -95,6 +118,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       isAuthenticated: user !== null,
       isRestoring,
       usesCredentials: authProvider.usesCredentials,
+      isOffline: authProvider.isOffline,
       signIn,
       signOut,
     }),

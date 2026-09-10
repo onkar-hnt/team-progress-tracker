@@ -41,7 +41,7 @@ interface LocationState {
  * from configuration read here, so there is one source of truth for it.
  */
 export function LoginPage() {
-  const { isAuthenticated, isRestoring, signIn, usesCredentials } = useAuth()
+  const { isAuthenticated, isOffline, isRestoring, signIn, usesCredentials } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [signInError, setSignInError] = useState<string | null>(null)
@@ -111,8 +111,14 @@ export function LoginPage() {
           {signInError === null ? null : <p className="login__alert">{signInError}</p>}
         </div>
 
+        {/*
+          The built-in administrator only exists in the offline workbook
+          provider. Under Supabase Auth the password is held in the database
+          and is not in this bundle, so advertising it here would be both
+          wrong and a standing invitation to try it.
+        */}
         <footer className="login__footer">
-          {usesCredentials && bootstrapAdmin.isUsingDefaultPassword ? (
+          {usesCredentials && isOffline && bootstrapAdmin.isUsingDefaultPassword ? (
             <>
               Everyone else signs in with the details in the team workbook. For the very first
               sign-in, before anyone has been added, use <code>{bootstrapAdmin.email}</code> with

@@ -11,6 +11,16 @@ import type { TaskPriority, TaskStatus } from './daily-work.model'
 export interface AssignedTask {
   id: string
   name: string
+
+  /**
+   * The human-readable reference, `TSK001` and up.
+   *
+   * Display and export data, never a key. Issued by a database sequence
+   * rather than generated here, so that two browsers creating a task at the
+   * same moment cannot both claim TSK004.
+   */
+  code?: string
+
   description?: string
 
   projectId: string

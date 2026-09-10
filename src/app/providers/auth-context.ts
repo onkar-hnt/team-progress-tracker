@@ -17,6 +17,15 @@ export interface AuthContextValue {
   /** `false` when sign-in is delegated, so the form should not be shown. */
   usesCredentials: boolean
 
+  /**
+   * `true` when accounts are checked without a network round trip.
+   *
+   * Only the offline workbook provider is, and it is the only one that
+   * honours the built-in administrator credentials — so this is what the
+   * login screen uses to decide whether mentioning them is accurate.
+   */
+  isOffline: boolean
+
   /** Throws an `AuthError` when sign-in is rejected. */
   signIn: (credentials?: SignInCredentials) => Promise<AppUser>
 

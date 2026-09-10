@@ -111,6 +111,20 @@ function DataSourceModeNotice() {
             : ''}
         </p>
       )
+
+    case 'supabase':
+      // Not everything is stored in Supabase yet, and the difference matters
+      // to whoever is using the app: an edit to an employee is kept and an
+      // edit to a project is not. Saying which is which is the honest thing
+      // while the migration is part-way through, and this notice goes with
+      // the last entity.
+      return (
+        <p className="data-source-notice" role="status">
+          <strong>Partly connected to Supabase.</strong> Employees, mentors and projects are read
+          from and saved to the database. Tasks, daily updates and feedback are still sample data,
+          so changes to those will be lost on refresh.
+        </p>
+      )
   }
 }
 

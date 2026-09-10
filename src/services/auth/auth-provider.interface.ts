@@ -41,4 +41,18 @@ export interface AuthProvider {
    * because single sign-on needs a silent token request.
    */
   restoreSession(): Promise<AppUser | null>
+
+  /**
+   * Reports identity changes this application did not initiate.
+   *
+   * Sign-in and sign-out through `signIn` and `signOut` are already reflected
+   * by their return values; this exists for changes that happen elsewhere —
+   * another tab signing out, or a session expiring beyond recovery — so the
+   * open page does not keep rendering a session that has ended.
+   *
+   * Returns an unsubscribe function. Optional: a provider whose accounts live
+   * in a workbook has nothing to observe, and callers must cope with its
+   * absence rather than assume a subscription exists.
+   */
+  onSessionChange?(listener: (user: AppUser | null) => void): () => void
 }

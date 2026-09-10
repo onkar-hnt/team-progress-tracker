@@ -16,6 +16,19 @@ export interface Developer {
   name: string
 
   /**
+   * The human-readable reference, `DEV001` and up.
+   *
+   * Display and export data, never a key, and distinct from `employeeId`:
+   * this one is issued by this application, that one comes from HR.
+   *
+   * Optional because only a backend that issues codes populates it. It is
+   * not generated here — two browsers counting rows would both decide the
+   * next employee is DEV004 — but by a database sequence, which cannot
+   * collide.
+   */
+  code?: string
+
+  /**
    * Payroll or HR reference.
    *
    * Kept separate from `id` so that the relational key stays under this

@@ -1,4 +1,5 @@
 import { appConfig } from '@config/app.config'
+import { getSupabaseClient } from '@services/supabase/index'
 
 import type { DataProvider } from './data-provider.interface'
 import { ExcelDataProvider } from './excel/excel-data-provider'
@@ -8,6 +9,7 @@ import { getMemoryWorkbookGateway } from './excel/memory-workbook-gateway'
 import { UnconfiguredWorkbookGateway } from './excel/workbook-gateway'
 import type { WorkbookGateway } from './excel/workbook-gateway'
 import { MockDataProvider } from './mock/mock-data-provider'
+import { SupabaseDataProvider } from './supabase/supabase-data-provider'
 import { getWorkbookFileStore, subscribeToWorkbookConnection } from './workbook-connection'
 
 export type { DataProvider, DataProviderCapabilities } from './data-provider.interface'
@@ -40,8 +42,10 @@ function createGraphGateway(): WorkbookGateway {
 /**
  * Builds the workbook transport selected by configuration.
  *
- * `null` for the `mock` source, which reads fixtures rather than a workbook
- * and therefore has no transport to expose.
+ * `null` for the sources that read no workbook: `mock`, which reads fixtures,
+ * and `supabase`, where the records live in PostgreSQL. Returning `null`
+ * rather than a placeholder is what keeps the startup workbook check from
+ * running against a source that has no workbook to check.
  */
 function createWorkbookGateway(): WorkbookGateway | null {
   switch (appConfig.dataSource) {
@@ -61,6 +65,7 @@ function createWorkbookGateway(): WorkbookGateway | null {
       return createGraphGateway()
 
     case 'mock':
+    case 'supabase':
       return null
   }
 }
@@ -75,9 +80,21 @@ function createWorkbookGateway(): WorkbookGateway | null {
 export function createDataProvider(): DataProvider {
   const gateway = getWorkbookGateway()
 
-  return gateway === null
-    ? new MockDataProvider({ latencyMs: appConfig.mock.latencyMs })
-    : new ExcelDataProvider({ gateway })
+  const workbookOrFixtures: DataProvider =
+    gateway === null
+      ? new MockDataProvider({ latencyMs: appConfig.mock.latencyMs })
+      : new ExcelDataProvider({ gateway })
+
+  if (appConfig.dataSource !== 'supabase') return workbookOrFixtures
+
+  // The fixtures stand in for the entities still being migrated, so the rest
+  // of the application keeps working while they are moved across one at a
+  // time. That delegate goes away with the last phase, at which point this
+  // becomes a plain `new SupabaseDataProvider({ client })`.
+  return new SupabaseDataProvider({
+    client: getSupabaseClient(),
+    unmigrated: workbookOrFixtures,
+  })
 }
 
 let cachedProvider: DataProvider | undefined

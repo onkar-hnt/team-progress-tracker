@@ -47,3 +47,35 @@ export class SignInFailedError extends AuthError {
     this.name = 'SignInFailedError'
   }
 }
+
+/**
+ * Credentials were accepted but the account has no application profile.
+ *
+ * The database counterpart of `UnknownAccountError`: the person proved who
+ * they are to Supabase Auth, but no `public.profiles` row carries their role,
+ * so there is nothing to authorise them with. An administrator has to create
+ * it — the application cannot, and deliberately has no policy allowing it.
+ */
+export class MissingProfileError extends AuthError {
+  constructor(email: string) {
+    super(
+      `${email} signed in, but has no profile in the application database. ` +
+        'Ask an administrator to set up your access.',
+    )
+    this.name = 'MissingProfileError'
+  }
+}
+
+/**
+ * The identity provider is not configured, so sign-in cannot be attempted.
+ *
+ * Separate from a failed sign-in: nothing was rejected, the deployment is
+ * incomplete. Carries the detail so a developer sees which variable is wrong
+ * rather than a generic failure.
+ */
+export class AuthConfigurationError extends AuthError {
+  constructor(detail: string, options?: { cause?: unknown }) {
+    super(`Sign-in is not available: ${detail}`, options)
+    this.name = 'AuthConfigurationError'
+  }
+}

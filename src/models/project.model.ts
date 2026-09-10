@@ -19,6 +19,15 @@ export interface Project {
   client?: string
   active: boolean
 
+  /**
+   * The human-readable reference, `PRJ001` and up.
+   *
+   * Display and export data, never a key. Issued by a database sequence
+   * rather than generated here, because two browsers counting rows would
+   * both decide the next project is PRJ004.
+   */
+  code?: string
+
   description?: string
   status: ProjectStatus
 
