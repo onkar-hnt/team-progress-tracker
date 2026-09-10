@@ -120,9 +120,9 @@ function DataSourceModeNotice() {
       // the last entity.
       return (
         <p className="data-source-notice" role="status">
-          <strong>Partly connected to Supabase.</strong> Employees, mentors, projects and tasks
-          are read from and saved to the database. Daily updates and feedback are still sample
-          data, so changes to those will be lost on refresh.
+          <strong>Partly connected to Supabase.</strong> Employees, mentors, projects, tasks and
+          daily updates are read from and saved to the database. Mentor feedback is still sample
+          data, so changes to it will be lost on refresh.
         </p>
       )
   }

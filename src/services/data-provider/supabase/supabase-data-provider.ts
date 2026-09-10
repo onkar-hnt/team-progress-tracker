@@ -26,6 +26,13 @@ import type { AppSupabaseClient } from '@services/supabase/index'
 
 import type { DataProvider, DataProviderCapabilities } from '../data-provider.interface'
 import {
+  deleteDailyUpdateRow,
+  insertDailyUpdate,
+  selectDailyUpdateById,
+  selectDailyUpdates,
+  updateDailyUpdateRow,
+} from './daily-updates.repository'
+import {
   deleteDeveloperRow,
   insertDeveloper,
   selectDevelopers,
@@ -81,8 +88,7 @@ export interface SupabaseDataProviderOptions {
  * unchanged, because none of them can tell which implementation they are
  * talking to.
  *
- * MIGRATION IN PROGRESS. Employees, mentors, mentor assignments, projects and
- * tasks are served from Supabase; daily updates and feedback are delegated.
+ * MIGRATION IN PROGRESS. Everything except feedback is served from Supabase.
  * Each phase moves one entity from the delegated block at the bottom of this
  * file up into a repository call, and the delegate disappears when the last
  * one lands.
@@ -231,6 +237,35 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   // ---------------------------------------------------------------------------
+  // Daily updates — served by Supabase
+  // ---------------------------------------------------------------------------
+  // Also filtered at source. The busiest reads in the application are here:
+  // every dashboard panel asks this table for a day or a week.
+
+  getDailyWorkEntries(query?: DailyWorkQuery): Promise<DailyWorkEntry[]> {
+    return selectDailyUpdates(this.client, query)
+  }
+
+  getDailyWorkEntryById(id: string): Promise<DailyWorkEntry | null> {
+    return selectDailyUpdateById(this.client, id)
+  }
+
+  createDailyWorkEntry(request: CreateDailyWorkEntryRequest): Promise<DailyWorkEntry> {
+    return insertDailyUpdate(this.client, request)
+  }
+
+  updateDailyWorkEntry(
+    id: string,
+    request: UpdateDailyWorkEntryRequest,
+  ): Promise<DailyWorkEntry> {
+    return updateDailyUpdateRow(this.client, id, request)
+  }
+
+  deleteDailyWorkEntry(id: string): Promise<void> {
+    return deleteDailyUpdateRow(this.client, id)
+  }
+
+  // ---------------------------------------------------------------------------
   // Not yet migrated
   // ---------------------------------------------------------------------------
   // Delegated verbatim. Each of these becomes a repository call in a later
@@ -251,28 +286,5 @@ export class SupabaseDataProvider implements DataProvider {
 
   deleteComment(id: string): Promise<void> {
     return this.unmigrated.deleteComment(id)
-  }
-
-  getDailyWorkEntries(query?: DailyWorkQuery): Promise<DailyWorkEntry[]> {
-    return this.unmigrated.getDailyWorkEntries(query)
-  }
-
-  getDailyWorkEntryById(id: string): Promise<DailyWorkEntry | null> {
-    return this.unmigrated.getDailyWorkEntryById(id)
-  }
-
-  createDailyWorkEntry(request: CreateDailyWorkEntryRequest): Promise<DailyWorkEntry> {
-    return this.unmigrated.createDailyWorkEntry(request)
-  }
-
-  updateDailyWorkEntry(
-    id: string,
-    request: UpdateDailyWorkEntryRequest,
-  ): Promise<DailyWorkEntry> {
-    return this.unmigrated.updateDailyWorkEntry(id, request)
-  }
-
-  deleteDailyWorkEntry(id: string): Promise<void> {
-    return this.unmigrated.deleteDailyWorkEntry(id)
   }
 }
