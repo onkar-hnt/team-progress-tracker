@@ -24,3 +24,5 @@ $radius-lg: 0.75rem;
 $shadow-sm: 0 1px 3px rgb(15 23 42 / 8%);
 $header-height: 4.5rem;
 $sidebar-width: 15rem;
+/// Wide enough for an icon plus its focus ring, with nothing else on the rail.
+$sidebar-width-collapsed: 4.5rem;

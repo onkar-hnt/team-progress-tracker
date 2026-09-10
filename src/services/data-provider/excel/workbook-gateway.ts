@@ -44,6 +44,15 @@ export interface WorkbookGateway {
   appendRow(tableName: string, row: RawExcelRow): Promise<void>
 
   /**
+   * Appends several rows in one call.
+   *
+   * Provided separately because rewriting a mentor's assignments means adding
+   * a handful of rows at once, and one request per row would be both slow and
+   * partially applicable if it failed halfway.
+   */
+  appendRows(tableName: string, rows: readonly RawExcelRow[]): Promise<void>
+
+  /**
    * Replaces the row whose `keyColumn` equals `keyValue`.
    *
    * Must reject when no row matches, so callers can surface a clear
@@ -57,6 +66,16 @@ export interface WorkbookGateway {
   ): Promise<void>
 
   deleteRowByKey(tableName: string, keyColumn: string, keyValue: string): Promise<void>
+
+  /**
+   * Deletes every row whose `keyColumn` equals `keyValue`, returning the count.
+   *
+   * Needed for tables with no single-column key, such as the mentor mapping,
+   * where "all rows for this mentor" is the unit of work. Unlike
+   * `deleteRowByKey` this succeeds when nothing matches, because removing an
+   * empty set is not an error.
+   */
+  deleteRowsByKey(tableName: string, keyColumn: string, keyValue: string): Promise<number>
 }
 
 /**
@@ -86,11 +105,19 @@ export class UnconfiguredWorkbookGateway implements WorkbookGateway {
     return this.fail()
   }
 
+  appendRows(): Promise<void> {
+    return this.fail()
+  }
+
   updateRowByKey(): Promise<void> {
     return this.fail()
   }
 
   deleteRowByKey(): Promise<void> {
+    return this.fail()
+  }
+
+  deleteRowsByKey(): Promise<number> {
     return this.fail()
   }
 }

@@ -1,6 +1,10 @@
 import type {
+  AssignedTask,
   DailyWorkEntry,
   Developer,
+  Mentor,
+  MentorAssignment,
+  MentorComment,
   Project,
   TaskPriority,
   TaskStatus,
@@ -8,17 +12,28 @@ import type {
 
 import type { RowValidationIssue } from '../data-provider.errors'
 import {
+  COMMENT_COLUMNS,
   DAILY_WORK_COLUMNS,
   DEVELOPER_COLUMNS,
+  EXCEL_ACCESS_ROLE_VALUES,
+  EXCEL_LIST_SEPARATOR,
   EXCEL_PRIORITY_VALUES,
+  EXCEL_PROJECT_STATUS_VALUES,
   EXCEL_STATUS_VALUES,
+  MENTOR_COLUMNS,
+  MENTOR_MAPPING_COLUMNS,
   PROJECT_COLUMNS,
+  TASK_COLUMNS,
 } from './excel-schema'
 import type { RawExcelRow } from './excel-schema'
 import {
+  assignedTaskSchema,
   dailyWorkEntrySchema,
   describeZodIssues,
   developerSchema,
+  mentorAssignmentSchema,
+  mentorCommentSchema,
+  mentorSchema,
   projectSchema,
 } from './excel-row.schemas'
 import {
@@ -75,7 +90,40 @@ function optionalField<TKey extends string, TValue>(
   return value === null ? {} : ({ [key]: value } as Record<TKey, TValue>)
 }
 
+/** Case-insensitive reverse lookup builder for the enumerated columns. */
+function buildValueLookup<TCode extends string>(
+  values: Readonly<Record<TCode, string>>,
+): Map<string, TCode> {
+  return new Map(
+    Object.entries<string>(values).map(([code, label]) => [label.toLowerCase(), code as TCode]),
+  )
+}
+
+const PROJECT_STATUS_BY_EXCEL_VALUE = buildValueLookup(EXCEL_PROJECT_STATUS_VALUES)
+
+const ACCESS_ROLE_BY_EXCEL_VALUE = buildValueLookup(EXCEL_ACCESS_ROLE_VALUES)
+
+/**
+ * Splits a delimited id cell.
+ *
+ * Both separators are accepted on read because a person editing the sheet by
+ * hand will reach for a comma regardless of what the writer emits.
+ */
+function parseIdListCell(value: unknown): string[] {
+  const text = parseExcelTextCell(value)
+  if (text === null) return []
+
+  return text
+    .split(/[;,]/)
+    .map((part) => part.trim())
+    .filter((part) => part !== '')
+}
+
 export function mapDeveloperRow(row: RawExcelRow): RowMapResult<Developer> {
+  const rawAccessRole = parseExcelTextCell(readCell(row, DEVELOPER_COLUMNS.accessRole))
+  const accessRole =
+    rawAccessRole === null ? null : ACCESS_ROLE_BY_EXCEL_VALUE.get(rawAccessRole.toLowerCase()) ?? null
+
   const candidate = {
     id: parseExcelTextCell(readCell(row, DEVELOPER_COLUMNS.developerId)) ?? '',
     name: parseExcelTextCell(readCell(row, DEVELOPER_COLUMNS.developerName)) ?? '',
@@ -84,6 +132,11 @@ export function mapDeveloperRow(row: RawExcelRow): RowMapResult<Developer> {
     // A blank Active cell means the row was added without deciding; treating
     // that as active keeps new joiners visible rather than silently hidden.
     active: parseExcelBooleanCell(readCell(row, DEVELOPER_COLUMNS.active)) ?? true,
+    ...optionalField('email', parseExcelTextCell(readCell(row, DEVELOPER_COLUMNS.email))),
+    // An unrecognised AccessRole is left unset rather than rejected, so a typo
+    // in that column costs the person their elevated access instead of hiding
+    // their entire row from the application.
+    ...optionalField('accessRole', accessRole),
   }
 
   const result = developerSchema.safeParse(candidate)
@@ -92,18 +145,225 @@ export function mapDeveloperRow(row: RawExcelRow): RowMapResult<Developer> {
     : { ok: false, messages: describeZodIssues(result.error) }
 }
 
+export function toDeveloperRow(developer: Developer): RawExcelRow {
+  return {
+    [DEVELOPER_COLUMNS.developerId]: developer.id,
+    [DEVELOPER_COLUMNS.developerName]: developer.name,
+    [DEVELOPER_COLUMNS.role]: developer.role ?? '',
+    [DEVELOPER_COLUMNS.location]: developer.location ?? '',
+    [DEVELOPER_COLUMNS.active]: formatExcelBoolean(developer.active),
+    [DEVELOPER_COLUMNS.email]: developer.email ?? '',
+    [DEVELOPER_COLUMNS.accessRole]:
+      developer.accessRole === undefined ? '' : EXCEL_ACCESS_ROLE_VALUES[developer.accessRole],
+  }
+}
+
+export function mapMentorRow(row: RawExcelRow): RowMapResult<Mentor> {
+  const candidate = {
+    id: parseExcelTextCell(readCell(row, MENTOR_COLUMNS.mentorId)) ?? '',
+    name: parseExcelTextCell(readCell(row, MENTOR_COLUMNS.mentorName)) ?? '',
+    email: parseExcelTextCell(readCell(row, MENTOR_COLUMNS.email)) ?? '',
+    active: parseExcelBooleanCell(readCell(row, MENTOR_COLUMNS.active)) ?? true,
+  }
+
+  const result = mentorSchema.safeParse(candidate)
+  return result.success
+    ? { ok: true, value: result.data }
+    : { ok: false, messages: describeZodIssues(result.error) }
+}
+
+export function toMentorRow(mentor: Mentor): RawExcelRow {
+  return {
+    [MENTOR_COLUMNS.mentorId]: mentor.id,
+    [MENTOR_COLUMNS.mentorName]: mentor.name,
+    [MENTOR_COLUMNS.email]: mentor.email,
+    [MENTOR_COLUMNS.active]: formatExcelBoolean(mentor.active),
+  }
+}
+
+export function mapMentorAssignmentRow(row: RawExcelRow): RowMapResult<MentorAssignment> {
+  const candidate = {
+    mentorId: parseExcelTextCell(readCell(row, MENTOR_MAPPING_COLUMNS.mentorId)) ?? '',
+    developerId: parseExcelTextCell(readCell(row, MENTOR_MAPPING_COLUMNS.developerId)) ?? '',
+  }
+
+  const result = mentorAssignmentSchema.safeParse(candidate)
+  return result.success
+    ? { ok: true, value: result.data }
+    : { ok: false, messages: describeZodIssues(result.error) }
+}
+
+export function toMentorAssignmentRow(assignment: MentorAssignment): RawExcelRow {
+  return {
+    [MENTOR_MAPPING_COLUMNS.mentorId]: assignment.mentorId,
+    [MENTOR_MAPPING_COLUMNS.developerId]: assignment.developerId,
+  }
+}
+
 export function mapProjectRow(row: RawExcelRow): RowMapResult<Project> {
+  const rawStatus = parseExcelTextCell(readCell(row, PROJECT_COLUMNS.status))
+
   const candidate = {
     id: parseExcelTextCell(readCell(row, PROJECT_COLUMNS.projectId)) ?? '',
     name: parseExcelTextCell(readCell(row, PROJECT_COLUMNS.projectName)) ?? '',
     ...optionalField('client', parseExcelTextCell(readCell(row, PROJECT_COLUMNS.client))),
     active: parseExcelBooleanCell(readCell(row, PROJECT_COLUMNS.active)) ?? true,
+    ...optionalField('description', parseExcelTextCell(readCell(row, PROJECT_COLUMNS.description))),
+    // Projects predating the Status column read as active, which is what an
+    // in-flight project in the existing sheet actually is.
+    status:
+      rawStatus === null
+        ? 'active'
+        : PROJECT_STATUS_BY_EXCEL_VALUE.get(rawStatus.toLowerCase()) ?? 'active',
+    ...optionalField('startDate', parseExcelDateCell(readCell(row, PROJECT_COLUMNS.startDate))),
+    ...optionalField('endDate', parseExcelDateCell(readCell(row, PROJECT_COLUMNS.endDate))),
+    ...optionalField('mentorId', parseExcelTextCell(readCell(row, PROJECT_COLUMNS.mentorId))),
+    assignedDeveloperIds: parseIdListCell(readCell(row, PROJECT_COLUMNS.assignedDevelopers)),
   }
 
   const result = projectSchema.safeParse(candidate)
   return result.success
     ? { ok: true, value: result.data }
     : { ok: false, messages: describeZodIssues(result.error) }
+}
+
+export function toProjectRow(project: Project): RawExcelRow {
+  return {
+    [PROJECT_COLUMNS.projectId]: project.id,
+    [PROJECT_COLUMNS.projectName]: project.name,
+    [PROJECT_COLUMNS.client]: project.client ?? '',
+    [PROJECT_COLUMNS.active]: formatExcelBoolean(project.active),
+    [PROJECT_COLUMNS.description]: project.description ?? '',
+    [PROJECT_COLUMNS.status]: EXCEL_PROJECT_STATUS_VALUES[project.status],
+    [PROJECT_COLUMNS.startDate]: project.startDate ?? '',
+    [PROJECT_COLUMNS.endDate]: project.endDate ?? '',
+    [PROJECT_COLUMNS.mentorId]: project.mentorId ?? '',
+    [PROJECT_COLUMNS.assignedDevelopers]: project.assignedDeveloperIds.join(EXCEL_LIST_SEPARATOR),
+  }
+}
+
+export function mapTaskRow(row: RawExcelRow): RowMapResult<AssignedTask> {
+  const rawStatus = parseExcelTextCell(readCell(row, TASK_COLUMNS.status))
+  const rawPriority = parseExcelTextCell(readCell(row, TASK_COLUMNS.priority))
+
+  const messages: string[] = []
+
+  const status = rawStatus === null ? undefined : STATUS_BY_EXCEL_VALUE.get(rawStatus.toLowerCase())
+  if (status === undefined) {
+    messages.push(
+      `${TASK_COLUMNS.status}: "${rawStatus ?? ''}" is not one of ${Object.values(EXCEL_STATUS_VALUES).join(', ')}.`,
+    )
+  }
+
+  const priority =
+    rawPriority === null ? undefined : PRIORITY_BY_EXCEL_VALUE.get(rawPriority.toLowerCase())
+  if (priority === undefined) {
+    messages.push(
+      `${TASK_COLUMNS.priority}: "${rawPriority ?? ''}" is not one of ${Object.values(EXCEL_PRIORITY_VALUES).join(', ')}.`,
+    )
+  }
+
+  if (messages.length > 0) return { ok: false, messages }
+
+  // A task with no CreatedDate is dated by its due date where there is one,
+  // so it still sorts sensibly instead of vanishing from date-bounded views.
+  const dueDate = parseExcelDateCell(readCell(row, TASK_COLUMNS.dueDate))
+  const createdDate = parseExcelDateCell(readCell(row, TASK_COLUMNS.createdDate)) ?? dueDate ?? ''
+
+  const candidate = {
+    id: parseExcelTextCell(readCell(row, TASK_COLUMNS.taskId)) ?? '',
+    name: parseExcelTextCell(readCell(row, TASK_COLUMNS.taskName)) ?? '',
+    ...optionalField('description', parseExcelTextCell(readCell(row, TASK_COLUMNS.taskDescription))),
+    projectId: parseExcelTextCell(readCell(row, TASK_COLUMNS.projectId)) ?? '',
+    developerId: parseExcelTextCell(readCell(row, TASK_COLUMNS.developerId)) ?? '',
+    ...optionalField('mentorId', parseExcelTextCell(readCell(row, TASK_COLUMNS.mentorId))),
+    priority,
+    status,
+    createdDate,
+    ...optionalField('dueDate', dueDate),
+    updatedAt:
+      parseExcelTimestampCell(readCell(row, TASK_COLUMNS.updatedAt)) ??
+      `${createdDate}T00:00:00.000Z`,
+  }
+
+  const result = assignedTaskSchema.safeParse(candidate)
+  return result.success
+    ? { ok: true, value: result.data }
+    : { ok: false, messages: describeZodIssues(result.error) }
+}
+
+export function toTaskRow(task: AssignedTask): RawExcelRow {
+  return {
+    [TASK_COLUMNS.taskId]: task.id,
+    [TASK_COLUMNS.taskName]: task.name,
+    [TASK_COLUMNS.taskDescription]: task.description ?? '',
+    [TASK_COLUMNS.projectId]: task.projectId,
+    [TASK_COLUMNS.developerId]: task.developerId,
+    [TASK_COLUMNS.mentorId]: task.mentorId ?? '',
+    [TASK_COLUMNS.priority]: EXCEL_PRIORITY_VALUES[task.priority],
+    [TASK_COLUMNS.status]: EXCEL_STATUS_VALUES[task.status],
+    [TASK_COLUMNS.createdDate]: task.createdDate,
+    [TASK_COLUMNS.dueDate]: task.dueDate ?? '',
+    [TASK_COLUMNS.updatedAt]: task.updatedAt,
+  }
+}
+
+export function mapCommentRow(row: RawExcelRow): RowMapResult<MentorComment> {
+  const date = parseExcelDateCell(readCell(row, COMMENT_COLUMNS.commentDate))
+
+  if (date === null) {
+    return {
+      ok: false,
+      messages: [
+        `${COMMENT_COLUMNS.commentDate}: could not be read as a date. Store a real Excel date or an ISO yyyy-MM-dd value.`,
+      ],
+    }
+  }
+
+  const fallbackTimestamp = `${date}T00:00:00.000Z`
+  const createdAt =
+    parseExcelTimestampCell(readCell(row, COMMENT_COLUMNS.createdAt)) ?? fallbackTimestamp
+
+  const candidate = {
+    id: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.commentId)) ?? '',
+    developerId: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.developerId)) ?? '',
+    mentorId: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.mentorId)) ?? '',
+    ...optionalField('projectId', parseExcelTextCell(readCell(row, COMMENT_COLUMNS.projectId))),
+    date,
+    comment: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.comment)) ?? '',
+    ...optionalField(
+      'progressUpdate',
+      parseExcelTextCell(readCell(row, COMMENT_COLUMNS.progressUpdate)),
+    ),
+    ...optionalField('blockers', parseExcelTextCell(readCell(row, COMMENT_COLUMNS.blockers))),
+    ...optionalField(
+      'recommendations',
+      parseExcelTextCell(readCell(row, COMMENT_COLUMNS.recommendations)),
+    ),
+    createdAt,
+    updatedAt: parseExcelTimestampCell(readCell(row, COMMENT_COLUMNS.updatedAt)) ?? createdAt,
+  }
+
+  const result = mentorCommentSchema.safeParse(candidate)
+  return result.success
+    ? { ok: true, value: result.data }
+    : { ok: false, messages: describeZodIssues(result.error) }
+}
+
+export function toCommentRow(comment: MentorComment): RawExcelRow {
+  return {
+    [COMMENT_COLUMNS.commentId]: comment.id,
+    [COMMENT_COLUMNS.developerId]: comment.developerId,
+    [COMMENT_COLUMNS.mentorId]: comment.mentorId,
+    [COMMENT_COLUMNS.projectId]: comment.projectId ?? '',
+    [COMMENT_COLUMNS.commentDate]: comment.date,
+    [COMMENT_COLUMNS.comment]: comment.comment,
+    [COMMENT_COLUMNS.progressUpdate]: comment.progressUpdate ?? '',
+    [COMMENT_COLUMNS.blockers]: comment.blockers ?? '',
+    [COMMENT_COLUMNS.recommendations]: comment.recommendations ?? '',
+    [COMMENT_COLUMNS.createdAt]: comment.createdAt,
+    [COMMENT_COLUMNS.updatedAt]: comment.updatedAt,
+  }
 }
 
 export function mapDailyWorkRow(row: RawExcelRow): RowMapResult<DailyWorkEntry> {

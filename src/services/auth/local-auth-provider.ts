@@ -1,107 +1,65 @@
-import { USER_ROLES } from '@models/user.model'
-import type { AppUser, SignInCredentials, UserRole } from '@models/user.model'
+import type { AppUser, SignInCredentials } from '@models/user.model'
+import type { DataProvider } from '@services/data-provider/data-provider.interface'
 
 import type { AuthProvider } from './auth-provider.interface'
 import { InvalidCredentialsError } from './auth.errors'
-import { HARDCODED_ACCOUNTS } from './credentials'
+import { forgetSignedInEmail, readSignedInEmail, rememberSignedInEmail } from './session-store'
+import { resolveWorkbookIdentity } from './workbook-identity'
 
 /**
- * Session key. Versioned so that changing the stored shape later invalidates
- * old sessions instead of rehydrating something unexpected.
- */
-const SESSION_STORAGE_KEY = 'team-progress-tracker.session.v1'
-
-/**
- * Sign-in against the hardcoded account list.
+ * Fallback sign-in for deployments without single sign-on.
  *
- * The session lives in `sessionStorage` rather than `localStorage` so that
- * closing the tab signs the user out. On a shared machine that is the safer
- * default, and it costs a signed-in user only one extra sign-in per session.
+ * Accounts come from the workbook, not from code, and the password follows the
+ * agreed `FirstName@1234` convention derived from the person's name.
+ *
+ * SECURITY: this is a convenience gate, not protection. The rule that
+ * generates the password is in the JavaScript bundle, so anyone who can open
+ * the application can work out anyone else's password. It exists only so the
+ * team can use the app before the Entra app registration is issued, and the
+ * deployment must not be publicly reachable while it is in use.
  */
 export class LocalAuthProvider implements AuthProvider {
-  readonly name = 'hardcoded'
+  readonly name = 'workbook-password'
   readonly isOffline = true
+  readonly usesCredentials = true
 
-  async signIn(credentials: SignInCredentials): Promise<AppUser> {
-    const email = credentials.email.trim().toLowerCase()
+  private readonly getProvider: () => DataProvider
 
-    const account = HARDCODED_ACCOUNTS.find(
-      (candidate) => candidate.email.toLowerCase() === email,
-    )
+  constructor(getProvider: () => DataProvider) {
+    this.getProvider = getProvider
+  }
 
-    // Passwords are compared as typed; only the email is case-insensitive.
-    if (account === undefined || account.password !== credentials.password) {
+  async signIn(credentials?: SignInCredentials): Promise<AppUser> {
+    if (credentials === undefined) throw new InvalidCredentialsError()
+
+    const identity = await resolveWorkbookIdentity(this.getProvider(), credentials.email)
+
+    // One error for both causes, so the response never reveals whether an
+    // address exists in the workbook.
+    if (identity === null || identity.expectedPassword !== credentials.password) {
       throw new InvalidCredentialsError()
     }
 
-    const user: AppUser = {
-      email: account.email,
-      name: account.name,
-      role: account.role,
-      ...(account.developerId === undefined ? {} : { developerId: account.developerId }),
-    }
-
-    this.persistSession(user)
-    return user
+    rememberSignedInEmail(identity.user.email)
+    return identity.user
   }
 
   async signOut(): Promise<void> {
-    readSessionStorage()?.removeItem(SESSION_STORAGE_KEY)
+    forgetSignedInEmail()
   }
 
-  restoreSession(): AppUser | null {
-    const raw = readSessionStorage()?.getItem(SESSION_STORAGE_KEY)
-    if (raw === null || raw === undefined) return null
+  async restoreSession(): Promise<AppUser | null> {
+    const email = readSignedInEmail()
+    if (email === null) return null
 
-    try {
-      return parseStoredUser(JSON.parse(raw) as unknown)
-    } catch {
-      // Corrupted or hand-edited session data: drop it and require sign-in.
+    // The role is re-read rather than restored, so a change in Excel takes
+    // effect on the next page load instead of persisting until sign-out.
+    const identity = await resolveWorkbookIdentity(this.getProvider(), email)
+    if (identity === null) {
+      forgetSignedInEmail()
       return null
     }
-  }
 
-  private persistSession(user: AppUser): void {
-    readSessionStorage()?.setItem(SESSION_STORAGE_KEY, JSON.stringify(user))
-  }
-}
-
-/** Storage is unavailable in some privacy modes, so never assume it exists. */
-function readSessionStorage(): Storage | null {
-  try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage
-  } catch {
-    return null
-  }
-}
-
-function isUserRole(value: unknown): value is UserRole {
-  return typeof value === 'string' && USER_ROLES.includes(value as UserRole)
-}
-
-/**
- * Revalidates a restored session against the account list.
- *
- * Trusting the stored blob would let anyone grant themselves admin by editing
- * session storage, so the role and identity are re-read from the source of
- * truth and the stored value is used only to identify who was signed in.
- */
-function parseStoredUser(value: unknown): AppUser | null {
-  if (typeof value !== 'object' || value === null) return null
-
-  const candidate = value as Partial<AppUser>
-  if (typeof candidate.email !== 'string' || !isUserRole(candidate.role)) return null
-
-  const account = HARDCODED_ACCOUNTS.find(
-    (entry) => entry.email.toLowerCase() === candidate.email?.toLowerCase(),
-  )
-
-  if (account === undefined) return null
-
-  return {
-    email: account.email,
-    name: account.name,
-    role: account.role,
-    ...(account.developerId === undefined ? {} : { developerId: account.developerId }),
+    return identity.user
   }
 }

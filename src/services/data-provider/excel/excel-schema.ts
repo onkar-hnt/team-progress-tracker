@@ -1,4 +1,6 @@
 import type { TaskPriority, TaskStatus } from '@models/daily-work.model'
+import type { ProjectStatus } from '@models/project.model'
+import type { UserRole } from '@models/user.model'
 
 /**
  * The workbook contract.
@@ -17,8 +19,13 @@ export const WORKBOOK_FILE_NAME = 'Team-Progress-Tracker.xlsx'
  * worksheet layout, cell ranges or row numbers.
  */
 export const EXCEL_TABLES = {
+  /** The Employees table of the workbook. */
   developers: 'tblDevelopers',
+  mentors: 'tblMentors',
+  mentorMapping: 'tblMentorMapping',
   projects: 'tblProjects',
+  tasks: 'tblTasks',
+  comments: 'tblComments',
   dailyWork: 'tblDailyWork',
 } as const
 
@@ -28,6 +35,24 @@ export const DEVELOPER_COLUMNS = {
   role: 'Role',
   location: 'Location',
   active: 'Active',
+
+  /// Appended columns. Existing workbooks without them still read correctly:
+  /// a missing column is treated as a blank cell, so `Email` simply means the
+  /// row cannot sign in and `AccessRole` defaults to developer.
+  email: 'Email',
+  accessRole: 'AccessRole',
+} as const
+
+export const MENTOR_COLUMNS = {
+  mentorId: 'MentorId',
+  mentorName: 'MentorName',
+  email: 'Email',
+  active: 'Active',
+} as const
+
+export const MENTOR_MAPPING_COLUMNS = {
+  mentorId: 'MentorId',
+  developerId: 'DeveloperId',
 } as const
 
 export const PROJECT_COLUMNS = {
@@ -35,6 +60,41 @@ export const PROJECT_COLUMNS = {
   projectName: 'ProjectName',
   client: 'Client',
   active: 'Active',
+
+  description: 'Description',
+  status: 'Status',
+  startDate: 'StartDate',
+  endDate: 'EndDate',
+  mentorId: 'MentorId',
+  assignedDevelopers: 'AssignedDevelopers',
+} as const
+
+export const TASK_COLUMNS = {
+  taskId: 'TaskId',
+  taskName: 'TaskName',
+  taskDescription: 'TaskDescription',
+  projectId: 'ProjectId',
+  developerId: 'DeveloperId',
+  mentorId: 'MentorId',
+  priority: 'Priority',
+  status: 'Status',
+  createdDate: 'CreatedDate',
+  dueDate: 'DueDate',
+  updatedAt: 'UpdatedAt',
+} as const
+
+export const COMMENT_COLUMNS = {
+  commentId: 'CommentId',
+  developerId: 'DeveloperId',
+  mentorId: 'MentorId',
+  projectId: 'ProjectId',
+  commentDate: 'CommentDate',
+  comment: 'Comment',
+  progressUpdate: 'ProgressUpdate',
+  blockers: 'Blockers',
+  recommendations: 'Recommendations',
+  createdAt: 'CreatedAt',
+  updatedAt: 'UpdatedAt',
 } as const
 
 export const DAILY_WORK_COLUMNS = {
@@ -73,6 +133,34 @@ export const REQUIRED_PROJECT_COLUMNS: readonly string[] = [
   PROJECT_COLUMNS.active,
 ]
 
+export const REQUIRED_MENTOR_COLUMNS: readonly string[] = [
+  MENTOR_COLUMNS.mentorId,
+  MENTOR_COLUMNS.mentorName,
+  MENTOR_COLUMNS.email,
+]
+
+export const REQUIRED_MENTOR_MAPPING_COLUMNS: readonly string[] = [
+  MENTOR_MAPPING_COLUMNS.mentorId,
+  MENTOR_MAPPING_COLUMNS.developerId,
+]
+
+export const REQUIRED_TASK_COLUMNS: readonly string[] = [
+  TASK_COLUMNS.taskId,
+  TASK_COLUMNS.taskName,
+  TASK_COLUMNS.projectId,
+  TASK_COLUMNS.developerId,
+  TASK_COLUMNS.status,
+  TASK_COLUMNS.priority,
+]
+
+export const REQUIRED_COMMENT_COLUMNS: readonly string[] = [
+  COMMENT_COLUMNS.commentId,
+  COMMENT_COLUMNS.developerId,
+  COMMENT_COLUMNS.mentorId,
+  COMMENT_COLUMNS.commentDate,
+  COMMENT_COLUMNS.comment,
+]
+
 export const REQUIRED_DAILY_WORK_COLUMNS: readonly string[] = [
   DAILY_WORK_COLUMNS.entryId,
   DAILY_WORK_COLUMNS.date,
@@ -104,8 +192,31 @@ export const EXCEL_PRIORITY_VALUES: Readonly<Record<TaskPriority, string>> = {
   critical: 'Critical',
 }
 
+export const EXCEL_PROJECT_STATUS_VALUES: Readonly<Record<ProjectStatus, string>> = {
+  planned: 'Planned',
+  active: 'Active',
+  'on-hold': 'On Hold',
+  completed: 'Completed',
+}
+
+/** Cell values for the Employees `AccessRole` column. */
+export const EXCEL_ACCESS_ROLE_VALUES: Readonly<Record<UserRole, string>> = {
+  admin: 'Admin',
+  mentor: 'Mentor',
+  developer: 'Developer',
+}
+
 /** Canonical strings written to boolean columns (`Active`, `IsBlocked`). */
 export const EXCEL_BOOLEAN_VALUES = { true: 'Yes', false: 'No' } as const
+
+/**
+ * Separator for columns holding several ids in one cell.
+ *
+ * A comma is the natural choice but is also what a person typing into Excel
+ * would use inside prose, so a semicolon is less likely to appear by accident.
+ * Reads accept either.
+ */
+export const EXCEL_LIST_SEPARATOR = '; '
 
 /**
  * A row as it arrives from the workbook: column name to raw cell value.

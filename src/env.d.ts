@@ -1,30 +1,33 @@
 /// <reference types="vite/client" />
 
 /**
- * Typed build-time configuration.
+ * Typed environment variables.
  *
- * Everything here ships to the browser, so these keys may hold locations and
- * public client ids but must never hold secrets.
+ * Declaring them here means a missing or misspelled variable is a compile
+ * error rather than an `undefined` that only shows up at runtime. Everything
+ * in a Vite `VITE_` variable is public: it is inlined into the bundle, so
+ * nothing secret may go here.
  */
 interface ImportMetaEnv {
-  /** `mock` (default) or `sharepoint-excel`. */
+  /** `mock` or `sharepoint-excel`. Defaults to `mock`. */
   readonly VITE_DATA_SOURCE?: string
 
-  /** Artificial provider delay, useful for checking loading states. */
+  /** Artificial delay for the mock provider, in milliseconds. */
   readonly VITE_MOCK_LATENCY_MS?: string
 
-  readonly VITE_SHAREPOINT_SITE_URL?: string
+  /** Sharing URL of the live workbook, as copied from SharePoint or OneDrive. */
+  readonly VITE_SHAREPOINT_WORKBOOK_URL?: string
 
-  /** Path to the workbook within the document library. */
+  readonly VITE_SHAREPOINT_SITE_URL?: string
   readonly VITE_SHAREPOINT_WORKBOOK_PATH?: string
 
   /**
-   * Sharing URL of the workbook.
+   * Entra app registration. Public identifiers, not secrets.
    *
-   * Anyone holding this URL can reach the file, so it is supplied through
-   * `.env.local` (untracked) rather than committed.
+   * Leave both empty to run on mock data with workbook password sign-in.
    */
-  readonly VITE_SHAREPOINT_WORKBOOK_URL?: string
+  readonly VITE_ENTRA_CLIENT_ID?: string
+  readonly VITE_ENTRA_TENANT_ID?: string
 }
 
 interface ImportMeta {

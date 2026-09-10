@@ -1,13 +1,32 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
+
 .header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: $space-4; min-height: $header-height; padding: $space-3 $space-8; color: $color-white; background: $color-brand-dark;
-  &__eyebrow, &__identity span { display: block; font-size: $font-size-xs; color: $color-brand-muted; }
+  &__brand { display: flex; align-items: center; gap: $space-4; min-width: 0; }
+  &__eyebrow, &__identity span { display: block; color: $color-brand-muted; font-size: $font-size-xs; }
   &__title { display: block; font-size: $font-size-lg; }
   &__account { display: flex; align-items: center; gap: $space-4; }
-  &__identity { text-align: right; font-size: $font-size-sm; }
+  &__identity { font-size: $font-size-sm; text-align: right; }
+
+  &__icon-button { display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; flex-shrink: 0; padding: 0; border: 1px solid rgb(255 255 255 / 25%); border-radius: $radius-md; color: $color-white; background: transparent; cursor: pointer;
+    &:hover { background: rgb(255 255 255 / 12%); }
+    &:focus-visible { @include focus-ring; }
+    /// The drawer toggle only exists where the sidebar is a drawer.
+    &--drawer { display: none; }
+    @include respond-to-tablet {
+      &--drawer { display: flex; }
+      &--rail { display: none; }
+    }
+  }
+
   &__sign-out { padding: $space-2 $space-3; border: 1px solid rgb(255 255 255 / 35%); border-radius: $radius-md; color: $color-white; font: inherit; font-size: $font-size-sm; background: transparent; cursor: pointer;
     &:hover { background: rgb(255 255 255 / 12%); }
     &:focus-visible { @include focus-ring; }
   }
-  @include respond-to-mobile { padding-inline: $space-5; &__identity span { display: none; } }
+
+  @include respond-to-mobile { padding-inline: $space-4; gap: $space-3;
+    &__eyebrow { display: none; }
+    &__identity span { display: none; }
+    &__title { font-size: $font-size-md; }
+  }
 }

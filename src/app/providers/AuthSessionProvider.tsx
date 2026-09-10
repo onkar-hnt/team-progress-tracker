@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -11,17 +11,43 @@ import type { AuthContextValue } from './auth-context'
 /**
  * Holds the signed-in user for the application.
  *
- * The session is restored synchronously during the first render so a refresh
- * does not flash the login screen for an already signed-in user.
+ * Restoring is asynchronous because the role is re-read from the workbook
+ * rather than trusted from storage, so a change of access in Excel takes
+ * effect on the next load. Until it resolves, `isRestoring` keeps the route
+ * guards from treating an unrestored session as signed out.
  */
 export function AuthSessionProvider({ children }: PropsWithChildren) {
   const authProvider = getAuthProvider()
   const queryClient = useQueryClient()
 
-  const [user, setUser] = useState<AppUser | null>(() => authProvider.restoreSession())
+  const [user, setUser] = useState<AppUser | null>(null)
+  const [isRestoring, setIsRestoring] = useState(true)
+
+  useEffect(() => {
+    let isCurrent = true
+
+    const restore = async () => {
+      try {
+        const restored = await authProvider.restoreSession()
+        if (isCurrent) setUser(restored)
+      } catch {
+        // A failed restore is a signed-out state, not a crash: the login page
+        // will report the reason if the person tries again.
+        if (isCurrent) setUser(null)
+      } finally {
+        if (isCurrent) setIsRestoring(false)
+      }
+    }
+
+    void restore()
+
+    return () => {
+      isCurrent = false
+    }
+  }, [authProvider])
 
   const signIn = useCallback(
-    async (credentials: SignInCredentials) => {
+    async (credentials?: SignInCredentials) => {
       const signedIn = await authProvider.signIn(credentials)
       setUser(signedIn)
       return signedIn
@@ -38,8 +64,15 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   }, [authProvider, queryClient])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: user !== null, signIn, signOut }),
-    [signIn, signOut, user],
+    () => ({
+      user,
+      isAuthenticated: user !== null,
+      isRestoring,
+      usesCredentials: authProvider.usesCredentials,
+      signIn,
+      signOut,
+    }),
+    [authProvider, isRestoring, signIn, signOut, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

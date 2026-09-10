@@ -6,8 +6,19 @@ export interface AuthContextValue {
   user: AppUser | null
   isAuthenticated: boolean
 
-  /** Throws an `AuthError` when the credentials are rejected. */
-  signIn: (credentials: SignInCredentials) => Promise<AppUser>
+  /**
+   * `true` while the stored session is being re-checked against the workbook.
+   *
+   * Guards must wait for this rather than redirecting, or a refresh would
+   * bounce a signed-in person to the login page.
+   */
+  isRestoring: boolean
+
+  /** `false` when sign-in is delegated, so the form should not be shown. */
+  usesCredentials: boolean
+
+  /** Throws an `AuthError` when sign-in is rejected. */
+  signIn: (credentials?: SignInCredentials) => Promise<AppUser>
 
   signOut: () => Promise<void>
 }

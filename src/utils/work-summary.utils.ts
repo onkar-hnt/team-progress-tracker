@@ -157,7 +157,21 @@ export function findDevelopersMissingUpdate(
     entries.filter((entry) => entry.date === isoDate).map((entry) => entry.developerId),
   )
 
-  return developers.filter((developer) => developer.active && !updated.has(developer.id))
+  return developers.filter(
+    (developer) => submitsDailyUpdates(developer) && !updated.has(developer.id),
+  )
+}
+
+/**
+ * Whether a daily update is expected from this person.
+ *
+ * Admin and mentor rows are excluded: they exist in the Employees table so
+ * they can sign in, not because they log daily work, and listing them as
+ * missing an update every day would train people to ignore the panel.
+ */
+export function submitsDailyUpdates(developer: Developer): boolean {
+  if (!developer.active) return false
+  return developer.accessRole === undefined || developer.accessRole === 'developer'
 }
 
 export function findDevelopersWithUpdate(

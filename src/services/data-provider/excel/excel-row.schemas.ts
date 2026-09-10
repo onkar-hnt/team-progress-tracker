@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 import { PROGRESS_MAX, PROGRESS_MIN } from '@constants/task.constants'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
+import { PROJECT_STATUSES } from '@models/project.model'
+import { USER_ROLES } from '@models/user.model'
 
 import { isIsoDateString } from './excel-value.utils'
 
@@ -24,19 +26,92 @@ const isoTimestampSchema = z
 
 const nonEmptyStringSchema = z.string().trim().min(1)
 
+/**
+ * Lower-cased on the way in so that address comparisons during sign-in are
+ * case-insensitive without every caller having to remember.
+ */
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .refine((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
+    message: 'must be an email address',
+  })
+
 export const developerSchema = z.object({
   id: nonEmptyStringSchema,
   name: nonEmptyStringSchema,
   role: nonEmptyStringSchema.optional(),
   location: nonEmptyStringSchema.optional(),
   active: z.boolean(),
+  email: emailSchema.optional(),
+  accessRole: z.enum(USER_ROLES).optional(),
 })
 
-export const projectSchema = z.object({
+export const mentorSchema = z.object({
   id: nonEmptyStringSchema,
   name: nonEmptyStringSchema,
-  client: nonEmptyStringSchema.optional(),
+  email: emailSchema,
   active: z.boolean(),
+})
+
+export const mentorAssignmentSchema = z.object({
+  mentorId: nonEmptyStringSchema,
+  developerId: nonEmptyStringSchema,
+})
+
+export const projectSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    name: nonEmptyStringSchema,
+    client: nonEmptyStringSchema.optional(),
+    active: z.boolean(),
+    description: nonEmptyStringSchema.optional(),
+    status: z.enum(PROJECT_STATUSES),
+    startDate: isoDateSchema.optional(),
+    endDate: isoDateSchema.optional(),
+    mentorId: nonEmptyStringSchema.optional(),
+    assignedDeveloperIds: z.array(nonEmptyStringSchema),
+  })
+  .refine(
+    (project) =>
+      project.startDate === undefined ||
+      project.endDate === undefined ||
+      project.startDate <= project.endDate,
+    { message: 'EndDate cannot be before StartDate', path: ['endDate'] },
+  )
+
+export const assignedTaskSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    name: nonEmptyStringSchema,
+    description: nonEmptyStringSchema.optional(),
+    projectId: nonEmptyStringSchema,
+    developerId: nonEmptyStringSchema,
+    mentorId: nonEmptyStringSchema.optional(),
+    priority: z.enum(TASK_PRIORITIES),
+    status: z.enum(TASK_STATUSES),
+    createdDate: isoDateSchema,
+    dueDate: isoDateSchema.optional(),
+    updatedAt: isoTimestampSchema,
+  })
+  .refine(
+    (task) => task.dueDate === undefined || task.createdDate <= task.dueDate,
+    { message: 'DueDate cannot be before CreatedDate', path: ['dueDate'] },
+  )
+
+export const mentorCommentSchema = z.object({
+  id: nonEmptyStringSchema,
+  developerId: nonEmptyStringSchema,
+  mentorId: nonEmptyStringSchema,
+  projectId: nonEmptyStringSchema.optional(),
+  date: isoDateSchema,
+  comment: nonEmptyStringSchema,
+  progressUpdate: nonEmptyStringSchema.optional(),
+  blockers: nonEmptyStringSchema.optional(),
+  recommendations: nonEmptyStringSchema.optional(),
+  createdAt: isoTimestampSchema,
+  updatedAt: isoTimestampSchema,
 })
 
 export const dailyWorkEntrySchema = z

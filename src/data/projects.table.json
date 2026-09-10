@@ -3,24 +3,48 @@
     "ProjectId": "PRJ001",
     "ProjectName": "AI-MBD",
     "Client": "Schaeffler",
-    "Active": "Yes"
+    "Active": "Yes",
+    "Description": "Model-based design assistant for Schaeffler engineering teams.",
+    "Status": "Active",
+    "StartDate": "2026-04-01",
+    "EndDate": "2026-12-31",
+    "MentorId": "MEN001",
+    "AssignedDevelopers": "DEV001; DEV003; DEV005"
   },
   {
     "ProjectId": "PRJ002",
     "ProjectName": "AI-Assisted",
     "Client": "Schaeffler",
-    "Active": "Yes"
+    "Active": "Yes",
+    "Description": "AI-assisted authoring and review tooling.",
+    "Status": "Active",
+    "StartDate": "2026-05-15",
+    "EndDate": "2027-03-31",
+    "MentorId": "MEN001",
+    "AssignedDevelopers": "DEV002; DEV006"
   },
   {
     "ProjectId": "PRJ003",
     "ProjectName": "Automation Portal",
     "Client": "Schaeffler",
-    "Active": "Yes"
+    "Active": "Yes",
+    "Description": "Self-service portal for running and monitoring automations.",
+    "Status": "Active",
+    "StartDate": "2026-02-01",
+    "EndDate": "2026-11-30",
+    "MentorId": "MEN001",
+    "AssignedDevelopers": "DEV004; DEV007"
   },
   {
     "ProjectId": "PRJ004",
     "ProjectName": "MSIG",
     "Client": "MSIG",
-    "Active": "Yes"
+    "Active": "Yes",
+    "Description": "Policy servicing workflows for MSIG.",
+    "Status": "Planned",
+    "StartDate": "2026-09-01",
+    "EndDate": "2027-06-30",
+    "MentorId": "MEN001",
+    "AssignedDevelopers": "DEV003; DEV006"
   }
 ]

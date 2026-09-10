@@ -1,0 +1,88 @@
+[
+  {
+    "CommentId": "CMT001",
+    "DeveloperId": "DEV001",
+    "MentorId": "MEN001",
+    "ProjectId": "PRJ001",
+    "CommentDate": "2026-09-08",
+    "Comment": "Comparison view is coming together well. The change highlighting is clear and the empty state reads properly.",
+    "ProgressUpdate": "Roughly two thirds through the view; filtering still to do.",
+    "Blockers": "Waiting on the finalised parameter grouping from the engineering team.",
+    "Recommendations": "Write the grouping logic behind a small helper so it can be swapped when the grouping is confirmed.",
+    "CreatedAt": "2026-09-08T11:30:00.000Z",
+    "UpdatedAt": "2026-09-08T11:30:00.000Z"
+  },
+  {
+    "CommentId": "CMT002",
+    "DeveloperId": "DEV003",
+    "MentorId": "MEN001",
+    "ProjectId": "PRJ001",
+    "CommentDate": "2026-09-09",
+    "Comment": "Run history integration is blocked on the paging contract. Raised it with the API team on your behalf.",
+    "ProgressUpdate": "Client code is ready and unit tested against a stub.",
+    "Blockers": "Server returns a continuation token but no total count, so the pager cannot show page numbers.",
+    "Recommendations": "Switch to a load-more control rather than numbered pages; it fits a continuation token better.",
+    "CreatedAt": "2026-09-09T14:00:00.000Z",
+    "UpdatedAt": "2026-09-09T14:00:00.000Z"
+  },
+  {
+    "CommentId": "CMT003",
+    "DeveloperId": "DEV006",
+    "MentorId": "MEN001",
+    "ProjectId": "PRJ002",
+    "CommentDate": "2026-09-10",
+    "Comment": "Streaming renderer performance is much better after the batching change. Good instinct on measuring first.",
+    "ProgressUpdate": "Long answers now render smoothly; cancellation still needs work.",
+    "Recommendations": "Add a test that streams a very long response so the improvement does not regress silently.",
+    "CreatedAt": "2026-09-10T09:45:00.000Z",
+    "UpdatedAt": "2026-09-10T09:45:00.000Z"
+  },
+  {
+    "CommentId": "CMT004",
+    "DeveloperId": "DEV002",
+    "MentorId": "MEN001",
+    "ProjectId": "PRJ002",
+    "CommentDate": "2026-09-07",
+    "Comment": "Template library screen is well structured. Versioning needs a clearer story before the review.",
+    "ProgressUpdate": "List and create flows done; edit and version history in progress.",
+    "Recommendations": "Decide whether editing creates a new version or mutates the current one, and write it down before building it.",
+    "CreatedAt": "2026-09-07T08:20:00.000Z",
+    "UpdatedAt": "2026-09-07T08:20:00.000Z"
+  },
+  {
+    "CommentId": "CMT005",
+    "DeveloperId": "DEV004",
+    "MentorId": "MEN001",
+    "ProjectId": "PRJ003",
+    "CommentDate": "2026-09-10",
+    "Comment": "The plain-language schedule preview is a genuinely good addition. Users will trust the form far more with it.",
+    "ProgressUpdate": "Form and preview working for daily and weekly schedules.",
+    "Blockers": "Monthly schedules with end-of-month behaviour are still undecided.",
+    "Recommendations": "Ship daily and weekly first rather than holding the whole form for the monthly edge case.",
+    "CreatedAt": "2026-09-10T10:05:00.000Z",
+    "UpdatedAt": "2026-09-10T10:05:00.000Z"
+  },
+  {
+    "CommentId": "CMT006",
+    "DeveloperId": "DEV007",
+    "MentorId": "MEN001",
+    "ProjectId": "PRJ003",
+    "CommentDate": "2026-09-05",
+    "Comment": "Role-based menu work is complete and tidy. Note that hiding a menu item is not access control on its own.",
+    "ProgressUpdate": "Delivered and merged.",
+    "Recommendations": "Confirm the portal API also rejects the calls, so the restriction holds if someone types the URL.",
+    "CreatedAt": "2026-09-05T12:30:00.000Z",
+    "UpdatedAt": "2026-09-05T12:30:00.000Z"
+  },
+  {
+    "CommentId": "CMT007",
+    "DeveloperId": "DEV005",
+    "MentorId": "MEN001",
+    "CommentDate": "2026-09-04",
+    "Comment": "General note: your daily updates have been consistent and specific, which makes reviews much quicker.",
+    "ProgressUpdate": "Keeping pace with the sprint commitments.",
+    "Recommendations": "Start noting the reason a task was blocked, not only that it was; it helps spot repeat causes.",
+    "CreatedAt": "2026-09-04T16:10:00.000Z",
+    "UpdatedAt": "2026-09-04T16:10:00.000Z"
+  }
+]

@@ -1,4 +1,10 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; color: #172033; background: #f5f7fa; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
-body { min-width: 20rem; min-height: 100vh; margin: 0; }
+
+/// The shell owns the viewport and scrolls internally, so the document itself
+/// must never scroll. `100dvh` keeps mobile browser chrome from cropping the
+/// bottom of the layout as the address bar hides.
+html, body, #root { height: 100%; }
+body { min-width: 20rem; height: 100dvh; margin: 0; overflow: hidden; }
+
 button, input, textarea, select { font: inherit; }
