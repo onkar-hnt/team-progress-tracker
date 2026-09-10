@@ -1,0 +1,6 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+.app-layout { display: grid; grid-template-rows: auto 1fr; grid-template-columns: $sidebar-width minmax(0, 1fr); min-height: 100vh;
+  &__content { padding: $space-8; background: $color-surface-subtle; }
+  @include respond-to-tablet { grid-template-rows: auto auto 1fr; grid-template-columns: 1fr; &__content { padding: $space-5; } }
+}

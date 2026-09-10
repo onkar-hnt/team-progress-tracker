@@ -1,0 +1,3 @@
+@mixin focus-ring { outline: 3px solid rgb(49 85 166 / 35%); outline-offset: 2px; }
+@mixin respond-to-tablet { @media (max-width: 48rem) { @content; } }
+@mixin respond-to-mobile { @media (max-width: 30rem) { @content; } }

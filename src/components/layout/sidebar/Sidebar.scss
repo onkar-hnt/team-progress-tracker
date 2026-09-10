@@ -1,0 +1,10 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+.sidebar { padding: $space-6 $space-4; border-right: 1px solid $color-border; background: $color-white;
+  &__list { display: grid; gap: $space-2; margin: 0; padding: 0; list-style: none; }
+  &__link { display: block; padding: $space-3 $space-4; border-radius: $radius-md; color: $color-text-muted; font-weight: 600; text-decoration: none;
+    &:hover, &--active { color: $color-brand; background: $color-brand-light; }
+    &:focus-visible { @include focus-ring; }
+  }
+  @include respond-to-tablet { overflow-x: auto; padding: $space-3 $space-5; border-right: 0; border-bottom: 1px solid $color-border; &__list { display: flex; width: max-content; } }
+}
