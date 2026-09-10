@@ -1,0 +1,16 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.modal { width: min(46rem, calc(100vw - #{$space-8})); max-height: calc(100vh - #{$space-8}); padding: 0; border: 1px solid $color-border; border-radius: $radius-lg; background: $color-white; box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+
+  &::backdrop { background: rgb(15 23 42 / 45%); }
+
+  &__panel { display: flex; flex-direction: column; max-height: calc(100vh - #{$space-8}); }
+  &__header { display: flex; align-items: center; justify-content: space-between; gap: $space-4; padding: $space-5 $space-6; border-bottom: 1px solid $color-border; }
+  &__title { margin: 0; color: $color-text; font-size: $font-size-lg; }
+  &__close { width: 2rem; height: 2rem; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text-muted; font-size: $font-size-lg; line-height: 1; background: $color-white; cursor: pointer;
+    &:hover { color: $color-text; background: $color-surface-subtle; }
+    &:focus-visible { @include focus-ring; }
+  }
+  &__body { padding: $space-6; overflow-y: auto; }
+}

@@ -1,0 +1,14 @@
+@use '@styles/variables' as *;
+
+.stat-card { padding: $space-4; border: 1px solid $color-border; border-left: 3px solid $color-border; border-radius: $radius-md; background: $color-white;
+  &__label { margin: 0 0 $space-2; color: $color-text-muted; font-size: $font-size-xs; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+  &__value { margin: 0; color: $color-text; font-size: $font-size-2xl; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  &__detail { margin: $space-2 0 0; color: $color-text-muted; font-size: $font-size-xs; }
+
+  &--neutral { border-left-color: $color-border; }
+  &--progress { border-left-color: $color-brand; }
+  &--positive { border-left-color: #2f9e5f; }
+  &--attention { border-left-color: #b42318; }
+}
+
+.stat-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: $space-4; }

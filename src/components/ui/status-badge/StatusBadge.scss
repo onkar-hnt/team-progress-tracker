@@ -1,0 +1,19 @@
+@use '@styles/variables' as *;
+
+/// Colour is paired with the text label rather than used on its own, so the
+/// status is still readable without colour perception.
+.status-badge, .priority-badge { display: inline-block; padding: 0.125rem $space-2; border: 1px solid transparent; border-radius: 999px; font-size: $font-size-xs; font-weight: 600; white-space: nowrap; }
+
+.status-badge {
+  &--not-started { border-color: #d6dae1; color: #48505c; background: #f1f3f6; }
+  &--in-progress { border-color: #b3d1f5; color: #14508c; background: #e8f1fd; }
+  &--completed { border-color: #a8ddb9; color: #14603a; background: #e6f6ec; }
+  &--blocked { border-color: #fda29b; color: #912018; background: #fef3f2; }
+}
+
+.priority-badge {
+  &--low { border-color: #d6dae1; color: #48505c; background: #f1f3f6; }
+  &--medium { border-color: #c7d2fe; color: #2d3f82; background: #eef2ff; }
+  &--high { border-color: #fcd9a6; color: #8a4b09; background: #fef5e7; }
+  &--critical { border-color: #fda29b; color: #912018; background: #fef3f2; }
+}

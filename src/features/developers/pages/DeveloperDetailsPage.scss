@@ -1,0 +1,17 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.developer-details { display: grid; gap: $space-6;
+
+  &__row { display: grid; gap: $space-6; grid-template-columns: repeat(2, minmax(0, 1fr));
+    @media (max-width: 64rem) { grid-template-columns: 1fr; }
+  }
+
+  &__period { display: flex; align-items: center; gap: $space-2; color: $color-text-muted; font-size: $font-size-sm;
+    select { padding: $space-2 $space-3; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-sm; background: $color-white;
+      &:focus-visible { @include focus-ring; border-color: $color-brand; }
+    }
+  }
+
+  &__back { margin: $space-4 0 0; font-size: $font-size-sm; }
+}

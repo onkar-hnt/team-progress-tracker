@@ -1,0 +1,23 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.reports { display: grid; gap: $space-6;
+
+  &__row { display: grid; gap: $space-6; grid-template-columns: repeat(2, minmax(0, 1fr));
+    @media (max-width: 64rem) { grid-template-columns: 1fr; }
+  }
+
+  &__controls { display: flex; align-items: flex-end; gap: $space-3; flex-wrap: wrap; }
+
+  &__field { display: grid; gap: $space-2; font-size: $font-size-xs;
+    > span { color: $color-text-muted; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+    input, select { padding: $space-2 $space-3; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-sm; background: $color-white;
+      &:focus-visible { @include focus-ring; border-color: $color-brand; }
+    }
+  }
+
+  &__list { display: grid; gap: $space-2; margin: 0; padding: 0; list-style: none;
+    li { display: flex; align-items: baseline; justify-content: space-between; gap: $space-3; padding: $space-3; border: 1px solid $color-border; border-radius: $radius-md; font-size: $font-size-sm; }
+    span { color: $color-text-muted; font-size: $font-size-xs; }
+  }
+}

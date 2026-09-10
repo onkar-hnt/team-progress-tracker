@@ -1,8 +1,13 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
-.header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; min-height: $header-height; padding: $space-3 $space-8; color: $color-white; background: $color-brand-dark;
-  &__eyebrow, &__mentor span { display: block; font-size: $font-size-xs; color: $color-brand-muted; }
+.header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: $space-4; min-height: $header-height; padding: $space-3 $space-8; color: $color-white; background: $color-brand-dark;
+  &__eyebrow, &__identity span { display: block; font-size: $font-size-xs; color: $color-brand-muted; }
   &__title { display: block; font-size: $font-size-lg; }
-  &__mentor { text-align: right; font-size: $font-size-sm; }
-  @include respond-to-mobile { padding-inline: $space-5; &__mentor span { display: none; } }
+  &__account { display: flex; align-items: center; gap: $space-4; }
+  &__identity { text-align: right; font-size: $font-size-sm; }
+  &__sign-out { padding: $space-2 $space-3; border: 1px solid rgb(255 255 255 / 35%); border-radius: $radius-md; color: $color-white; font: inherit; font-size: $font-size-sm; background: transparent; cursor: pointer;
+    &:hover { background: rgb(255 255 255 / 12%); }
+    &:focus-visible { @include focus-ring; }
+  }
+  @include respond-to-mobile { padding-inline: $space-5; &__identity span { display: none; } }
 }

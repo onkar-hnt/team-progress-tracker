@@ -1,0 +1,5 @@
+@use '@styles/variables' as *;
+
+.team-activity { display: grid; gap: $space-6;
+  &__stats { margin-top: $space-5; }
+}

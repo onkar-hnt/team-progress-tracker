@@ -1,0 +1,26 @@
+[
+  {
+    "ProjectId": "PRJ001",
+    "ProjectName": "AI-MBD",
+    "Client": "Schaeffler",
+    "Active": "Yes"
+  },
+  {
+    "ProjectId": "PRJ002",
+    "ProjectName": "AI-Assisted",
+    "Client": "Schaeffler",
+    "Active": "Yes"
+  },
+  {
+    "ProjectId": "PRJ003",
+    "ProjectName": "Automation Portal",
+    "Client": "Schaeffler",
+    "Active": "Yes"
+  },
+  {
+    "ProjectId": "PRJ004",
+    "ProjectName": "MSIG",
+    "Client": "MSIG",
+    "Active": "Yes"
+  }
+]

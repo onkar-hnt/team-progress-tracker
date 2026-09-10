@@ -1,0 +1,51 @@
+[
+  {
+    "DeveloperId": "DEV001",
+    "DeveloperName": "Esha Nagarkar",
+    "Role": "Intern - Angular",
+    "Location": "Pune",
+    "Active": "Yes"
+  },
+  {
+    "DeveloperId": "DEV002",
+    "DeveloperName": "Mayuri Gawade",
+    "Role": "Jr. UI Developer",
+    "Location": "Pune",
+    "Active": "Yes"
+  },
+  {
+    "DeveloperId": "DEV003",
+    "DeveloperName": "Rutik Shinde",
+    "Role": "Jr. Angular Developer",
+    "Location": "Bangalore",
+    "Active": "Yes"
+  },
+  {
+    "DeveloperId": "DEV004",
+    "DeveloperName": "Saira Anap",
+    "Role": "Jr. Angular Developer",
+    "Location": "Pune",
+    "Active": "Yes"
+  },
+  {
+    "DeveloperId": "DEV005",
+    "DeveloperName": "Suyog Shinde",
+    "Role": "Jr. Angular Developer",
+    "Location": "Pune",
+    "Active": "Yes"
+  },
+  {
+    "DeveloperId": "DEV006",
+    "DeveloperName": "Shubham Deshmukh",
+    "Role": "Jr. React Developer",
+    "Location": "Pune",
+    "Active": "Yes"
+  },
+  {
+    "DeveloperId": "DEV007",
+    "DeveloperName": "Akshaykumar Sarsamkar",
+    "Role": "Jr. React Developer",
+    "Location": "Pune",
+    "Active": "Yes"
+  }
+]
