@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
 import { Icon } from '@components/ui/icons/Icon'
-import { MENTOR } from '@constants/team.constants'
 import { isAdmin } from '@services/auth/index'
 
 import './Header.scss'
@@ -58,7 +57,7 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
       <div className="header__account">
         <div className="header__identity">
           <span>{user === null ? 'Mentor' : isAdmin(user) ? 'Mentor (Admin)' : 'Developer'}</span>
-          <strong>{user?.name ?? MENTOR.name}</strong>
+          <strong>{user?.name ?? 'Signed out'}</strong>
         </div>
 
         {user === null ? null : (

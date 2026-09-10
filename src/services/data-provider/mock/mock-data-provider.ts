@@ -590,7 +590,15 @@ function countLabel(count: number, noun: string): string | null {
   return `${String(count)} ${noun}${count === 1 ? '' : 's'}`
 }
 
+/**
+ * Drops the mentor reference from a task.
+ *
+ * The key is deleted rather than set to `undefined` so the record matches what
+ * a task without a mentor looks like when it is read back from the workbook,
+ * where an empty cell yields no property at all.
+ */
 function omitMentor(task: AssignedTask): AssignedTask {
-  const { mentorId: _removed, ...rest } = task
+  const rest = { ...task }
+  delete rest.mentorId
   return rest
 }

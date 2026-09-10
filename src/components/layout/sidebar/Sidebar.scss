@@ -3,6 +3,9 @@
 
 .sidebar { padding: $space-6 $space-4; overflow-x: hidden; overflow-y: auto; border-right: 1px solid $color-border; background: $color-white;
 
+  &__group + &__group { margin-top: $space-5; padding-top: $space-5; border-top: 1px solid $color-border; }
+  &__heading { margin: 0 0 $space-3; padding-inline: $space-4; color: $color-text-muted; font-size: $font-size-xs; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+
   &__list { display: grid; gap: $space-2; margin: 0; padding: 0; list-style: none; }
 
   &__link { display: flex; align-items: center; gap: $space-3; padding: $space-3 $space-4; border-radius: $radius-md; color: $color-text-muted; font-weight: 600; text-decoration: none; white-space: nowrap;
@@ -18,6 +21,10 @@
   &--collapsed { padding-inline: $space-3;
     .sidebar__link { justify-content: center; padding-inline: $space-3; }
     .sidebar__label { display: none; }
+
+    /// The heading has nowhere to go on the rail, but the separator between
+    /// groups still carries the grouping, so it stays.
+    .sidebar__heading { @include visually-hidden; }
   }
 
   /// Drawer behaviour on small screens: the rail slides in over the content
@@ -32,6 +39,7 @@
     &--collapsed { padding-inline: $space-4;
       .sidebar__link { justify-content: flex-start; padding-inline: $space-4; }
       .sidebar__label { display: inline; }
+      .sidebar__heading { position: static; width: auto; height: auto; margin: 0 0 $space-3; padding-inline: $space-4; overflow: visible; clip-path: none; white-space: normal; }
     }
 
     @media (prefers-reduced-motion: reduce) { transition: none; }

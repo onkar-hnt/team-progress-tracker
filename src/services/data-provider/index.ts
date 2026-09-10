@@ -1,5 +1,4 @@
 import { appConfig } from '@config/app.config'
-import { acquireGraphToken } from '@services/auth/entra/msal-client'
 
 import type { DataProvider } from './data-provider.interface'
 import { ExcelDataProvider } from './excel/excel-data-provider'
@@ -24,8 +23,13 @@ function createWorkbookGateway(): WorkbookGateway {
   return new GraphWorkbookGateway({
     workbookUrl: appConfig.sharePoint.workbookUrl,
     // Passed as a function so the token is fetched per request and refreshed
-    // by MSAL, rather than captured once and left to expire.
-    getAccessToken: acquireGraphToken,
+    // by MSAL, rather than captured once and left to expire. MSAL is imported
+    // on demand to keep it out of the initial bundle; by the time a workbook
+    // read happens the module is already loaded and cached by sign-in.
+    getAccessToken: async () => {
+      const { acquireGraphToken } = await import('@services/auth/entra/msal-client')
+      return acquireGraphToken()
+    },
   })
 }
 

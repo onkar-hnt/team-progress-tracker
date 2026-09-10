@@ -3,13 +3,17 @@ import type { DataProvider } from '@services/data-provider/data-provider.interfa
 
 import type { AuthProvider } from './auth-provider.interface'
 import { UnknownAccountError } from './auth.errors'
-import {
-  getEntraAccount,
-  signInWithEntra,
-  signOutFromEntra,
-} from './entra/msal-client'
 import { forgetSignedInEmail, rememberSignedInEmail } from './session-store'
 import { resolveWorkbookIdentity } from './workbook-identity'
+
+/**
+ * MSAL is loaded on demand.
+ *
+ * It is a large dependency, and importing it here statically would put it in
+ * the initial bundle for every visitor, including on the login screen before
+ * anyone has chosen to sign in.
+ */
+const loadMsal = () => import('./entra/msal-client')
 
 /**
  * Single sign-on through Microsoft Entra.
@@ -35,16 +39,20 @@ export class EntraAuthProvider implements AuthProvider {
   }
 
   async signIn(): Promise<AppUser> {
+    const { signInWithEntra } = await loadMsal()
     const account = await signInWithEntra()
     return this.resolveOrReject(account.email)
   }
 
   async signOut(): Promise<void> {
     forgetSignedInEmail()
+
+    const { signOutFromEntra } = await loadMsal()
     await signOutFromEntra()
   }
 
   async restoreSession(): Promise<AppUser | null> {
+    const { getEntraAccount } = await loadMsal()
     const account = await getEntraAccount()
     if (account === null) return null
 

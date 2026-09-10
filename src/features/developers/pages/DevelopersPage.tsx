@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import { DeveloperSummaryTable } from '@components/summaries/SummaryTables'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
-import { MENTOR } from '@constants/team.constants'
 import { useDevelopers, useRangeOverview } from '@hooks/use-work-tracker'
 import { formatLongDate, getMonthRange, getTrailingRange, getWeekRange, todayIsoDate } from '@utils/date.utils'
 import { buildDeveloperSummaries } from '@utils/work-summary.utils'
@@ -71,7 +70,7 @@ export function DevelopersPage() {
     <div className="developers">
       <Panel
         action={periodPicker}
-        description={`${formatLongDate(range.from)} to ${formatLongDate(range.to)}. Mentor: ${MENTOR.name}.`}
+        description={`${formatLongDate(range.from)} to ${formatLongDate(range.to)}.`}
         isPageHeading
         title="Developers"
       >

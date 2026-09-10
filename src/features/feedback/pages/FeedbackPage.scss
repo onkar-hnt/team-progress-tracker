@@ -1,0 +1,11 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.feedback-page { display: grid; gap: $space-6;
+
+  &__filter { display: flex; align-items: center; gap: $space-2; color: $color-text-muted; font-size: $font-size-sm; font-weight: 600;
+    select { padding: $space-2 $space-3; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-sm; background: $color-white;
+      &:focus-visible { @include focus-ring; }
+    }
+  }
+}

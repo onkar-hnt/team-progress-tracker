@@ -1,0 +1,7 @@
+@use '@styles/variables' as *;
+
+.task-table {
+  &__name { display: block; color: $color-text; font-weight: 600; }
+  &__description { display: block; margin-top: $space-1; color: $color-text-muted; font-size: $font-size-xs; }
+  &__due--overdue { color: #b42318; font-weight: 600; }
+}

@@ -6,7 +6,13 @@ import { Panel } from '@components/ui/panel/Panel'
 import { Skeleton } from '@components/ui/feedback/Feedback'
 import { LoginPage } from '@features/auth/pages/LoginPage'
 
-import { RequireAdmin, RequireAuth } from './route-guards'
+import {
+  RequireAdmin,
+  RequireAuth,
+  RequireFeedbackAccess,
+  RequireScope,
+  RequireTeamAccess,
+} from './route-guards'
 
 /**
  * Feature screens are loaded on demand.
@@ -26,6 +32,24 @@ const DeveloperDetailsPage = lazy(async () => ({
 }))
 const DevelopersPage = lazy(async () => ({
   default: (await import('@features/developers/pages/DevelopersPage')).DevelopersPage,
+}))
+const FeedbackPage = lazy(async () => ({
+  default: (await import('@features/feedback/pages/FeedbackPage')).FeedbackPage,
+}))
+const MyTasksPage = lazy(async () => ({
+  default: (await import('@features/tasks/pages/MyTasksPage')).MyTasksPage,
+}))
+const AdminMentorsPage = lazy(async () => ({
+  default: (await import('@features/admin/pages/MentorsPage')).MentorsPage,
+}))
+const AdminEmployeesPage = lazy(async () => ({
+  default: (await import('@features/admin/pages/EmployeesPage')).EmployeesPage,
+}))
+const AdminProjectsPage = lazy(async () => ({
+  default: (await import('@features/admin/pages/ProjectsPage')).ProjectsPage,
+}))
+const AdminTasksPage = lazy(async () => ({
+  default: (await import('@features/admin/pages/TasksPage')).TasksPage,
 }))
 const ReportsPage = lazy(async () => ({
   default: (await import('@features/reports/pages/ReportsPage')).ReportsPage,
@@ -51,20 +75,24 @@ export function AppRouter() {
       <Routes>
         <Route element={<LoginPage />} path="/login" />
 
+        {/* Authentication, then the access scope: no screen renders before the
+            limits on what it may show are known. */}
         <Route element={<RequireAuth />}>
-          <Route element={<AppLayout />}>
-            <Route index element={<Navigate replace to="/dashboard" />} />
+          <Route element={<RequireScope />}>
+            <Route element={<AppLayout />}>
+              <Route index element={<Navigate replace to="/dashboard" />} />
 
-            {/* One boundary inside the layout, so the shell stays on screen
-                while a screen's chunk is fetched. */}
-            <Route
-              element={
-                <Suspense fallback={<PageFallback />}>
-                  <LazyRoutes />
-                </Suspense>
-              }
-              path="*"
-            />
+              {/* One boundary inside the layout, so the shell stays on screen
+                  while a screen's chunk is fetched. */}
+              <Route
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <LazyRoutes />
+                  </Suspense>
+                }
+                path="*"
+              />
+            </Route>
           </Route>
         </Route>
       </Routes>
@@ -72,17 +100,39 @@ export function AppRouter() {
   )
 }
 
+/**
+ * Route-level access rules.
+ *
+ * Screens that only ever show the signed-in person's own records are open to
+ * everybody; screens that list several people sit behind a role guard. The
+ * guards decide which areas exist, while the access scope inside the data
+ * hooks decides which records appear — including on `developers/:developerId`,
+ * where the id comes from the URL and is checked against the scope before
+ * anything is rendered.
+ */
 function LazyRoutes() {
   return (
     <Routes>
       <Route path="dashboard" element={<DashboardPage />} />
       <Route path="daily-update" element={<DailyUpdatePage />} />
-      <Route path="team-activity" element={<TeamActivityPage />} />
-      <Route path="developers" element={<DevelopersPage />} />
+      <Route path="my-tasks" element={<MyTasksPage />} />
       <Route path="developers/:developerId" element={<DeveloperDetailsPage />} />
-      <Route path="reports" element={<ReportsPage />} />
+
+      <Route element={<RequireTeamAccess />}>
+        <Route path="team-activity" element={<TeamActivityPage />} />
+        <Route path="developers" element={<DevelopersPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+      </Route>
+
+      <Route element={<RequireFeedbackAccess />}>
+        <Route path="feedback" element={<FeedbackPage />} />
+      </Route>
 
       <Route element={<RequireAdmin />}>
+        <Route path="admin/mentors" element={<AdminMentorsPage />} />
+        <Route path="admin/employees" element={<AdminEmployeesPage />} />
+        <Route path="admin/projects" element={<AdminProjectsPage />} />
+        <Route path="admin/tasks" element={<AdminTasksPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
 

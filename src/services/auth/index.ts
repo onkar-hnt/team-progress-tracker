@@ -2,7 +2,7 @@ import { getDataProvider } from '@services/data-provider/index'
 
 import type { AuthProvider } from './auth-provider.interface'
 import { EntraAuthProvider } from './entra-auth-provider'
-import { isEntraConfigured } from './entra/msal-client'
+import { isEntraConfigured } from './entra/entra-config'
 import { LocalAuthProvider } from './local-auth-provider'
 
 export type { AuthProvider } from './auth-provider.interface'

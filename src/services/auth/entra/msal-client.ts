@@ -8,6 +8,7 @@ import type { AccountInfo, Configuration } from '@azure/msal-browser'
 import { appConfig } from '@config/app.config'
 
 import { SignInFailedError } from '../auth.errors'
+import { GRAPH_SCOPES } from './entra-config'
 
 /**
  * Microsoft Entra sign-in and Graph token acquisition.
@@ -16,23 +17,12 @@ import { SignInFailedError } from '../auth.errors'
  * be initialised exactly once per page. Everything else in the application
  * asks for a token through `acquireGraphToken` and never touches MSAL.
  *
+ * This module is always imported dynamically, so the MSAL library forms its
+ * own chunk and is fetched only by deployments that actually sign in with it.
+ *
  * Tokens are held by MSAL in session storage and are not persisted anywhere
  * by this application.
  */
-
-/**
- * Delegated scopes.
- *
- * `Files.ReadWrite.All` is the narrowest scope that permits reading and
- * writing a workbook stored on a colleague's OneDrive or a team site; the
- * per-file scopes only cover files the app itself created. `User.Read` is
- * what supplies the signed-in address.
- */
-const GRAPH_SCOPES = ['Files.ReadWrite.All', 'User.Read']
-
-export function isEntraConfigured(): boolean {
-  return appConfig.entra.clientId !== '' && appConfig.entra.tenantId !== ''
-}
 
 function buildConfiguration(): Configuration {
   return {

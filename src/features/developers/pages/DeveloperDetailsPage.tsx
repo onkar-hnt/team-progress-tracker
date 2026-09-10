@@ -8,11 +8,23 @@ import {
   WeeklyTrendChart,
 } from '@components/charts/WorkCharts'
 import { ProjectSummaryTable } from '@components/summaries/SummaryTables'
+import { useAuth } from '@app/providers/auth-context'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { EntryList } from '@components/ui/entry-list/EntryList'
 import { Panel } from '@components/ui/panel/Panel'
+import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { StatCard } from '@components/ui/stat-card/StatCard'
-import { useDailyWorkEntries, useDevelopers, useProjects } from '@hooks/use-work-tracker'
+import { CommentTimeline } from '@features/feedback/components/CommentTimeline'
+import { TaskTable } from '@features/tasks/components/TaskTable'
+import { useAccessScope } from '@hooks/use-access-scope'
+import {
+  useComments,
+  useDailyWorkEntries,
+  useDevelopers,
+  useProjects,
+  useTasks,
+} from '@hooks/use-work-tracker'
+import { canViewDeveloperProfile, canViewTeamData } from '@services/auth/index'
 import {
   formatLongDate,
   getMonthRange,
@@ -42,7 +54,15 @@ type PeriodKey = keyof typeof PERIODS
 
 export function DeveloperDetailsPage() {
   const { developerId = '' } = useParams<{ developerId: string }>()
+  const { user } = useAuth()
+  const { scope } = useAccessScope()
   const [periodKey, setPeriodKey] = useState<PeriodKey>('this-week')
+
+  // The id arrives from the URL, so this is the point where somebody could
+  // try to open a colleague's page by editing the address bar. The check runs
+  // before any query is issued, and the wording is the same whether or not
+  // the person exists, so a refusal does not confirm who is on the team.
+  const isPermitted = canViewDeveloperProfile(scope, developerId)
 
   // Memoised so the derived trend is not rebuilt on every unrelated render.
   const range = useMemo(() => PERIODS[periodKey].resolve(todayIsoDate()), [periodKey])
@@ -54,6 +74,9 @@ export function DeveloperDetailsPage() {
     [developerId, range.from, range.to],
   )
   const entriesQuery = useDailyWorkEntries(query)
+  const developerFilter = useMemo(() => ({ developerIds: [developerId] }), [developerId])
+  const tasksQuery = useTasks(developerFilter)
+  const commentsQuery = useComments(developerFilter)
 
   const entries = useMemo(() => entriesQuery.data ?? [], [entriesQuery.data])
 
@@ -82,6 +105,15 @@ export function DeveloperDetailsPage() {
     </label>
   )
 
+  if (!isPermitted) {
+    return (
+      <PagePlaceholder
+        description="You do not have access to this person's progress. Your own is on the dashboard."
+        title="Not available"
+      />
+    )
+  }
+
   if (error !== null) {
     return (
       <div className="developer-details">
@@ -100,9 +132,11 @@ export function DeveloperDetailsPage() {
       <div className="developer-details">
         <Panel isPageHeading title="Developer not found">
           <EmptyState message={`No developer exists with the id ${developerId}.`} />
-          <p className="developer-details__back">
-            <Link to="/developers">Back to all developers</Link>
-          </p>
+          {canViewTeamData(user) ? (
+            <p className="developer-details__back">
+              <Link to="/developers">Back to all developers</Link>
+            </p>
+          ) : null}
         </Panel>
       </div>
     )
@@ -187,7 +221,9 @@ export function DeveloperDetailsPage() {
       </Panel>
 
       <Panel
-        action={<Link to="/team-activity">Open in team activity</Link>}
+        action={
+          canViewTeamData(user) ? <Link to="/team-activity">Open in team activity</Link> : undefined
+        }
         description="Newest first."
         title="Task history"
       >
@@ -206,6 +242,30 @@ export function DeveloperDetailsPage() {
 
       <Panel description="Totals per project for this developer." title="Project breakdown">
         {isLoading ? <Skeleton rows={3} /> : <ProjectSummaryTable summaries={projectSummaries} />}
+      </Panel>
+
+      <Panel description="Work assigned to this developer." title="Assigned tasks">
+        {tasksQuery.isPending ? (
+          <Skeleton rows={3} />
+        ) : (
+          <TaskTable
+            emptyMessage="No tasks are assigned."
+            showDeveloper={false}
+            tasks={tasksQuery.data ?? []}
+          />
+        )}
+      </Panel>
+
+      <Panel description="Feedback recorded by mentors." title="Mentor feedback">
+        {commentsQuery.isPending ? (
+          <Skeleton rows={3} />
+        ) : (
+          <CommentTimeline
+            comments={commentsQuery.data ?? []}
+            emptyMessage="No feedback has been recorded yet."
+            showDeveloper={false}
+          />
+        )}
       </Panel>
     </div>
   )
