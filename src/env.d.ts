@@ -10,7 +10,7 @@
  */
 interface ImportMetaEnv {
   /**
-   * `local-excel`, `memory-excel`, `sharepoint-excel` or `mock`.
+   * `supabase`, `local-excel`, `memory-excel`, `sharepoint-excel` or `mock`.
    *
    * Defaults to `memory-excel`, which exercises the real Excel path against a
    * workbook held in memory.

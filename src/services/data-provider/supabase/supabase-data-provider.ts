@@ -47,6 +47,13 @@ import {
   selectProjects,
   updateProjectRow,
 } from './projects.repository'
+import {
+  deleteTaskRow,
+  insertTask,
+  selectTaskById,
+  selectTasks,
+  updateTaskRow,
+} from './tasks.repository'
 
 export interface SupabaseDataProviderOptions {
   client: AppSupabaseClient
@@ -74,8 +81,8 @@ export interface SupabaseDataProviderOptions {
  * unchanged, because none of them can tell which implementation they are
  * talking to.
  *
- * MIGRATION IN PROGRESS. Employees, mentors, mentor assignments and projects
- * are served from Supabase; tasks, daily updates and feedback are delegated.
+ * MIGRATION IN PROGRESS. Employees, mentors, mentor assignments, projects and
+ * tasks are served from Supabase; daily updates and feedback are delegated.
  * Each phase moves one entity from the delegated block at the bottom of this
  * file up into a repository call, and the delegate disappears when the last
  * one lands.
@@ -198,31 +205,37 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   // ---------------------------------------------------------------------------
+  // Tasks — served by Supabase
+  // ---------------------------------------------------------------------------
+  // The only slice that filters at source. The query maps onto SQL, and the
+  // schema carries indexes built for these predicates.
+
+  getTasks(query?: AssignedTaskQuery): Promise<AssignedTask[]> {
+    return selectTasks(this.client, query)
+  }
+
+  getTaskById(id: string): Promise<AssignedTask | null> {
+    return selectTaskById(this.client, id)
+  }
+
+  createTask(request: CreateAssignedTaskRequest): Promise<AssignedTask> {
+    return insertTask(this.client, request)
+  }
+
+  updateTask(id: string, request: UpdateAssignedTaskRequest): Promise<AssignedTask> {
+    return updateTaskRow(this.client, id, request)
+  }
+
+  deleteTask(id: string): Promise<void> {
+    return deleteTaskRow(this.client, id)
+  }
+
+  // ---------------------------------------------------------------------------
   // Not yet migrated
   // ---------------------------------------------------------------------------
   // Delegated verbatim. Each of these becomes a repository call in a later
   // phase; until then they behave exactly as they did before Supabase was
   // introduced, which is what makes a phase's effect on the app easy to see.
-
-  getTasks(query?: AssignedTaskQuery): Promise<AssignedTask[]> {
-    return this.unmigrated.getTasks(query)
-  }
-
-  getTaskById(id: string): Promise<AssignedTask | null> {
-    return this.unmigrated.getTaskById(id)
-  }
-
-  createTask(request: CreateAssignedTaskRequest): Promise<AssignedTask> {
-    return this.unmigrated.createTask(request)
-  }
-
-  updateTask(id: string, request: UpdateAssignedTaskRequest): Promise<AssignedTask> {
-    return this.unmigrated.updateTask(id, request)
-  }
-
-  deleteTask(id: string): Promise<void> {
-    return this.unmigrated.deleteTask(id)
-  }
 
   getComments(query?: MentorCommentQuery): Promise<MentorComment[]> {
     return this.unmigrated.getComments(query)
