@@ -4,7 +4,12 @@ import { DataSourceUnavailableError, WorkbookRowNotFoundError } from '../data-pr
 import type { RawExcelRow } from './excel-schema'
 import { sheetNameForTable } from './excel-schema'
 import { WORKBOOK_TEMPLATE, templateForSheet } from './workbook-template'
-import type { WorkbookGateway, WorkbookTable } from './workbook-gateway'
+import type {
+  WorkbookGateway,
+  WorkbookStructure,
+  WorkbookTable,
+  WorkbookTableInfo,
+} from './workbook-gateway'
 
 /**
  * Reads and writes a real `.xlsx` file.
@@ -67,6 +72,63 @@ export class FileWorkbookGateway implements WorkbookGateway {
 
   get canWrite(): boolean {
     return this.store.canWrite
+  }
+
+  /**
+   * ExcelJS can create a table but cannot extend one when reloading a file,
+   * so rows this application appended would fall outside the table range and
+   * disappear from anything reading it. Structure is therefore reported and
+   * never altered here; the Graph transport is what repairs it.
+   */
+  get canManageStructure(): boolean {
+    return false
+  }
+
+  async validateConnection(): Promise<void> {
+    await this.open()
+  }
+
+  /**
+   * Reports each template sheet that exists, under its table name.
+   *
+   * This transport has only worksheets to go on, so "the table exists" means
+   * "the sheet exists and has a header row". Sheets outside the template are
+   * still listed, because an unexpected sheet is useful diagnostic detail.
+   */
+  async describeStructure(): Promise<WorkbookStructure> {
+    const { workbook } = await this.open()
+    const sheetNames = workbook.worksheets.map((sheet) => sheet.name)
+    const tables: WorkbookTableInfo[] = []
+
+    for (const template of WORKBOOK_TEMPLATE) {
+      const sheet = workbook.getWorksheet(template.sheetName)
+      if (sheet === undefined) continue
+
+      tables.push({
+        name: template.tableName,
+        sheetName: template.sheetName,
+        columns: readOptionalHeader(sheet),
+      })
+    }
+
+    return { sheetNames, tables }
+  }
+
+  createTable(): Promise<void> {
+    return this.rejectStructureChange()
+  }
+
+  addColumns(): Promise<void> {
+    return this.rejectStructureChange()
+  }
+
+  private rejectStructureChange(): Promise<never> {
+    return Promise.reject(
+      new DataSourceUnavailableError(
+        'A workbook opened from disk cannot have sheets or columns added by the application. ' +
+          'Add them in Excel, or use "Create a new one" to generate a correctly structured file.',
+      ),
+    )
   }
 
   async getTable(tableName: string): Promise<WorkbookTable> {
@@ -238,6 +300,24 @@ function readHeader(sheet: Worksheet, sheetName: string): string[] {
     )
   }
 
+  return columns
+}
+
+/**
+ * The header row, or an empty list when the sheet has none.
+ *
+ * Unlike `readHeader` this does not throw: structure reporting exists to
+ * describe a broken workbook, so a sheet with no header is an answer rather
+ * than a failure.
+ */
+function readOptionalHeader(sheet: Worksheet): string[] {
+  const columns: string[] = []
+
+  sheet.getRow(1).eachCell({ includeEmpty: true }, (cell) => {
+    columns.push(cellToString(cell.value).trim())
+  })
+
+  while (columns.length > 0 && columns[columns.length - 1] === '') columns.pop()
   return columns
 }
 

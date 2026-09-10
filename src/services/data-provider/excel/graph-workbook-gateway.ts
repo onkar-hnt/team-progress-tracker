@@ -1,6 +1,11 @@
 import { DataSourceUnavailableError, WorkbookRowNotFoundError } from '../data-provider.errors'
 import type { RawExcelRow } from './excel-schema'
-import type { WorkbookGateway, WorkbookTable } from './workbook-gateway'
+import type {
+  CreateWorkbookTableRequest,
+  WorkbookGateway,
+  WorkbookStructure,
+  WorkbookTable,
+} from './workbook-gateway'
 
 /**
  * Reads and writes the workbook through the Microsoft Graph workbook API.
@@ -35,6 +40,18 @@ interface GraphRange {
 
 interface GraphCollection<TValue> {
   value: TValue[]
+}
+
+interface GraphNamed {
+  name: string
+}
+
+interface GraphNamedWithId extends GraphNamed {
+  id: string
+}
+
+interface GraphTable extends GraphNamedWithId {
+  worksheet?: GraphNamed
 }
 
 export interface GraphWorkbookGatewayOptions {
@@ -75,6 +92,127 @@ export class GraphWorkbookGateway implements WorkbookGateway {
 
   get canWrite(): boolean {
     return this.isConfigured && !this.readOnly
+  }
+
+  /**
+   * Graph is the only transport that can maintain an Excel table range, which
+   * is why structure repair is offered here and nowhere else.
+   */
+  get canManageStructure(): boolean {
+    return this.canWrite
+  }
+
+  /**
+   * Resolves the sharing link and reads the workbook's sheet list.
+   *
+   * Deliberately does not open a write session: this runs to find out whether
+   * the workbook is reachable at all, and creating a session first would make
+   * a permissions problem look like a session problem.
+   */
+  async validateConnection(): Promise<void> {
+    const base = await this.resolveItemPath()
+    await this.fetchGraph<GraphCollection<GraphNamed>>(`${base}/worksheets?$select=name`, {
+      method: 'GET',
+    })
+  }
+
+  async describeStructure(): Promise<WorkbookStructure> {
+    const base = await this.resolveItemPath()
+
+    const [sheets, tables] = await Promise.all([
+      this.fetchGraph<GraphCollection<GraphNamed>>(`${base}/worksheets?$select=name`, {
+        method: 'GET',
+      }),
+      this.fetchGraph<GraphCollection<GraphTable>>(
+        `${base}/tables?$select=id,name&$expand=worksheet($select=name)`,
+        { method: 'GET' },
+      ),
+    ])
+
+    // One request per table, but only ever a handful, and only when structure
+    // is being checked rather than on the data path.
+    const withColumns = await Promise.all(
+      tables.value.map(async (table) => ({
+        name: table.name,
+        sheetName: table.worksheet?.name ?? '',
+        columns: await this.readTableColumns(base, table.name),
+      })),
+    )
+
+    return {
+      sheetNames: sheets.value.map((sheet) => sheet.name),
+      tables: withColumns,
+    }
+  }
+
+  async createTable({
+    columns,
+    sheetName,
+    tableName,
+  }: CreateWorkbookTableRequest): Promise<void> {
+    this.assertCanManageStructure()
+    if (columns.length === 0) {
+      throw new DataSourceUnavailableError(
+        `Table "${tableName}" cannot be created with no columns.`,
+      )
+    }
+
+    const structure = await this.describeStructure()
+
+    if (structure.tables.some((table) => table.name === tableName)) {
+      throw new DataSourceUnavailableError(
+        `Excel table "${tableName}" already exists, so it was not recreated.`,
+      )
+    }
+
+    if (!structure.sheetNames.includes(sheetName)) {
+      await this.request(`/worksheets/add`, {
+        method: 'POST',
+        body: JSON.stringify({ name: sheetName }),
+      })
+    }
+
+    // The header is written before the table is defined, because a table
+    // created with `hasHeaders` takes its column names from the cells it is
+    // given rather than from a separate call.
+    const headerAddress = `A1:${columnAddress(columns.length - 1)}1`
+
+    await this.request(
+      `/worksheets('${encodeTableName(sheetName)}')/range(address='${headerAddress}')`,
+      { method: 'PATCH', body: JSON.stringify({ values: [[...columns]] }) },
+    )
+
+    const created = await this.request<GraphNamedWithId>(`/tables/add`, {
+      method: 'POST',
+      body: JSON.stringify({
+        address: `'${sheetName.replace(/'/g, "''")}'!${headerAddress}`,
+        hasHeaders: true,
+      }),
+    })
+
+    // Graph names a new table `Table1`, `Table2` and so on. The application
+    // addresses tables by name, so it is renamed to the agreed one — by id,
+    // since the generated name is the only handle that exists until then.
+    if (created.name !== tableName) {
+      await this.request(`/tables('${encodeTableName(created.id)}')`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: tableName }),
+      })
+    }
+  }
+
+  async addColumns(tableName: string, columns: readonly string[]): Promise<void> {
+    this.assertCanManageStructure()
+
+    // Appended one at a time: Graph adds a single column per call, and doing
+    // them in sequence means a failure halfway leaves the earlier ones added
+    // rather than the table in an unknown state.
+    for (const column of columns) {
+      await this.request(`/tables('${encodeTableName(tableName)}')/columns/add`, {
+        method: 'POST',
+        body: JSON.stringify({ name: column }),
+      })
+    }
   }
 
   async getTable(tableName: string): Promise<WorkbookTable> {
@@ -159,6 +297,23 @@ export class GraphWorkbookGateway implements WorkbookGateway {
     }
 
     return matching.length
+  }
+
+  private async readTableColumns(base: string, tableName: string): Promise<string[]> {
+    const columns = await this.fetchGraph<GraphCollection<GraphNamed>>(
+      `${base}/tables('${encodeTableName(tableName)}')/columns?$select=name`,
+      { method: 'GET' },
+    )
+
+    return columns.value.map((column) => column.name)
+  }
+
+  private assertCanManageStructure(): void {
+    if (this.canManageStructure) return
+
+    throw new DataSourceUnavailableError(
+      'The workbook is connected read-only, so its sheets and tables cannot be created or repaired.',
+    )
   }
 
   /**
@@ -315,6 +470,24 @@ function encodeSharingUrl(url: string): string {
 /** Table names appear inside a quoted OData segment, so quotes are doubled. */
 function encodeTableName(tableName: string): string {
   return encodeURIComponent(tableName.replace(/'/g, "''"))
+}
+
+/**
+ * The Excel column letter for a zero-based index: 0 is `A`, 26 is `AA`.
+ *
+ * Needed because a table is defined by a range address, and the address has
+ * to span exactly as many columns as the template has.
+ */
+function columnAddress(index: number): string {
+  let remaining = index
+  let address = ''
+
+  do {
+    address = String.fromCharCode(65 + (remaining % 26)) + address
+    remaining = Math.floor(remaining / 26) - 1
+  } while (remaining >= 0)
+
+  return address
 }
 
 function toRawRow(columns: readonly string[], values: readonly GraphCell[]): RawExcelRow {

@@ -135,8 +135,6 @@ interface TableDefinition<TRecord> {
  * file, and swapping this provider for a REST one requires no changes above it.
  */
 export class ExcelDataProvider implements DataProvider {
-  readonly name = 'sharepoint-excel'
-
   private readonly gateway: WorkbookGateway
   private readonly strictRowValidation: boolean
   private readonly onRowValidationIssues:
@@ -213,6 +211,17 @@ export class ExcelDataProvider implements DataProvider {
     this.gateway = options.gateway
     this.strictRowValidation = options.strictRowValidation ?? false
     this.onRowValidationIssues = options.onRowValidationIssues
+  }
+
+  /**
+   * Names the transport rather than the provider.
+   *
+   * The same Excel logic runs over Microsoft Graph, a local file and the
+   * in-memory stand-in, and "which one is in use" is the question diagnostics
+   * and the settings screen are actually asking.
+   */
+  get name(): string {
+    return this.gateway.name
   }
 
   get capabilities(): DataProviderCapabilities {

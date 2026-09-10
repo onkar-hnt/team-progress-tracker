@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
-import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
+import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
 import { useMentorAssignments } from '@hooks/use-access-scope'
@@ -82,6 +82,8 @@ export function MentorsPage() {
           />
         ) : mentorsQuery.isPending ? (
           <Skeleton label="Loading mentors…" rows={4} />
+        ) : mentorsQuery.data?.length === 0 ? (
+          <EmptyState message="No mentors added yet." />
         ) : (
           <div className="table-scroll">
             <table className="data-table">

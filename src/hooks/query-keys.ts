@@ -43,4 +43,12 @@ export const queryKeys = {
 
   rangeOverview: (scopeId: string, range: DateRange) =>
     [ROOT, 'range-overview', scopeId, range.from, range.to] as const,
+
+  /**
+   * The Admin workbook itself, rather than the records in it.
+   *
+   * Under the same root so a write still refreshes it: creating a mentor is
+   * also evidence that the workbook is reachable and correctly structured.
+   */
+  adminWorkbook: () => [ROOT, 'admin', 'workbook'] as const,
 }

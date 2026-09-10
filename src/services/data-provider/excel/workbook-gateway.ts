@@ -12,6 +12,35 @@ export interface WorkbookTable {
   rows: RawExcelRow[]
 }
 
+/** One table as it currently exists in the workbook. */
+export interface WorkbookTableInfo {
+  name: string
+
+  /** The worksheet holding it. Empty when the transport cannot report it. */
+  sheetName: string
+
+  /** Header row, in workbook order. */
+  columns: string[]
+}
+
+/**
+ * What the workbook contains right now.
+ *
+ * Read in one go rather than probed table by table, so deciding what is
+ * missing is a comparison against a snapshot instead of a sequence of
+ * requests that could each see a different state of the file.
+ */
+export interface WorkbookStructure {
+  sheetNames: string[]
+  tables: WorkbookTableInfo[]
+}
+
+export interface CreateWorkbookTableRequest {
+  sheetName: string
+  tableName: string
+  columns: readonly string[]
+}
+
 /**
  * Transport for reading and writing Excel tables.
  *
@@ -37,6 +66,42 @@ export interface WorkbookGateway {
 
   /** `false` when the integration is scoped to read-only access. */
   readonly canWrite: boolean
+
+  /**
+   * Whether sheets and tables can be created, as opposed to only rows.
+   *
+   * Separate from `canWrite` because the two are genuinely independent: the
+   * file transport can write rows all day but cannot maintain an Excel table
+   * range, so it reports the structure it finds and refuses to change it.
+   */
+  readonly canManageStructure: boolean
+
+  /**
+   * Confirms the workbook is reachable and readable, without reading data.
+   *
+   * Exists so a connection problem can be reported as one, rather than
+   * surfacing as every table on every screen failing separately.
+   */
+  validateConnection(): Promise<void>
+
+  /** The sheets and tables that exist, for comparison against the template. */
+  describeStructure(): Promise<WorkbookStructure>
+
+  /**
+   * Creates a table, and the sheet holding it if that is missing too.
+   *
+   * Must reject rather than overwrite when the table already exists, so that
+   * callers cannot destroy data by running structure repair twice.
+   */
+  createTable(request: CreateWorkbookTableRequest): Promise<void>
+
+  /**
+   * Appends columns to an existing table, leaving current columns in place.
+   *
+   * Repairs a table that predates a new column. Existing rows get a blank
+   * cell in the new column, which is what a mapper treats as absent.
+   */
+  addColumns(tableName: string, columns: readonly string[]): Promise<void>
 
   getTable(tableName: string): Promise<WorkbookTable>
 
@@ -89,12 +154,29 @@ export class UnconfiguredWorkbookGateway implements WorkbookGateway {
   readonly name = 'unconfigured-workbook'
   readonly isConfigured = false
   readonly canWrite = false
+  readonly canManageStructure = false
 
   private fail(): never {
     throw new DataSourceUnavailableError(
-      'The SharePoint Excel integration is not configured yet. ' +
-        'Set the data source to "mock", or supply workbook credentials and register a real WorkbookGateway.',
+      'Unable to connect to the Admin data source. ' +
+        'No workbook is configured yet: supply the Microsoft app registration, or set the data source to "memory-excel" to work offline.',
     )
+  }
+
+  validateConnection(): Promise<void> {
+    return this.fail()
+  }
+
+  describeStructure(): Promise<WorkbookStructure> {
+    return this.fail()
+  }
+
+  createTable(): Promise<void> {
+    return this.fail()
+  }
+
+  addColumns(): Promise<void> {
+    return this.fail()
   }
 
   getTable(): Promise<WorkbookTable> {

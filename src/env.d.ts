@@ -9,7 +9,12 @@
  * nothing secret may go here.
  */
 interface ImportMetaEnv {
-  /** `local-excel`, `sharepoint-excel` or `mock`. Defaults to `mock`. */
+  /**
+   * `local-excel`, `memory-excel`, `sharepoint-excel` or `mock`.
+   *
+   * Defaults to `memory-excel`, which exercises the real Excel path against a
+   * workbook held in memory.
+   */
   readonly VITE_DATA_SOURCE?: string
 
   /**
