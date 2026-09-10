@@ -2,13 +2,48 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Track team progress, updates, and blockers." />
+
+    <!--
+      The base placeholder below is substituted at build time, so the icon
+      resolves under the repository subpath on GitHub Pages as well as at the
+      root during development. Do not replace it with a leading slash.
+    -->
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+
     <title>Team Progress Tracker</title>
+    <meta
+      name="description"
+      content="Daily updates, assigned tasks and mentor feedback for the team, in one place."
+    />
+
+    <!-- Tints the browser chrome on mobile to match the app header. -->
+    <meta name="theme-color" content="#3155a6" />
+
+    <!-- Internal tool: no reason for it to appear in search results. -->
+    <meta name="robots" content="noindex, nofollow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Team Progress Tracker" />
+    <meta property="og:title" content="Team Progress Tracker" />
+    <meta
+      property="og:description"
+      content="Daily updates, assigned tasks and mentor feedback for the team, in one place."
+    />
   </head>
   <body>
     <div id="root"></div>
+
+    <!--
+      The whole interface is rendered by React, so without scripting the page
+      is blank. Saying so beats leaving somebody looking at nothing.
+    -->
+    <noscript>
+      <p style="font: 1rem/1.5 system-ui, sans-serif; margin: 3rem auto; max-width: 32rem">
+        Team Progress Tracker needs JavaScript to run. Please enable it and reload the page.
+      </p>
+    </noscript>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { useAuth } from '@app/providers/auth-context'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
+import { APP_NAME } from '@constants/app.constants'
 import { AuthError } from '@services/auth/index'
 import { bootstrapAdmin } from '@services/auth/bootstrap-admin'
 
@@ -77,7 +78,7 @@ export function LoginPage() {
     <main className="login">
       <section className="login__card">
         <header className="login__header">
-          <span className="login__eyebrow">Team Progress Tracker</span>
+          <span className="login__eyebrow">{APP_NAME}</span>
           <h1 className="login__title">Sign in</h1>
           <p className="login__subtitle">
             {usesCredentials

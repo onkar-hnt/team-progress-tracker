@@ -12,25 +12,31 @@ import type { AppUser } from '@models/user.model'
  * It is recognised before the workbook is consulted, which also means it
  * still works when the workbook is unreachable, malformed or empty.
  *
- * SECURITY: the password is in the JavaScript bundle and therefore public to
- * anyone who can load the application. Set `VITE_ADMIN_EMAIL` and
- * `VITE_ADMIN_PASSWORD` for any deployment that is reachable beyond the team,
- * and prefer the Entra sign-in path once the app registration exists.
- *
- * TODO(admin-auth): these built-in credentials are development-only and must
- * be removed once real authentication is in place. Replace them with Microsoft
- * Entra sign-in — `EntraAuthProvider` already implements it and takes over
- * automatically as soon as `VITE_ENTRA_CLIENT_ID` and `VITE_ENTRA_TENANT_ID`
- * are configured — or with a backend that verifies credentials server-side.
- * Nothing outside this module knows the email or the password, so that
- * substitution does not reach into any component.
+ * SECURITY: the password is compared in the browser, so it is only ever as
+ * private as the bundle it is compared in — which is to say not private at
+ * all. That is why it is absent from production builds entirely; see
+ * `DEVELOPMENT_PASSWORD` below. Supabase Auth is the real sign-in path now,
+ * and this account is the offline fallback rather than the way in.
  */
 
 const env: Partial<ImportMetaEnv> = import.meta.env ?? {}
 
 const DEFAULT_EMAIL = 'admin@handt.ai'
 const DEFAULT_NAME = 'System Administrator'
-const DEFAULT_PASSWORD = 'Admin@1234'
+
+/**
+ * The built-in password, in development builds only.
+ *
+ * Vite replaces `import.meta.env` with a literal at build time, so in a
+ * production bundle this whole expression folds to the empty string: the
+ * password is not merely unused there, it is not in the file to be read. The
+ * distinction matters because the file is served to anyone who opens the
+ * site, and a default that ships is a default that is public.
+ *
+ * A deployment that genuinely needs this account sets `VITE_ADMIN_PASSWORD`
+ * at build time, which is a deliberate act rather than an inherited default.
+ */
+const DEVELOPMENT_PASSWORD = import.meta.env?.DEV === true ? 'Admin@1234' : ''
 
 /**
  * Treats a blank variable as absent.
@@ -44,16 +50,30 @@ function configured(value: string | undefined, fallback: string): string {
   return trimmed === '' ? fallback : trimmed
 }
 
+const password = configured(env.VITE_ADMIN_PASSWORD, DEVELOPMENT_PASSWORD)
+
 export const bootstrapAdmin = {
   email: configured(env.VITE_ADMIN_EMAIL, DEFAULT_EMAIL).toLowerCase(),
   name: configured(env.VITE_ADMIN_NAME, DEFAULT_NAME),
-  password: configured(env.VITE_ADMIN_PASSWORD, DEFAULT_PASSWORD),
+  password,
+
+  /**
+   * Whether this account can be signed into at all.
+   *
+   * False in a production build that sets no `VITE_ADMIN_PASSWORD`, where
+   * there is no password to compare against. It has to be checked before the
+   * comparison rather than relied on afterwards: an empty expected password
+   * would otherwise match an empty submitted one, and the account that exists
+   * to rescue a locked-out team would admit anybody.
+   */
+  isEnabled: password !== '',
 
   /** True while the built-in password is still in use. Surfaced in the UI. */
-  isUsingDefaultPassword: configured(env.VITE_ADMIN_PASSWORD, DEFAULT_PASSWORD) === DEFAULT_PASSWORD,
+  isUsingDefaultPassword: password !== '' && password === DEVELOPMENT_PASSWORD,
 } as const
 
 export function isBootstrapAdminEmail(email: string): boolean {
+  if (!bootstrapAdmin.isEnabled) return false
   return email.trim().toLowerCase() === bootstrapAdmin.email
 }
 

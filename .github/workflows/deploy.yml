@@ -23,10 +23,56 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+
+      # Fails before the build rather than after the deploy.
+      #
+      # Without these two the build still succeeds: the app falls back to the
+      # in-memory workbook, and the result looks like a working site that
+      # quietly saves nothing. That is a far worse outcome than a red run, so
+      # a missing value is made to stop the pipeline here, where the message
+      # says which one and where to put it.
+      - name: Check deployment configuration
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          missing=""
+          [ -n "$VITE_SUPABASE_URL" ] || missing="$missing VITE_SUPABASE_URL"
+          [ -n "$VITE_SUPABASE_PUBLISHABLE_KEY" ] || missing="$missing VITE_SUPABASE_PUBLISHABLE_KEY"
+
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository configuration:$missing"
+            echo "Add them under Settings > Secrets and variables > Actions."
+            echo "Both are public values, so repository *variables* are the right home."
+            exit 1
+          fi
+
+          # A secret key would be readable by anyone who opens the bundle.
+          case "$VITE_SUPABASE_PUBLISHABLE_KEY" in
+            sb_secret_*|*service_role*)
+              echo "::error::That is a secret key. Use the publishable (anon) key."
+              exit 1
+              ;;
+          esac
+
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Lint
         run: npm run lint
+
+      # The Supabase values are read by Vite here and inlined into the bundle.
+      # That is by design for the publishable key: it identifies the project,
+      # not the caller, and Supabase Auth with row-level security is what
+      # decides access. No secret belongs in this block.
       - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_DATA_SOURCE: supabase
+          VITE_AUTH_MODE: supabase
         run: npm run build
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

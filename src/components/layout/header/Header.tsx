@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@app/providers/auth-context'
 import { Icon } from '@components/ui/icons/Icon'
 import { appConfig } from '@config/app.config'
+import { APP_EYEBROW, APP_NAME } from '@constants/app.constants'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import { canOpenWorkbook } from '@services/auth/index'
 
@@ -55,8 +56,8 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
         </button>
 
         <div>
-          <span className="header__eyebrow">Team workspace</span>
-          <strong className="header__title">Team Progress Tracker</strong>
+          <span className="header__eyebrow">{APP_EYEBROW}</span>
+          <strong className="header__title">{APP_NAME}</strong>
         </div>
       </div>
 

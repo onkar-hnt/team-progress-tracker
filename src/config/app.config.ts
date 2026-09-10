@@ -33,25 +33,6 @@ export const DATA_SOURCE_LABELS: Readonly<Record<DataSourceMode, string>> = {
 }
 
 /**
- * The Admin workbook, as one named constant.
- *
- * Centralised here so that no component, service or hook carries the URL, and
- * so the administrator never has to supply it: signing in is enough, and the
- * application resolves the workbook from configuration.
- *
- * SECURITY: a SharePoint sharing link is itself an access grant, and anything
- * in a `VITE_` variable or in this file ends up in the public bundle. The
- * default below is committed because this is a prototype against an
- * organisation-restricted link; set `VITE_SHAREPOINT_WORKBOOK_URL` to override
- * it, and move workbook access behind a backend before the app is reachable
- * beyond the team.
- */
-export const ADMIN_DATA_SOURCE = {
-  type: 'sharepoint-excel',
-  url: 'https://hareandturtle-my.sharepoint.com/:x:/g/personal/o_ingawale_handt_ai/IQBwIUpi1s_DSbYwSEhNa0dXAUZVNx9T1UhXxrIkXkgnVgE?e=6KvjeC',
-} as const satisfies { type: DataSourceMode; url: string }
-
-/**
  * Vite injects `import.meta.env` at build time. Falling back to an empty
  * object keeps the module importable from plain Node, which is what allows
  * the data layer to be exercised by scripts and unit tests.
@@ -80,6 +61,29 @@ function readPositiveInteger(value: string | undefined, fallback: number): numbe
   const parsed = Number(value)
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback
 }
+
+/**
+ * The Admin workbook, as one named constant.
+ *
+ * Centralised here so that no component, service or hook carries the URL, and
+ * so the administrator never has to supply it per session: the deployment
+ * supplies it once and the application resolves the workbook from there.
+ *
+ * SECURITY: a SharePoint sharing link is itself an access grant — the link
+ * alone opens the file — and everything in this bundle is readable by anyone
+ * who loads the site. So it is configuration rather than a committed
+ * constant, which is what keeps it out of a public repository and out of a
+ * public build that has no business holding it.
+ *
+ * Blank is a supported state, not a broken one. Every consumer already
+ * handles it: the Graph gateway reports itself unconfigured, the settings
+ * page says so, and the header hides the workbook link. Nothing about
+ * Supabase depends on it.
+ */
+export const ADMIN_DATA_SOURCE = {
+  type: 'sharepoint-excel',
+  url: readText(env.VITE_SHAREPOINT_WORKBOOK_URL, ''),
+} as const satisfies { type: DataSourceMode; url: string }
 
 /**
  * Resolved application configuration.
@@ -166,11 +170,7 @@ export const appConfig = {
      * Microsoft Graph can address a shared file directly from its sharing URL
      * via the `/shares` endpoint, which avoids having to discover and store a
      * drive id and item id up front.
-     *
-     * Defaults to the configured Admin workbook so the administrator never has
-     * to enter it; the environment variable exists to point a deployment at a
-     * different file without a code change.
      */
-    workbookUrl: readText(env.VITE_SHAREPOINT_WORKBOOK_URL, ADMIN_DATA_SOURCE.url),
+    workbookUrl: ADMIN_DATA_SOURCE.url,
   },
 } as const
