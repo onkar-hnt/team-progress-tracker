@@ -52,8 +52,13 @@ export function buildAccessScope(
   if (isAdmin(user)) return { ...base, visibleDeveloperIds: null }
 
   if (user.role === 'mentor') {
+    // An assignment whose Status cell reads Inactive keeps the history but
+    // grants nothing, which is how a mentor is taken off a developer without
+    // erasing the record that they once mentored them.
     const assigned = assignments
-      .filter((assignment) => assignment.mentorId === user.mentorId)
+      .filter(
+        (assignment) => assignment.mentorId === user.mentorId && (assignment.active ?? true),
+      )
       .map((assignment) => assignment.developerId)
 
     // A mentor also sees their own row where they have one, so a mentor who

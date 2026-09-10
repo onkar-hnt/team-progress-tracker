@@ -265,10 +265,17 @@ export class MockDataProvider implements DataProvider {
     // De-duplicated, because assigning the same developer twice is meaningless
     // and would produce two identical workbook rows.
     const unique = [...new Set(developerIds)]
+    const assignedDate = new Date().toISOString().slice(0, 10)
 
     this.assignments = [
       ...this.assignments.filter((assignment) => assignment.mentorId !== mentorId),
-      ...unique.map((developerId) => ({ mentorId, developerId })),
+      ...unique.map((developerId) => ({
+        id: `${mentorId}-${developerId}`,
+        mentorId,
+        developerId,
+        assignedDate,
+        active: true,
+      })),
     ]
 
     return this.assignments

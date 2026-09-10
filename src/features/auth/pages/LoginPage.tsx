@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useAuth } from '@app/providers/auth-context'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { AuthError } from '@services/auth/index'
+import { bootstrapAdmin } from '@services/auth/bootstrap-admin'
 
 import './LoginPage.scss'
 
@@ -111,7 +112,15 @@ export function LoginPage() {
         </div>
 
         <footer className="login__footer">
-          Trouble signing in? Contact your administrator.
+          {usesCredentials && bootstrapAdmin.isUsingDefaultPassword ? (
+            <>
+              Everyone else signs in with the details in the team workbook. For the very first
+              sign-in, before anyone has been added, use <code>{bootstrapAdmin.email}</code> with
+              the built-in administrator password.
+            </>
+          ) : (
+            'Trouble signing in? Contact your administrator.'
+          )}
         </footer>
       </section>
     </main>

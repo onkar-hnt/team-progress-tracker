@@ -25,6 +25,8 @@ import type {
   UpdateProjectRequest,
 } from '@models/index'
 
+import { todayIsoDate } from '@utils/date.utils'
+
 import { createDailyWorkEntryId, filterDailyWorkEntries } from '../daily-work-query'
 import { createSequentialId, filterComments, filterTasks } from '../record-query'
 import type { DataProvider, DataProviderCapabilities } from '../data-provider.interface'
@@ -222,7 +224,12 @@ export class ExcelDataProvider implements DataProvider {
   }
 
   async createDeveloper(request: CreateDeveloperRequest): Promise<Developer> {
-    return this.appendRecord(this.developerTable, developerSchema, request)
+    // Stamped here rather than in the form, so a row added by any caller
+    // carries the date it was created.
+    return this.appendRecord(this.developerTable, developerSchema, {
+      createdDate: todayIsoDate(),
+      ...request,
+    })
   }
 
   async updateDeveloper(id: string, request: UpdateDeveloperRequest): Promise<Developer> {
@@ -265,7 +272,10 @@ export class ExcelDataProvider implements DataProvider {
   }
 
   createMentor(request: CreateMentorRequest): Promise<Mentor> {
-    return this.appendRecord(this.mentorTable, mentorSchema, request)
+    return this.appendRecord(this.mentorTable, mentorSchema, {
+      createdDate: todayIsoDate(),
+      ...request,
+    })
   }
 
   async updateMentor(id: string, request: UpdateMentorRequest): Promise<Mentor> {
@@ -336,20 +346,30 @@ export class ExcelDataProvider implements DataProvider {
 
     const unique = [...new Set(developerIds)]
 
+    // Rewriting the whole set is simpler than diffing it, and the mapping
+    // table is small. AssignedDate is therefore the date of the most recent
+    // edit to the mentor's list rather than of that individual pairing.
+    const assignedDate = new Date().toISOString().slice(0, 10)
+
+    const assignments = unique.map((developerId) => ({
+      id: `${mentorId}-${developerId}`,
+      mentorId,
+      developerId,
+      assignedDate,
+      active: true,
+    }))
+
     await this.gateway.deleteRowsByKey(
       EXCEL_TABLES.mentorMapping,
       MENTOR_MAPPING_COLUMNS.mentorId,
       mentorId,
     )
 
-    if (unique.length > 0) {
-      await this.gateway.appendRows(
-        EXCEL_TABLES.mentorMapping,
-        unique.map((developerId) => toMentorAssignmentRow({ mentorId, developerId })),
-      )
+    if (assignments.length > 0) {
+      await this.gateway.appendRows(EXCEL_TABLES.mentorMapping, assignments.map(toMentorAssignmentRow))
     }
 
-    return unique.map((developerId) => ({ mentorId, developerId }))
+    return assignments
   }
 
   getProjects(): Promise<Project[]> {
