@@ -1,16 +1,48 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.modal { width: min(46rem, calc(100vw - #{$space-8})); max-height: calc(100vh - #{$space-8}); padding: 0; border: 1px solid $color-border; border-radius: $radius-lg; background: $color-white; box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+/// `dvh` rather than `vh` for the same reason as the shell: on a phone the
+/// address bar is counted by `vh` but not shown, so a dialog sized in `vh`
+/// puts its pinned footer just below the fold — which is the one place it
+/// must never be.
+.modal { width: min(46rem, calc(100vw - #{$space-8})); max-height: calc(100dvh - #{$space-8}); padding: 0; border: 1px solid $color-border; border-radius: $radius-lg; background: $color-white; box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
 
   &::backdrop { background: rgb(15 23 42 / 45%); }
 
-  &__panel { display: flex; flex-direction: column; max-height: calc(100vh - #{$space-8}); }
-  &__header { display: flex; align-items: center; justify-content: space-between; gap: $space-4; padding: $space-5 $space-6; border-bottom: 1px solid $color-border; }
+  &__panel { display: flex; flex-direction: column; max-height: calc(100dvh - #{$space-8}); }
+  &__header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: $space-4; padding: $space-5 $space-6; border-bottom: 1px solid $color-border; }
   &__title { margin: 0; color: $color-text; font-size: $font-size-lg; }
   &__close { width: 2rem; height: 2rem; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text-muted; font-size: $font-size-lg; line-height: 1; background: $color-white; cursor: pointer;
     &:hover { color: $color-text; background: $color-surface-subtle; }
     &:focus-visible { @include focus-ring; }
   }
-  &__body { padding: $space-6; overflow-y: auto; }
+  /// The only part that scrolls. `min-height: 0` is what allows it to shrink
+  /// below its content inside the flex column; without it a long form pushes
+  /// the panel past its own max-height and the header scrolls away with it.
+  ///
+  /// Horizontal overflow is clipped rather than left to `auto`, because the
+  /// footer below reaches past this padding with negative margins and a single
+  /// `auto` axis would otherwise turn the other one into `auto` as well and
+  /// produce a sideways scroll.
+  ///
+  /// No bottom padding: the footer owns the space under the last field, so
+  /// that content scrolls right up to the bar rather than stopping short of it.
+  &__body { flex: 1 1 auto; min-height: 0; padding: $space-6 $space-6 0; overflow: hidden auto; overscroll-behavior: contain; }
+
+  /// The action row of whichever form is placed here becomes the footer.
+  ///
+  /// Pinned in place rather than given a footer slot on the component. The
+  /// submit button has to stay inside its own `<form>` to submit it, so a real
+  /// footer element would mean lifting every button out and wiring it back
+  /// with a `form` attribute — six forms changed to move one bar.
+  &__body .form__actions,
+  &__body .daily-update-form__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-inline: -$space-6;
+    padding: $space-4 $space-6;
+    border-top: 1px solid $color-border;
+    background: $color-white;
+  }
 }

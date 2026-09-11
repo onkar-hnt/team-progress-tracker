@@ -8,3 +8,18 @@ html, body, #root { height: 100%; }
 body { min-width: 20rem; height: 100dvh; margin: 0; overflow: hidden; }
 
 button, input, textarea, select { font: inherit; }
+
+/// Scrollbars are hidden everywhere.
+///
+/// Only the track is removed. Every region still scrolls by wheel, trackpad,
+/// touch, keyboard and anchor, and nothing here changes `overflow`, so no
+/// content becomes unreachable.
+///
+/// It does remove the cue that a region *can* be scrolled, which is why the
+/// scrolling areas in this application all have an edge of their own: the
+/// dialog body sits between a header and a pinned footer, and the tables
+/// scroll inside a bordered panel. Applied at `*` rather than to those
+/// containers because a scroll region added later would otherwise be the odd
+/// one out.
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; }
