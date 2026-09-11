@@ -101,6 +101,18 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     [authProvider],
   )
 
+  /**
+   * Re-reads the identity after this application changed something about it.
+   *
+   * A provider without `refreshIdentity` has an identity that cannot change
+   * mid-session, so there is nothing to do rather than an error to report.
+   */
+  const refreshUser = useCallback(async () => {
+    if (authProvider.refreshIdentity === undefined) return
+
+    setUser(await authProvider.refreshIdentity())
+  }, [authProvider])
+
   const signOut = useCallback(async () => {
     await authProvider.signOut()
     setUser(null)
@@ -121,8 +133,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       isOffline: authProvider.isOffline,
       signIn,
       signOut,
+      refreshUser,
     }),
-    [authProvider, isRestoring, signIn, signOut, user],
+    [authProvider, isRestoring, refreshUser, signIn, signOut, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

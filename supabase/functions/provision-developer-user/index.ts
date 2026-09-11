@@ -37,7 +37,48 @@ const ALLOWED_ORIGINS = new Set([
   'http://127.0.0.1:5173',
 ])
 
-type ProvisionOutcome = 'invited' | 'linked-existing' | 'already-linked'
+type ProvisionOutcome = 'created' | 'linked-existing' | 'already-linked'
+
+/**
+ * The initial password, derived from the employee's first name.
+ *
+ * A deliberate decision by the team, taken over emailing an invitation, so
+ * that onboarding does not depend on the mail service. The consequence is
+ * that the password is predictable from information that is not secret —
+ * names and the address pattern are both public — so it protects nothing on
+ * its own. What makes it acceptable is `profiles.must_change_password`: the
+ * account cannot reach any screen until this password has been replaced.
+ *
+ * The rule, exactly:
+ *
+ *   1. Trim the name and split it on whitespace; take the first word.
+ *   2. Remove every character that is not A-Z, a-z or 0-9. Case is kept as
+ *      entered, so "Shubham Deshmukh" gives "Shubham".
+ *   3. If fewer than three characters survive, use the whole name with the
+ *      same characters removed instead.
+ *   4. If that is still under three characters, use "Employee".
+ *   5. Append "@123".
+ *
+ * "Shubham Deshmukh" -> "Shubham@123".
+ *
+ * Mirrored in SQL as `public.initial_password_for`, which is what decides
+ * whether the password has actually been replaced. The two must not drift.
+ */
+function initialPasswordFor(name: string): string {
+  const strip = (value: string) => value.replace(/[^A-Za-z0-9]/g, '')
+  const [first = ''] = name.trim().split(/\s+/)
+
+  const firstWord = strip(first)
+  const whole = strip(name)
+
+  // Supabase refuses anything under six characters, which a very short first
+  // name would produce. Falling back to the whole name keeps the result
+  // something an administrator can still work out, rather than padding it
+  // with characters nobody could guess.
+  const stem = firstWord.length >= 3 ? firstWord : whole.length >= 3 ? whole : 'Employee'
+
+  return `${stem}@123`
+}
 
 interface ProvisionRequest {
   developerId: string
@@ -68,24 +109,42 @@ interface DeveloperRow {
  * reserved, so `secrets set` refuses those names.
  */
 function readPrivilegedKey(): { key: string | undefined; source: string } {
+  // The legacy variable first, despite being the deprecated path, because it
+  // holds exactly one key and so cannot be read wrongly. The dictionary can:
+  // it may carry several keys, and picking by position means a platform-side
+  // reordering silently changes which one this function authenticates with.
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+  if (legacy !== undefined && legacy !== '') {
+    return { key: legacy, source: 'SUPABASE_SERVICE_ROLE_KEY' }
+  }
+
   const dictionary = Deno.env.get('SUPABASE_SECRET_KEYS')
 
   if (dictionary !== undefined) {
     try {
       const keys = JSON.parse(dictionary) as Record<string, unknown>
-      const preferred = keys.default ?? Object.values(keys)[0]
+      const values = Object.entries(keys).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== '',
+      )
 
-      if (typeof preferred === 'string') {
-        return { key: preferred, source: 'SUPABASE_SECRET_KEYS' }
+      // A named default, else a key that announces itself as a secret one,
+      // else the first available — in that order, so position is only ever
+      // the last resort.
+      const chosen =
+        values.find(([name]) => name === 'default') ??
+        values.find(([, value]) => value.startsWith('sb_secret_')) ??
+        values[0]
+
+      if (chosen !== undefined) {
+        return { key: chosen[1], source: `SUPABASE_SECRET_KEYS[${chosen[0]}]` }
       }
     } catch {
-      // Not the dictionary we expected. The legacy variable is still there.
+      // Not the dictionary we expected, and no legacy variable to fall back on.
     }
   }
 
-  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-
-  return { key: legacy, source: legacy === undefined ? 'none' : 'SUPABASE_SERVICE_ROLE_KEY' }
+  return { key: undefined, source: 'none' }
 }
 
 function corsHeaders(origin: string | null, request?: Request): Record<string, string> {
@@ -253,12 +312,11 @@ async function handle(request: Request, origin: string | null): Promise<Response
   const { key: serviceRoleKey, source: keySource } = readPrivilegedKey()
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
 
-  // Where the invitation link sends the person once Supabase has verified it.
-  // Configured rather than hardcoded so the same function serves local
-  // development and the deployed site.
-  const redirectTo = Deno.env.get('APP_REDIRECT_URL')
-
-  if (serviceRoleKey === undefined || supabaseUrl === undefined || redirectTo === undefined) {
+  // `APP_REDIRECT_URL` is no longer read. It existed to tell an invitation
+  // link where to land, and accounts are now created with a password instead
+  // of invited. The secret can stay set; it costs nothing and would be needed
+  // again if invitations ever come back.
+  if (serviceRoleKey === undefined || supabaseUrl === undefined) {
     return failure(
       'misconfigured',
       'The provisioning function is missing its configuration.',
@@ -274,11 +332,30 @@ async function handle(request: Request, origin: string | null): Promise<Response
   const caller = await resolveAdminCaller(admin, request)
 
   if ('rejection' in caller) {
-    // Which variable supplied the key, never the key. If the auth server
-    // refused the token, the likeliest cause on this side is the wrong one
-    // having been picked, and that is not visible from anywhere else.
+    // A refused token and a refused key are the same 401 from here: the auth
+    // server is sent the caller's token *and* this function's key, and says
+    // only that it did not like the pair. Telling an administrator to sign in
+    // again when the fault is a key they cannot see wastes their afternoon, so
+    // the key gets tested before the blame is assigned.
     if (caller.rejection === 'invalid-token') {
-      console.error('provision-developer-user: privileged key came from', keySource)
+      const { error: keyError } = await admin.from('profiles').select('id').limit(1)
+
+      if (keyError !== null) {
+        console.error('provision-developer-user: privileged key refused', {
+          source: keySource,
+          message: keyError.message,
+        })
+
+        return failure(
+          'server-key-rejected',
+          'The provisioning function is not authenticating correctly with Supabase, so no login was created. This is a server configuration fault, not a problem with your sign-in — the function needs redeploying.',
+          500,
+          origin,
+        )
+      }
+
+      // The key works, so it really was the caller's token.
+      console.error('provision-developer-user: caller token refused, key is good', keySource)
     }
 
     const { message, status } = describeRejection(caller.rejection)
@@ -361,23 +438,41 @@ async function handle(request: Request, origin: string | null): Promise<Response
 
   let authUserId: string
   let outcome: ProvisionOutcome
+  let initialPassword: string | undefined
 
   if (existing === null) {
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo,
+    const password = initialPasswordFor(developer.name)
+
+    // Created with a password rather than invited, so provisioning never
+    // depends on the mail service. `email_confirm` is set because nobody will
+    // receive a confirmation link to click, and the display name is passed
+    // through so the trigger writes the person's real name to their profile
+    // instead of falling back to the local part of their address.
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+
+      // Only the display name. The password-change requirement used to be set
+      // here too and is now a column on `public.profiles`, because metadata
+      // is writable by the account holder: one `auth.updateUser` call from
+      // the browser console lifted the requirement without changing any
+      // password. The trigger on `auth.users` sets the column instead.
+      user_metadata: { display_name: developer.name },
     })
 
-    if (inviteError !== null || invited.user === null) {
+    if (createError !== null || created.user === null) {
       return failure(
-        'invite-failed',
-        `The invitation could not be sent: ${inviteError?.message ?? 'unknown error'}`,
+        'create-failed',
+        `The login account could not be created: ${createError?.message ?? 'unknown error'}`,
         502,
         origin,
       )
     }
 
-    authUserId = invited.user.id
-    outcome = 'invited'
+    authUserId = created.user.id
+    outcome = 'created'
+    initialPassword = password
   } else {
     // Refused rather than overwritten. Forcing this to `developer` would
     // silently demote whoever owns the address — an administrator, in the
@@ -391,6 +486,12 @@ async function handle(request: Request, origin: string | null): Promise<Response
       )
     }
 
+    // `must_change_password` is deliberately left as it stands. This branch
+    // sets no password — the account already had one — so the existing flag
+    // is already the right answer: still true if a previous provisioning
+    // issued a temporary password nobody has replaced, already false if they
+    // have. Forcing it true would make somebody re-choose a password they
+    // chose themselves.
     authUserId = existing.id
     outcome = 'linked-existing'
   }
@@ -465,7 +566,20 @@ async function handle(request: Request, origin: string | null): Promise<Response
     )
   }
 
-  return json({ developerId: developer.id, authUserId, email, outcome }, 200, origin)
+  // The password is returned so the administrator can pass it on. Withholding
+  // it would not protect anything: it is derived from the person's name by a
+  // fixed rule, so anyone who knows the rule already knows the password.
+  return json(
+    {
+      developerId: developer.id,
+      authUserId,
+      email,
+      outcome,
+      ...(initialPassword === undefined ? {} : { initialPassword }),
+    },
+    200,
+    origin,
+  )
 }
 
 Deno.serve(async (request: Request): Promise<Response> => {

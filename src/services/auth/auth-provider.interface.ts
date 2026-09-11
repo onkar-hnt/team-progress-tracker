@@ -43,6 +43,19 @@ export interface AuthProvider {
   restoreSession(): Promise<AppUser | null>
 
   /**
+   * Re-reads the current identity, bypassing any caching or de-duplication.
+   *
+   * Distinct from `restoreSession`, which exists to answer "is there a
+   * session?" cheaply on startup and is free to share an answer already being
+   * fetched. This exists to answer "what changed just now?", so an in-flight
+   * read started before the change is exactly the answer it must not return.
+   *
+   * Optional: a provider whose identity cannot change mid-session has nothing
+   * to re-read, and callers must cope with its absence.
+   */
+  refreshIdentity?(): Promise<AppUser | null>
+
+  /**
    * Reports identity changes this application did not initiate.
    *
    * Sign-in and sign-out through `signIn` and `signOut` are already reflected

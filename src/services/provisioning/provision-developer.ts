@@ -15,8 +15,8 @@ import { getSupabaseClient } from '@services/supabase/index'
 
 /** What the server did, which decides what the admin screen says afterwards. */
 export type ProvisionOutcome =
-  /** A fresh account was created and an invitation email sent. */
-  | 'invited'
+  /** A fresh account was created with an initial password. */
+  | 'created'
   /** An account already existed for that address and was attached. */
   | 'linked-existing'
   /** The employee already had a login. Nothing changed. */
@@ -27,6 +27,16 @@ export interface ProvisionDeveloperResult {
   authUserId: string
   email: string
   outcome: ProvisionOutcome
+
+  /**
+   * The password the account was created with, on `created` only.
+   *
+   * Present so the administrator can pass it on, since no email is sent.
+   * It is derived from the employee's name by a fixed rule, so it is
+   * guessable by anyone who knows the rule and is meant to be replaced by
+   * the person as soon as they have signed in.
+   */
+  initialPassword?: string
 }
 
 export interface ProvisionDeveloperInput {
@@ -154,9 +164,32 @@ export async function provisionDeveloperLogin(
     )
   }
 
+  // `getSession` hands back what is stored and refreshes only when it judges
+  // the token already expired. A token with seconds left on it, or one whose
+  // background refresh failed earlier in a tab that has been open for hours,
+  // still comes back stale — and the function then rejects it with a message
+  // telling the administrator to sign in again, which is not what fixes it.
+  // Checking the expiry here costs one comparison and removes that whole
+  // class of failure.
+  const secondsRemaining = (session.expires_at ?? 0) - Math.floor(Date.now() / 1000)
+  let accessToken = session.access_token
+
+  if (secondsRemaining < 60) {
+    const { data: renewed, error: renewError } = await client.auth.refreshSession()
+
+    if (renewError !== null || renewed.session === null) {
+      throw new ProvisioningError(
+        'Your session could not be renewed, so the login was not created. Sign out, sign in again, and retry.',
+        'session-expired',
+      )
+    }
+
+    accessToken = renewed.session.access_token
+  }
+
   const { data, error } = await client.functions.invoke('provision-developer-user', {
     body: input,
-    headers: { Authorization: `Bearer ${session.access_token}` },
+    headers: { Authorization: `Bearer ${accessToken}` },
   })
 
   if (error !== null) throw await describeFailure(error)

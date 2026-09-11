@@ -11,6 +11,7 @@ import {
   RequireAdmin,
   RequireAuth,
   RequireFeedbackAccess,
+  RequirePasswordChange,
   RequireScope,
   RequireTeamAccess,
 } from './route-guards'
@@ -86,20 +87,24 @@ export function AppRouter() {
         {/* Authentication, then the access scope: no screen renders before the
             limits on what it may show are known. */}
         <Route element={<RequireAuth />}>
-          <Route element={<RequireScope />}>
-            <Route element={<AppLayout />}>
-              <Route index element={<Navigate replace to="/dashboard" />} />
+          {/* Ahead of the scope, so somebody still using a handed-out
+              password is moved along before any data is fetched for them. */}
+          <Route element={<RequirePasswordChange />}>
+            <Route element={<RequireScope />}>
+              <Route element={<AppLayout />}>
+                <Route index element={<Navigate replace to="/dashboard" />} />
 
-              {/* One boundary inside the layout, so the shell stays on screen
-                  while a screen's chunk is fetched. */}
-              <Route
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <LazyRoutes />
-                  </Suspense>
-                }
-                path="*"
-              />
+                {/* One boundary inside the layout, so the shell stays on
+                    screen while a screen's chunk is fetched. */}
+                <Route
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <LazyRoutes />
+                    </Suspense>
+                  }
+                  path="*"
+                />
+              </Route>
             </Route>
           </Route>
         </Route>

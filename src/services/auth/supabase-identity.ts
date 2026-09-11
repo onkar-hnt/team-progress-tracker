@@ -38,6 +38,7 @@ const profileRowSchema = z.object({
   display_name: z.string().min(1),
   role: z.enum(USER_ROLES),
   status: z.enum(PROFILE_STATUSES),
+  must_change_password: z.boolean(),
 })
 
 const linkedRowSchema = z.object({ id: z.string().min(1) })
@@ -93,7 +94,7 @@ export async function resolveSupabaseIdentity(
 ): Promise<AppUser> {
   const { data, error } = await client
     .from('profiles')
-    .select('id, email, display_name, role, status')
+    .select('id, email, display_name, role, status, must_change_password')
     .eq('id', authUser.id)
     .maybeSingle()
 
@@ -121,6 +122,18 @@ export async function resolveSupabaseIdentity(
   // Checked before the linked records are fetched: a disabled account should
   // cost one query, not three.
   if (profile.status !== 'active') throw new InactiveAccountError()
+
+  // Someone still holding the password they were issued is going straight to
+  // the change-password screen, so their mentor and developer records are not
+  // fetched — nothing behind the guard will render to use them.
+  if (profile.must_change_password) {
+    return {
+      email: profile.email,
+      name: profile.display_name,
+      role: profile.role,
+      mustChangePassword: true,
+    }
+  }
 
   // A person can be both — a mentor who also logs work — so neither lookup
   // short-circuits the other.

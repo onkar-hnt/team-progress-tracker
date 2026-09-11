@@ -17,7 +17,7 @@ import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer, UserRole } from '@models/index'
 import { appConfig } from '@config/app.config'
 import { ProvisioningError } from '@services/provisioning/provision-developer'
-import type { ProvisionOutcome } from '@services/provisioning/provision-developer'
+import type { ProvisionDeveloperResult } from '@services/provisioning/provision-developer'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 
@@ -36,6 +36,18 @@ type EmployeeFormValues = z.infer<typeof employeeFormSchema>
 interface Notice {
   tone: 'success' | 'problem'
   message: string
+
+  /**
+   * The sign-in details, shown once and never fetched again.
+   *
+   * They exist here only for as long as this notice is on screen: the
+   * password is not written to the employee row, the profile, storage, or the
+   * query cache, and no endpoint will return it a second time. An
+   * administrator who navigates away before passing it on has to reset the
+   * password from the Supabase dashboard, which is the correct trade — the
+   * alternative is keeping a recoverable copy of a live password.
+   */
+  credentials?: { email: string; password: string }
 }
 
 /**
@@ -47,30 +59,57 @@ interface Notice {
 const CAN_PROVISION_LOGINS = appConfig.dataSource === 'supabase'
 
 /**
- * Whether this row is one the provisioning function will handle.
+ * Why this row cannot be given a login, or null when it can.
  *
- * It creates developer accounts and nothing else. Offering the action on a
+ * Provisioning creates developer accounts and nothing else. Offering it on a
  * mentor or an administrator would produce a developer profile for them,
- * which is worse than not offering it: the row would look provisioned while
- * granting the wrong access. Those two are provisioned separately, and until
- * that exists the honest answer here is to say nothing.
+ * which is worse than not offering it at all: the row would look provisioned
+ * while granting the wrong access.
+ *
+ * An inactive employee is refused for a different reason. Nothing stops the
+ * account working once it exists — sign-in is decided by the profile's
+ * status, not by this table — so creating one for somebody marked inactive
+ * would hand out access the screen appears to be withholding.
  */
-function isProvisionable(developer: Developer): boolean {
-  return (developer.accessRole ?? 'developer') === 'developer'
+function describeUnprovisionable(developer: Developer): string | null {
+  if (!developer.active) {
+    return 'Inactive employees are not given logins. Mark them active first.'
+  }
+
+  if ((developer.accessRole ?? 'developer') !== 'developer') {
+    const label = USER_ROLE_LABELS[developer.accessRole ?? 'developer']
+    return `Logins are only issued automatically for developers. A ${label} account has to be set up separately.`
+  }
+
+  return null
 }
 
-function describeOutcome(outcome: ProvisionOutcome, name: string, email: string): string {
-  // Worded for both callers. This runs after creating an employee and after
-  // retrying on an existing row, so it may not say the person was created.
-  if (outcome === 'invited') {
-    return `A login was created for ${name}. An invitation was sent to ${email}.`
+function isProvisionable(developer: Developer): boolean {
+  return describeUnprovisionable(developer) === null
+}
+
+// Worded for both callers. This runs after creating an employee and after
+// retrying on an existing row, so it may not say the person was created.
+function describeOutcome(
+  result: ProvisionDeveloperResult,
+  name: string,
+): Pick<Notice, 'credentials' | 'message'> {
+  if (result.outcome === 'created') {
+    return {
+      message: `Login access created successfully for ${name}.`,
+      ...(result.initialPassword === undefined
+        ? {}
+        : { credentials: { email: result.email, password: result.initialPassword } }),
+    }
   }
 
-  if (outcome === 'linked-existing') {
-    return `${name} was attached to the existing account for ${email}. They can sign in with the password they already have.`
+  if (result.outcome === 'linked-existing') {
+    return {
+      message: `${name} was attached to the existing account for ${result.email}. They can sign in with the password they already have.`,
+    }
   }
 
-  return `${name} already had a login, so nothing was changed.`
+  return { message: `${name} already had a login, so nothing was changed.` }
 }
 
 /**
@@ -109,11 +148,10 @@ export function EmployeesPage() {
 
     setNotice(null)
 
-    if (!isProvisionable(developer)) {
-      setNotice({
-        tone: 'problem',
-        message: `${developer.name} was saved, but logins are only issued automatically for developers. A ${USER_ROLE_LABELS[developer.accessRole ?? 'developer']} account has to be set up separately.`,
-      })
+    const refusal = describeUnprovisionable(developer)
+
+    if (refusal !== null) {
+      setNotice({ tone: 'problem', message: `${developer.name} was saved. ${refusal}` })
       return
     }
 
@@ -129,10 +167,9 @@ export function EmployeesPage() {
         ? ' Assign them to an active project before they can submit daily updates.'
         : ''
 
-      setNotice({
-        tone: 'success',
-        message: `${describeOutcome(result.outcome, developer.name, result.email)}${reminder}`,
-      })
+      const outcome = describeOutcome(result, developer.name)
+
+      setNotice({ tone: 'success', ...outcome, message: `${outcome.message}${reminder}` })
     } catch (error) {
       const detail =
         error instanceof ProvisioningError || error instanceof Error
@@ -157,9 +194,28 @@ export function EmployeesPage() {
 
       <div aria-live="polite" role="status">
         {notice === null ? null : (
-          <p className={notice.tone === 'problem' ? 'form__alert' : 'form__hint'}>
-            {notice.message}
-          </p>
+          <>
+            <p className={notice.tone === 'problem' ? 'form__alert' : 'form__hint'}>
+              {notice.message}
+            </p>
+            {notice.credentials === undefined ? null : (
+              <div className="credentials">
+                <p className="credentials__line">
+                  <span className="credentials__label">Email</span>
+                  <code>{notice.credentials.email}</code>
+                </p>
+                <p className="credentials__line">
+                  <span className="credentials__label">Temporary password</span>
+                  <code>{notice.credentials.password}</code>
+                </p>
+                <p className="credentials__note">
+                  Pass these on now — they are shown once and cannot be looked up again. The
+                  employee must change this password at first login, and nothing else in the
+                  application will open until they do.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -368,8 +424,9 @@ function EmployeeForm({
           Active
         </label>
         <p className="form__hint">
-          Inactive employees keep their history but cannot sign in and are not expected to post
-          daily updates.
+          Inactive employees keep their history, are not given logins and are not expected to post
+          daily updates. Unticking this does not revoke a login somebody already has: signing in is
+          governed by the account itself, so an existing login has to be disabled separately.
         </p>
       </div>
 

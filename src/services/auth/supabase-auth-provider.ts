@@ -143,6 +143,22 @@ export class SupabaseAuthProvider implements AuthProvider {
   }
 
   async restoreSession(): Promise<AppUser | null> {
+    return this.readCurrentIdentity(false)
+  }
+
+  async refreshIdentity(): Promise<AppUser | null> {
+    return this.readCurrentIdentity(true)
+  }
+
+  /**
+   * The identity behind the persisted session, or `null` if there is none.
+   *
+   * `forced` discards any resolution already in flight. Startup wants the
+   * opposite — three callers asking at once should cost one round trip — but
+   * a caller re-reading after a change it just made would otherwise be handed
+   * the answer to the older question.
+   */
+  private async readCurrentIdentity(forced: boolean): Promise<AppUser | null> {
     let client: AppSupabaseClient
     try {
       client = this.client()
@@ -156,6 +172,8 @@ export class SupabaseAuthProvider implements AuthProvider {
     const { data, error } = await client.auth.getSession()
 
     if (error !== null || data.session === null) return null
+
+    if (forced) this.pendingResolution = null
 
     try {
       return await this.resolve(data.session.user)

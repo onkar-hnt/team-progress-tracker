@@ -32,6 +32,25 @@ export function RequireAuth() {
 }
 
 /**
+ * Holds everything back until a handed-out password has been replaced.
+ *
+ * Accounts created from the Employees screen start with a password derived
+ * from the holder's name, so it is known to whoever created it and guessable
+ * by anyone who knows the rule. Left alone, that temporary password stays in
+ * use indefinitely — so nothing is reachable until it is changed.
+ *
+ * The password screen sits outside `RequireAuth`, so sending people there
+ * cannot loop back through this guard.
+ */
+export function RequirePasswordChange() {
+  const { user } = useAuth()
+
+  if (user?.mustChangePassword === true) return <Navigate replace to="/set-password" />
+
+  return <Outlet />
+}
+
+/**
  * Restricts a branch of the route tree by role.
  *
  * Signed-in users get an explanation rather than a redirect, because bouncing

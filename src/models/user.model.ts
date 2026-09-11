@@ -22,6 +22,16 @@ export interface AppUser {
   role: UserRole
   developerId?: string
   mentorId?: string
+
+  /**
+   * Set while the person is still using the password they were handed.
+   *
+   * Accounts provisioned from the Employees screen start with a password
+   * derived from the holder's name, which is guessable by anyone who knows
+   * the rule. The flag is what stops that temporary password becoming a
+   * permanent one: every screen stays out of reach until it is replaced.
+   */
+  mustChangePassword?: boolean
 }
 
 export interface SignInCredentials {

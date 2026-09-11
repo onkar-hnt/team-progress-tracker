@@ -30,6 +30,16 @@ export interface AuthContextValue {
   signIn: (credentials?: SignInCredentials) => Promise<AppUser>
 
   signOut: () => Promise<void>
+
+  /**
+   * Re-reads the signed-in person's role and flags from the data source.
+   *
+   * Needed because some of what `AppUser` carries is decided in the database
+   * and can be changed by the application itself. Clearing the password-change
+   * requirement is the case that forced this: without a re-read, the guard
+   * would keep redirecting to a screen whose work is already done.
+   */
+  refreshUser: () => Promise<void>
 }
 
 /**
