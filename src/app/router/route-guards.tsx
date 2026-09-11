@@ -5,7 +5,7 @@ import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { useAccessScope } from '@hooks/use-access-scope'
 import type { AppUser } from '@models/index'
-import { canManageTeam, canViewTeamData, canWriteFeedback } from '@services/auth/index'
+import { canManageTeam, canReadFeedback, canViewTeamData } from '@services/auth/index'
 
 /**
  * Blocks unauthenticated access and remembers where the user was going.
@@ -96,12 +96,19 @@ export function RequireTeamAccess() {
   )
 }
 
-/** Writing feedback: mentors, and admins acting on their behalf. */
+/**
+ * The feedback screen: mentors and admins write it, developers read their own.
+ *
+ * The guard is wider than the screen's write controls, which ask
+ * `canWriteFeedback` separately. What it still blocks is an account linked to
+ * neither a mentor record nor an employee record, which has nothing to read
+ * and nobody to attribute a note to.
+ */
 export function RequireFeedbackAccess() {
   return (
     <RequireRole
-      description="Feedback is written by mentors and administrators."
-      isAllowed={canWriteFeedback}
+      description="Feedback is written by mentors and read by the developer it is about. This account is linked to neither, so there is nothing to show."
+      isAllowed={canReadFeedback}
     />
   )
 }

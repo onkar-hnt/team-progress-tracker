@@ -6,6 +6,7 @@ import type { IconName } from '@components/ui/icons/Icon'
 import type { AppUser } from '@models/user.model'
 import {
   canManageTeam,
+  canReadFeedback,
   canSubmitDailyUpdate,
   canViewTeamData,
   canWriteFeedback,
@@ -28,6 +29,18 @@ interface NavigationGroup {
 }
 
 /**
+ * Whether feedback is only ever read here, never written.
+ *
+ * The feedback screen serves both roles, so it appears in the group and under
+ * the name that fits the person looking at it: personal for a developer
+ * reading what was written about them, team-wide for a mentor writing it. The
+ * two predicates are mutually exclusive, so only one link ever renders.
+ */
+function readsOwnFeedbackOnly(user: AppUser | null): boolean {
+  return canReadFeedback(user) && !canWriteFeedback(user)
+}
+
+/**
  * Navigation grouped by who it is for.
  *
  * Team-wide and administrative areas are kept in labelled groups so it is
@@ -45,6 +58,12 @@ const navigationGroups: readonly NavigationGroup[] = [
         isVisible: canSubmitDailyUpdate,
       },
       { label: 'My Tasks', path: '/my-tasks', icon: 'tasks' },
+      {
+        label: 'My Feedback',
+        path: '/feedback',
+        icon: 'comments',
+        isVisible: readsOwnFeedbackOnly,
+      },
     ],
   },
   {

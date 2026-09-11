@@ -12,7 +12,7 @@ import {
   useUpdateComment,
 } from '@hooks/use-work-tracker'
 import type { MentorComment } from '@models/index'
-import { canEditComment } from '@services/auth/index'
+import { canEditComment, canWriteFeedback } from '@services/auth/index'
 
 import { CommentTimeline } from '../components/CommentTimeline'
 import { FeedbackForm } from '../components/FeedbackForm'
@@ -22,12 +22,63 @@ import type { FeedbackFormValues } from '../schemas/feedback.schema'
 import './FeedbackPage.scss'
 
 /**
+ * The feedback screen, in the form that suits the person opening it.
+ *
+ * Two components rather than one with branches throughout: a developer's view
+ * needs neither the write mutations nor the roster query, and splitting them
+ * means it does not carry those requests just to hide their results.
+ */
+export function FeedbackPage() {
+  const { user } = useAuth()
+
+  return canWriteFeedback(user) ? <FeedbackWorkspace /> : <OwnFeedback />
+}
+
+/**
+ * What a developer sees: the feedback written about them, and nothing else.
+ *
+ * `useComments` needs no filter. The access scope narrows the query to the
+ * signed-in developer, and `feedback_select` enforces the same limit in the
+ * database, so asking for everything returns only their own record.
+ */
+function OwnFeedback() {
+  const commentsQuery = useComments()
+
+  return (
+    <div className="feedback-page">
+      <Panel
+        description="What your mentor has recorded against your tasks. Newest first."
+        isPageHeading
+        title="My feedback"
+      >
+        {commentsQuery.error !== null ? (
+          <ErrorState
+            message={`Feedback could not be loaded: ${commentsQuery.error.message}`}
+            onRetry={() => void commentsQuery.refetch()}
+          />
+        ) : commentsQuery.isPending ? (
+          <Skeleton label="Loading feedback…" rows={4} />
+        ) : (
+          // No actions and no developer name: every entry here is about the
+          // person reading it, and none of it is theirs to edit.
+          <CommentTimeline
+            comments={commentsQuery.data ?? []}
+            emptyMessage="No feedback has been recorded about your work yet."
+            showDeveloper={false}
+          />
+        )}
+      </Panel>
+    </div>
+  )
+}
+
+/**
  * Where mentors record and review feedback.
  *
  * The developer filter lists only people in scope, so a mentor's view is
  * limited to their own developers without this screen checking anything.
  */
-export function FeedbackPage() {
+function FeedbackWorkspace() {
   const { user } = useAuth()
   const [developerFilter, setDeveloperFilter] = useState('')
   const [editing, setEditing] = useState<MentorComment | null>(null)

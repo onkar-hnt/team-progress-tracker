@@ -71,6 +71,22 @@ export function canWriteFeedback(user: AppUser | null): boolean {
 }
 
 /**
+ * Whether the Feedback screen may be opened at all.
+ *
+ * Wider than `canWriteFeedback`, because feedback is written for somebody to
+ * read: the developer it is about sees it on the same screen, without the
+ * form or the edit controls. The database was built for this — `mentors_select`
+ * exists so that a developer can resolve the name of the mentor who wrote it.
+ *
+ * A developer account with no linked employee row has no feedback to read,
+ * which is the correct outcome for a misconfigured account.
+ */
+export function canReadFeedback(user: AppUser | null): boolean {
+  if (user === null) return false
+  return canWriteFeedback(user) || user.developerId !== undefined
+}
+
+/**
  * Whether the source workbook may be opened directly.
  *
  * Restricted to the people who maintain it. A developer opening the raw file
