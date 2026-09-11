@@ -4,11 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useAuth } from '@app/providers/auth-context'
 import {
-  HOURS_SPENT_OPTIONS,
   PROGRESS_MAX,
   PROGRESS_MIN,
   PROGRESS_OPTIONS,
-  TASK_PRIORITY_OPTIONS,
   TASK_STATUS_OPTIONS,
 } from '@constants/task.constants'
 import type { DailyWorkEntry, TaskStatus } from '@models/index'
@@ -93,7 +91,6 @@ export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpd
   // `useWatch` subscribes to a single field, rather than re-rendering on every
   // keystroke anywhere in the form the way `watch()` does.
   const watchedDate = useWatch({ control, name: 'date' })
-  const isBlocked = useWatch({ control, name: 'isBlocked' }) === 'yes'
 
   // The page lists existing entries for whichever date is in the form.
   useEffect(() => {
@@ -101,7 +98,6 @@ export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpd
   }, [date, onDateChange, watchedDate])
 
   const statusField = register('status')
-  const blockedField = register('isBlocked')
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
@@ -232,47 +228,6 @@ export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpd
         ) : null}
       </div>
 
-      <div className="daily-update-form__field">
-        <label htmlFor="update-description">Details (optional)</label>
-        <textarea
-          id="update-description"
-          placeholder="Anything worth knowing about this task"
-          rows={3}
-          {...register('description')}
-          aria-invalid={errors.description ? 'true' : undefined}
-        />
-        {errors.description ? (
-          <p className="daily-update-form__error">{errors.description.message}</p>
-        ) : null}
-      </div>
-
-      <div className="daily-update-form__field">
-        <label htmlFor="update-work-done">What you got done today (optional)</label>
-        <textarea
-          id="update-work-done"
-          placeholder="The progress you made, as opposed to the task itself"
-          rows={2}
-          {...register('workDone')}
-          aria-invalid={errors.workDone ? 'true' : undefined}
-        />
-        {errors.workDone ? (
-          <p className="daily-update-form__error">{errors.workDone.message}</p>
-        ) : null}
-      </div>
-
-      <div className="daily-update-form__field">
-        <label htmlFor="update-planned-work">What you plan to do next (optional)</label>
-        <textarea
-          id="update-planned-work"
-          rows={2}
-          {...register('plannedWork')}
-          aria-invalid={errors.plannedWork ? 'true' : undefined}
-        />
-        {errors.plannedWork ? (
-          <p className="daily-update-form__error">{errors.plannedWork.message}</p>
-        ) : null}
-      </div>
-
       <div className="daily-update-form__grid">
         <div className="daily-update-form__field">
           <label htmlFor="update-status">Status</label>
@@ -297,17 +252,6 @@ export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpd
         </div>
 
         <div className="daily-update-form__field">
-          <label htmlFor="update-priority">Priority</label>
-          <select id="update-priority" {...register('priority')}>
-            {TASK_PRIORITY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="daily-update-form__field">
           <label htmlFor="update-progress">Progress</label>
           <select
             id="update-progress"
@@ -324,66 +268,6 @@ export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpd
             <p className="daily-update-form__error">{errors.progress.message}</p>
           ) : null}
         </div>
-
-        <div className="daily-update-form__field">
-          <label htmlFor="update-hours">Hours spent</label>
-          <select
-            id="update-hours"
-            {...register('hoursSpent')}
-            aria-invalid={errors.hoursSpent ? 'true' : undefined}
-          >
-            <option value="">Not recorded</option>
-            {HOURS_SPENT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.hoursSpent ? (
-            <p className="daily-update-form__error">{errors.hoursSpent.message}</p>
-          ) : null}
-        </div>
-
-        <div className="daily-update-form__field">
-          <label htmlFor="update-blocked">Blocked?</label>
-          <select
-            id="update-blocked"
-            {...blockedField}
-            onChange={(event) => {
-              void blockedField.onChange(event)
-
-              // Clear a stale explanation when the answer goes back to No.
-              if (event.target.value === 'no') setValue('blockerDescription', '')
-            }}
-          >
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </select>
-        </div>
-      </div>
-
-      {isBlocked ? (
-        <div className="daily-update-form__field">
-          <label htmlFor="update-blocker">What is blocking you?</label>
-          <textarea
-            id="update-blocker"
-            placeholder="What you need, and who you have asked"
-            rows={2}
-            {...register('blockerDescription')}
-            aria-invalid={errors.blockerDescription ? 'true' : undefined}
-          />
-          {errors.blockerDescription ? (
-            <p className="daily-update-form__error">{errors.blockerDescription.message}</p>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="daily-update-form__field">
-        <label htmlFor="update-remarks">Remarks (optional)</label>
-        <textarea id="update-remarks" rows={2} {...register('remarks')} />
-        {errors.remarks ? (
-          <p className="daily-update-form__error">{errors.remarks.message}</p>
-        ) : null}
       </div>
 
       <div aria-live="polite" role="status">

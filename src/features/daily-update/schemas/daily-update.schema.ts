@@ -16,13 +16,6 @@ import { todayIsoDate } from '@utils/date.utils'
  */
 
 const TASK_TITLE_MAX = 160
-const DESCRIPTION_MAX = 1000
-const BLOCKER_MAX = 500
-const REMARKS_MAX = 500
-
-export const BLOCKED_CHOICES = ['no', 'yes'] as const
-
-export type BlockedChoice = (typeof BLOCKED_CHOICES)[number]
 
 export const dailyUpdateFormSchema = z
   .object({
@@ -45,24 +38,7 @@ export const dailyUpdateFormSchema = z
       .min(1, { message: 'Enter what you worked on' })
       .max(TASK_TITLE_MAX, { message: `Keep the title under ${TASK_TITLE_MAX} characters` }),
 
-    description: z
-      .string()
-      .trim()
-      .max(DESCRIPTION_MAX, { message: `Keep the description under ${DESCRIPTION_MAX} characters` }),
-
-    workDone: z
-      .string()
-      .trim()
-      .max(DESCRIPTION_MAX, { message: `Keep this under ${DESCRIPTION_MAX} characters` }),
-
-    plannedWork: z
-      .string()
-      .trim()
-      .max(DESCRIPTION_MAX, { message: `Keep this under ${DESCRIPTION_MAX} characters` }),
-
     status: z.enum(TASK_STATUSES),
-
-    priority: z.enum(TASK_PRIORITIES),
 
     progress: z.string().refine(
       (value) => {
@@ -72,38 +48,17 @@ export const dailyUpdateFormSchema = z
       { message: 'Select a progress value' },
     ),
 
-    /** Empty means "not recorded", which is allowed. */
-    hoursSpent: z.string().refine(
-      (value) => {
-        if (value === '') return true
-        const parsed = Number(value)
-        return Number.isFinite(parsed) && parsed >= 0
-      },
-      { message: 'Select the hours spent' },
-    ),
-
-    isBlocked: z.enum(BLOCKED_CHOICES),
-
-    blockerDescription: z
-      .string()
-      .trim()
-      .max(BLOCKER_MAX, { message: `Keep the blocker under ${BLOCKER_MAX} characters` }),
-
-    remarks: z
-      .string()
-      .trim()
-      .max(REMARKS_MAX, { message: `Keep remarks under ${REMARKS_MAX} characters` }),
+    /**
+     * Carried, not asked.
+     *
+     * The form no longer offers a priority, but an entry still has one and
+     * this form is also how an existing entry is edited — so dropping it
+     * outright would quietly reset whatever was set before. New entries get
+     * the default and editing round-trips what is already there.
+     */
+    priority: z.enum(TASK_PRIORITIES),
   })
   .superRefine((values, ctx) => {
-    // A blocker with no explanation gives the mentor nothing to act on.
-    if (values.isBlocked === 'yes' && values.blockerDescription === '') {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['blockerDescription'],
-        message: 'Describe the blocker so it can be followed up',
-      })
-    }
-
     // Completed work at partial progress would make completion rates
     // meaningless, so the two fields are kept consistent.
     if (values.status === 'completed' && Number(values.progress) !== PROGRESS_MAX) {
@@ -132,16 +87,9 @@ export function toFormValues(entry: DailyWorkEntry): DailyUpdateFormValues {
     developerId: entry.developerId,
     projectId: entry.projectId,
     taskTitle: entry.taskTitle,
-    description: entry.description ?? '',
-    workDone: entry.workDone ?? '',
-    plannedWork: entry.plannedWork ?? '',
     status: entry.status,
-    priority: entry.priority,
     progress: String(entry.progress),
-    hoursSpent: entry.hoursSpent === undefined ? '' : String(entry.hoursSpent),
-    isBlocked: entry.isBlocked ? 'yes' : 'no',
-    blockerDescription: entry.blockerDescription ?? '',
-    remarks: entry.remarks ?? '',
+    priority: entry.priority,
   }
 }
 
@@ -154,31 +102,31 @@ export function createEmptyFormValues(options: {
     developerId: options.developerId,
     projectId: '',
     taskTitle: '',
-    description: '',
-    workDone: '',
-    plannedWork: '',
     status: 'in-progress',
-    priority: 'medium',
     progress: '0',
-    hoursSpent: '',
-    isBlocked: 'no',
-    blockerDescription: '',
-    remarks: '',
+    priority: 'medium',
   }
 }
 
 /**
  * Converts validated form values into a provider request.
  *
- * Blank optional text becomes an absent field rather than an empty string, so
- * the workbook never stores `""` where "nothing was entered" is meant. The
- * blocker note is dropped when the entry is not blocked, which stops a stale
- * explanation lingering after someone flips the answer back to No.
+ * The fields the form no longer asks about are simply absent, which the
+ * update mapper reads as "leave it alone" — so editing an entry through this
+ * form keeps whatever notes or hours it already had rather than erasing what
+ * there is no longer an input to retype.
+ *
+ * `blockerDescription` is the exception, and is cleared rather than left,
+ * because an explanation of a blocker that has been lifted is worse than no
+ * explanation: the entry lists print it and it would read as current.
  */
 export function toCreateDailyWorkEntryRequest(
   values: DailyUpdateFormValues,
 ): CreateDailyWorkEntryRequest {
-  const isBlocked = values.isBlocked === 'yes'
+  // Derived from the status rather than asked separately. The two always said
+  // the same thing, and one of them being a second question people could
+  // answer inconsistently only made the reports harder to trust.
+  const isBlocked = values.status === 'blocked'
 
   return {
     date: values.date,
@@ -189,13 +137,6 @@ export function toCreateDailyWorkEntryRequest(
     priority: values.priority,
     progress: Number(values.progress),
     isBlocked,
-    ...(values.description === '' ? {} : { description: values.description.trim() }),
-    ...(values.workDone === '' ? {} : { workDone: values.workDone.trim() }),
-    ...(values.plannedWork === '' ? {} : { plannedWork: values.plannedWork.trim() }),
-    ...(values.hoursSpent === '' ? {} : { hoursSpent: Number(values.hoursSpent) }),
-    ...(isBlocked && values.blockerDescription !== ''
-      ? { blockerDescription: values.blockerDescription.trim() }
-      : {}),
-    ...(values.remarks === '' ? {} : { remarks: values.remarks.trim() }),
+    ...(isBlocked ? {} : { blockerDescription: undefined }),
   }
 }
