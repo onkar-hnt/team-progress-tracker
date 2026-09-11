@@ -9,9 +9,9 @@ import { Panel } from '@components/ui/panel/Panel'
 import {
   useCreateProject,
   useDeleteProject,
-  useDevelopers,
-  useMentors,
-  useProjects,
+  useRosterDevelopers,
+  useRosterMentors,
+  useRosterProjects,
   useUpdateProject,
 } from '@hooks/use-work-tracker'
 import { writeState } from '@hooks/write-state'
@@ -59,9 +59,9 @@ export function ProjectsPage() {
   const [editing, setEditing] = useState<Project | null>(null)
   const [isCreating, setIsCreating] = useState(false)
 
-  const projectsQuery = useProjects()
-  const developersQuery = useDevelopers()
-  const mentorsQuery = useMentors()
+  const projectsQuery = useRosterProjects()
+  const developersQuery = useRosterDevelopers()
+  const mentorsQuery = useRosterMentors()
 
   const createProject = useCreateProject()
   const updateProject = useUpdateProject()

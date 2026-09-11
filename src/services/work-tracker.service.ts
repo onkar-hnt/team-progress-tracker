@@ -132,6 +132,39 @@ export class WorkTrackerService {
     return developers.filter((developer) => developer.active)
   }
 
+  /**
+   * The whole roster, for the screens that maintain it.
+   *
+   * Separate from `getDevelopers` rather than a widening of it, because the
+   * two callers want opposite things. The management screens need every
+   * employee or they cannot administer one — and a create would fail outright,
+   * since inserting a row reads it back to learn the code the database
+   * assigned. The reporting screens need the narrowed list, or a mentor would
+   * be shown a roster of colleagues with nothing but zeroes against them.
+   *
+   * Falls back to the narrowed list rather than refusing, so an unprivileged
+   * caller reaching this by mistake sees less rather than an error.
+   */
+  async getRosterDevelopers(scope: AccessScope): Promise<Developer[]> {
+    if (!scope.readsRoster) return this.getDevelopers(scope)
+    return this.provider.getDevelopers()
+  }
+
+  async getRosterMentors(scope: AccessScope): Promise<Mentor[]> {
+    if (!scope.readsRoster) return this.getMentors(scope)
+    return this.provider.getMentors()
+  }
+
+  async getRosterProjects(scope: AccessScope): Promise<Project[]> {
+    if (!scope.readsRoster) return this.getProjects(scope)
+    return this.provider.getProjects()
+  }
+
+  async getActiveRosterProjects(scope: AccessScope): Promise<Project[]> {
+    const projects = await this.getRosterProjects(scope)
+    return projects.filter((project) => project.active)
+  }
+
   /** `null` when the id does not exist *or* is out of scope, which are the same answer to the caller. */
   async getDeveloperById(scope: AccessScope, id: string): Promise<Developer | null> {
     if (!canViewDeveloper(scope, id)) return null

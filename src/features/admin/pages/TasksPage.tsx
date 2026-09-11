@@ -10,10 +10,10 @@ import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.cons
 import { TaskTable } from '@features/tasks/components/TaskTable'
 import {
   useActiveDevelopers,
-  useActiveProjects,
+  useActiveRosterProjects,
   useCreateTask,
   useDeleteTask,
-  useMentors,
+  useRosterMentors,
   useTasks,
   useUpdateTask,
 } from '@hooks/use-work-tracker'
@@ -60,9 +60,13 @@ export function TasksPage() {
   )
 
   const tasksQuery = useTasks(query)
+  // Developers stay narrowed here, unlike the projects and mentors beside
+  // them. A mentor may only assign work to their own developers, and
+  // `tasks_insert` refuses anything else, so offering the whole roster would
+  // only produce a policy error at save time.
   const developersQuery = useActiveDevelopers()
-  const projectsQuery = useActiveProjects()
-  const mentorsQuery = useMentors()
+  const projectsQuery = useActiveRosterProjects()
+  const mentorsQuery = useRosterMentors()
 
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()

@@ -13,8 +13,12 @@ import { canViewDeveloper } from './access-scope'
  *
  * The agreed policy:
  * - Admin sees and manages everything.
- * - A mentor sees only the developers assigned to them, and their work,
- *   tasks and feedback. They may add feedback and update those tasks.
+ * - A mentor manages the roster alongside the admin — employees, mentors,
+ *   projects, tasks and logins — but still sees work, feedback and tasks only
+ *   for the developers assigned to them. Two powers are withheld, because
+ *   granting them would let a mentor widen their own reach: changing anybody's
+ *   role or account status, and editing the mentor assignments that define
+ *   whose work they can see.
  * - A developer sees only their own records, and may only change their own.
  *
  * Visibility questions take an `AccessScope`, because "may I see this" always
@@ -33,13 +37,31 @@ export function isDeveloper(user: AppUser | null): boolean {
   return user?.role === 'developer'
 }
 
-/** Managing employees, mentors, projects and mappings is admin-only. */
+/** Maintaining employees, mentors and projects: admins and mentors. */
 export function canManageTeam(user: AppUser | null): boolean {
-  return isAdmin(user)
+  return isAdmin(user) || isMentor(user)
 }
 
-/** Only an admin creates and assigns tasks. */
+/**
+ * Assigning tasks: admins, and mentors to their own developers.
+ *
+ * This answers "may this person reach the Tasks screen". Which developers they
+ * may assign to is a separate question, settled by the access scope — and by
+ * `tasks_insert`, which refuses a mentor assigning outside it.
+ */
 export function canAssignTasks(user: AppUser | null): boolean {
+  return isAdmin(user) || isMentor(user)
+}
+
+/**
+ * Editing the mentor mapping: admin only, and deliberately so.
+ *
+ * A mentor's reach is defined by this mapping, so a mentor who could edit it
+ * could grant themselves every developer's work and feedback. Withholding it
+ * is what keeps the rest of a mentor's narrowing meaningful rather than
+ * nominal, and it is enforced by the `mentor_assignments` policies too.
+ */
+export function canManageMentorAssignments(user: AppUser | null): boolean {
   return isAdmin(user)
 }
 

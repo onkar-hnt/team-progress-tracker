@@ -234,17 +234,23 @@ type CallerRejection =
   | 'invalid-token'
   /** A valid account with no `public.profiles` row. */
   | 'no-profile'
-  /** A real profile, but not an active administrator. */
-  | 'not-admin'
+  /** A real profile, but not an active administrator or mentor. */
+  | 'not-privileged'
 
 /**
- * The caller, if they are an active administrator.
+ * The caller, if they are an active administrator or mentor.
  *
  * The role is read from `public.profiles` rather than from the token: a JWT
  * carries whatever `user_metadata` the account holder has set on themselves,
  * so trusting it here would let anybody with a login provision accounts.
+ *
+ * Mentors are accepted because they maintain the roster, and a roster entry
+ * without a login is half an employee. It grants them no way upwards: the
+ * role is set through `assign_profile_role`, which refuses anything but
+ * developer and mentor, and an address already belonging to an administrator
+ * is turned away below.
  */
-async function resolveAdminCaller(
+async function resolvePrivilegedCaller(
   admin: SupabaseClient,
   request: Request,
   supabaseUrl: string,
@@ -309,7 +315,12 @@ async function resolveAdminCaller(
   }
 
   if (profile === null) return { rejection: 'no-profile' }
-  if (profile.role !== 'admin' || profile.status !== 'active') return { rejection: 'not-admin' }
+  if (
+    (profile.role !== 'admin' && profile.role !== 'mentor') ||
+    profile.status !== 'active'
+  ) {
+    return { rejection: 'not-privileged' }
+  }
 
   return { user: { id: user.id } }
 }
@@ -330,8 +341,11 @@ function describeRejection(rejection: CallerRejection): { status: number; messag
         status: 403,
         message: 'Your account has no profile record, so its role cannot be established.',
       }
-    case 'not-admin':
-      return { status: 403, message: 'Only an active administrator may provision logins.' }
+    case 'not-privileged':
+      return {
+        status: 403,
+        message: 'Only an active administrator or mentor may provision logins.',
+      }
   }
 }
 
@@ -424,7 +438,7 @@ async function handle(
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
-  const caller = await resolveAdminCaller(
+  const caller = await resolvePrivilegedCaller(
     admin,
     request,
     supabaseUrl,

@@ -26,6 +26,15 @@ export const queryKeys = {
 
   projects: () => [ROOT, 'projects'] as const,
 
+  /**
+   * The unnarrowed roster, read by the management screens.
+   *
+   * Keyed apart from the scoped lists above rather than sharing them. The two
+   * return different rows for the same mentor, so one key would serve whichever
+   * screen asked first.
+   */
+  roster: (table: 'developers' | 'mentors' | 'projects') => [ROOT, 'roster', table] as const,
+
   /** `null` rather than `undefined` so the key serialises consistently. */
   dailyWork: (scopeId: string, query?: DailyWorkQuery) =>
     [ROOT, 'daily-work', scopeId, query ?? null] as const,

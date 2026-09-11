@@ -76,10 +76,11 @@ function RequireRole({
   return <Outlet />
 }
 
-export function RequireAdmin() {
+/** The roster screens: admins and mentors. */
+export function RequireTeamManagement() {
   return (
     <RequireRole
-      description="This area is available to administrators only."
+      description="This area is available to mentors and administrators."
       isAllowed={canManageTeam}
     />
   )

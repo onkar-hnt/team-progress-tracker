@@ -35,6 +35,18 @@ export interface AccessScope {
    * employee row, and is deliberately not treated as "everything".
    */
   visibleDeveloperIds: readonly string[] | null
+
+  /**
+   * Whether the whole roster may be read, regardless of `visibleDeveloperIds`.
+   *
+   * Mentors maintain the roster but see work only for the developers assigned
+   * to them, so the two questions have different answers for them and the
+   * distinction has to be carried rather than derived from the id list. This
+   * covers names, mentors and projects — the records needed to administer
+   * people — and never daily updates, tasks or feedback, which stay narrowed
+   * to `visibleDeveloperIds` for everybody.
+   */
+  readsRoster: boolean
 }
 
 export function buildAccessScope(
@@ -45,6 +57,7 @@ export function buildAccessScope(
 
   const base = {
     role: user.role,
+    readsRoster: isAdmin(user) || user.role === 'mentor',
     ...(user.developerId === undefined ? {} : { developerId: user.developerId }),
     ...(user.mentorId === undefined ? {} : { mentorId: user.mentorId }),
   }

@@ -8,12 +8,12 @@ import { LoginPage } from '@features/auth/pages/LoginPage'
 import { SetPasswordPage } from '@features/auth/pages/SetPasswordPage'
 
 import {
-  RequireAdmin,
   RequireAuth,
   RequireFeedbackAccess,
   RequirePasswordChange,
   RequireScope,
   RequireTeamAccess,
+  RequireTeamManagement,
 } from './route-guards'
 
 /**
@@ -141,7 +141,7 @@ function LazyRoutes() {
         <Route path="feedback" element={<FeedbackPage />} />
       </Route>
 
-      <Route element={<RequireAdmin />}>
+      <Route element={<RequireTeamManagement />}>
         <Route path="admin/mentors" element={<AdminMentorsPage />} />
         <Route path="admin/employees" element={<AdminEmployeesPage />} />
         <Route path="admin/projects" element={<AdminProjectsPage />} />

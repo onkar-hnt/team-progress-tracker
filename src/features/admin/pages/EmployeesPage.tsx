@@ -9,7 +9,7 @@ import { Panel } from '@components/ui/panel/Panel'
 import {
   useCreateDeveloper,
   useDeleteDeveloper,
-  useDevelopers,
+  useRosterDevelopers,
   useProvisionDeveloperLogin,
   useUpdateDeveloper,
 } from '@hooks/use-work-tracker'
@@ -97,7 +97,7 @@ export function EmployeesPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [notice, setNotice] = useState<ProvisioningNotice | null>(null)
 
-  const developersQuery = useDevelopers()
+  const developersQuery = useRosterDevelopers()
   const createDeveloper = useCreateDeveloper()
   const updateDeveloper = useUpdateDeveloper()
   const deleteDeveloper = useDeleteDeveloper()

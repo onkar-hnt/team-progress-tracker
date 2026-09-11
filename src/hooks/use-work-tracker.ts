@@ -120,6 +120,53 @@ export function useProjects(): UseQueryResult<Project[]> {
   )
 }
 
+/**
+ * Roster reads, for the screens that maintain the roster.
+ *
+ * Deliberately separate hooks rather than a flag on the scoped ones, so a
+ * screen that shows somebody's work cannot widen itself by passing an
+ * argument. Anything reading these is a management screen.
+ */
+export function useRosterDevelopers(): UseQueryResult<Developer[]> {
+  const service = getWorkTrackerService()
+
+  return useScopedQuery(
+    (scopeId) => [...queryKeys.roster('developers'), scopeId],
+    (scope) => service.getRosterDevelopers(scope),
+    { staleTime: 5 * 60_000 },
+  )
+}
+
+export function useRosterMentors(): UseQueryResult<Mentor[]> {
+  const service = getWorkTrackerService()
+
+  return useScopedQuery(
+    (scopeId) => [...queryKeys.roster('mentors'), scopeId],
+    (scope) => service.getRosterMentors(scope),
+    { staleTime: 5 * 60_000 },
+  )
+}
+
+export function useRosterProjects(): UseQueryResult<Project[]> {
+  const service = getWorkTrackerService()
+
+  return useScopedQuery(
+    (scopeId) => [...queryKeys.roster('projects'), scopeId],
+    (scope) => service.getRosterProjects(scope),
+    { staleTime: 5 * 60_000 },
+  )
+}
+
+export function useActiveRosterProjects(): UseQueryResult<Project[]> {
+  const service = getWorkTrackerService()
+
+  return useScopedQuery(
+    (scopeId) => [...queryKeys.roster('projects'), 'active', scopeId],
+    (scope) => service.getActiveRosterProjects(scope),
+    { staleTime: 5 * 60_000 },
+  )
+}
+
 export function useActiveProjects(): UseQueryResult<Project[]> {
   const service = getWorkTrackerService()
 

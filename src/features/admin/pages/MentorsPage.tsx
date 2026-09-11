@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { useAuth } from '@app/providers/auth-context'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
@@ -10,14 +11,15 @@ import { useMentorAssignments } from '@hooks/use-access-scope'
 import {
   useCreateMentor,
   useDeleteMentor,
-  useDevelopers,
-  useMentors,
+  useRosterDevelopers,
+  useRosterMentors,
   useProvisionMentorLogin,
   useSetMentorAssignments,
   useUpdateMentor,
 } from '@hooks/use-work-tracker'
 import { writeState } from '@hooks/write-state'
 import type { Mentor } from '@models/index'
+import { canManageMentorAssignments } from '@services/auth/index'
 import { appConfig } from '@config/app.config'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
@@ -66,16 +68,24 @@ function describeUnprovisionable(mentor: Mentor): string | null {
  * The assignment made here is what the whole access model rests on: it decides
  * which developers a mentor can see anywhere in the application, so it is
  * edited in one obvious place rather than buried in a developer's profile.
+ *
+ * Which is why mentors maintain this screen but cannot use that one action.
+ * A mentor able to edit assignments could hand themselves every developer's
+ * work and feedback, so it stays with administrators and the action is hidden
+ * rather than offered and then refused by the database.
  */
 export function MentorsPage() {
+  const { user } = useAuth()
   const [editing, setEditing] = useState<Mentor | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [assigning, setAssigning] = useState<Mentor | null>(null)
   const [notice, setNotice] = useState<ProvisioningNotice | null>(null)
 
-  const mentorsQuery = useMentors()
-  const developersQuery = useDevelopers()
+  const mentorsQuery = useRosterMentors()
+  const developersQuery = useRosterDevelopers()
   const assignmentsQuery = useMentorAssignments()
+
+  const canAssign = canManageMentorAssignments(user)
 
   const createMentor = useCreateMentor()
   const updateMentor = useUpdateMentor()
@@ -213,16 +223,18 @@ export function MentorsPage() {
                               {provisionLogin.isPending ? 'Working…' : 'Create login'}
                             </button>
                           ) : null}
-                          <button
-                            className="button button--ghost button--small"
-                            onClick={() => {
-                              writes.clear()
-                              setAssigning(mentor)
-                            }}
-                            type="button"
-                          >
-                            Assign
-                          </button>
+                          {canAssign ? (
+                            <button
+                              className="button button--ghost button--small"
+                              onClick={() => {
+                                writes.clear()
+                                setAssigning(mentor)
+                              }}
+                              type="button"
+                            >
+                              Assign
+                            </button>
+                          ) : null}
                           <button
                             className="button button--ghost button--small"
                             onClick={() => {
