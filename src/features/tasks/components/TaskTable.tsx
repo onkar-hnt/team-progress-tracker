@@ -35,7 +35,7 @@ export function TaskTable({
   if (tasks.length === 0) return <EmptyState message={emptyMessage} />
 
   return (
-    <div className="table-scroll">
+    <div className="data-table__scroll">
       <table className="data-table task-table">
         <thead>
           <tr>

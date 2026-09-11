@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useAuth } from '@app/providers/auth-context'
@@ -31,10 +31,8 @@ import type { DailyUpdateFormValues } from '../schemas/daily-update.schema'
 import './DailyUpdateForm.scss'
 
 interface DailyUpdateFormProps {
+  /** The day the form opens on. The field itself stays editable. */
   date: string
-
-  /** Omitted when the form is not driving a date-filtered list. */
-  onDateChange?: (date: string) => void
 
   /** When supplied the form edits that entry instead of creating a new one. */
   entry?: DailyWorkEntry
@@ -55,7 +53,7 @@ function progressForStatus(status: TaskStatus): string | null {
   return null
 }
 
-export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpdateFormProps) {
+export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) {
   const { user } = useAuth()
   const developersQuery = useActiveDevelopers()
   const projectsQuery = useActiveProjects()
@@ -74,7 +72,6 @@ export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpd
   const ownDeveloperId = user?.developerId ?? ''
 
   const {
-    control,
     formState: { errors, isSubmitting },
     handleSubmit,
     register,
@@ -87,15 +84,6 @@ export function DailyUpdateForm({ date, entry, onDateChange, onSaved }: DailyUpd
         ? createEmptyFormValues({ date, developerId: ownDeveloperId })
         : toFormValues(entry),
   })
-
-  // `useWatch` subscribes to a single field, rather than re-rendering on every
-  // keystroke anywhere in the form the way `watch()` does.
-  const watchedDate = useWatch({ control, name: 'date' })
-
-  // The page lists existing entries for whichever date is in the form.
-  useEffect(() => {
-    if (watchedDate !== date) onDateChange?.(watchedDate)
-  }, [date, onDateChange, watchedDate])
 
   const statusField = register('status')
 

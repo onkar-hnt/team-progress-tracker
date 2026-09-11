@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
+import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { TASK_STATUS_OPTIONS } from '@constants/task.constants'
@@ -28,16 +29,47 @@ export function MyTasksPage() {
   const { scope } = useAccessScope()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
 
-  const query = useMemo(
+  const filter = useMemo(
     () => (statusFilter === 'all' ? undefined : { statuses: [statusFilter] }),
     [statusFilter],
   )
 
-  const tasksQuery = useTasks(query)
+  // Two reads of the same table, deliberately.
+  //
+  // The list is narrowed at source, so choosing a status still goes through
+  // the repository predicate and the index built for it. The cards describe
+  // the whole workload and must not move when the filter does — counting the
+  // filtered rows made "Assigned" mean "assigned and completed" as soon as
+  // somebody picked Completed.
+  //
+  // With no filter chosen both hooks build the same key, so React Query
+  // serves them from one request and the default view costs nothing extra.
+  const tasksQuery = useTasks(filter)
+  const allTasksQuery = useTasks()
   const updateTask = useUpdateTask()
 
-  const tasks = tasksQuery.data ?? []
-  const counts = useMemo(() => summariseTasks(tasksQuery.data ?? []), [tasksQuery.data])
+  const counts = useMemo(() => summariseTasks(allTasksQuery.data ?? []), [allTasksQuery.data])
+
+  const loadError = tasksQuery.error ?? allTasksQuery.error
+
+  // Only one status is ever in flight, and it is the row being saved that
+  // should say so — disabling every select on the page made a single change
+  // look like the whole screen had locked up.
+  const savingTaskId = updateTask.isPending ? (updateTask.variables?.id ?? null) : null
+
+  // An empty scope is not an empty task list. It means the signed-in profile
+  // is not linked to an employee row, so there is nothing it could ever be
+  // assigned, and the query short-circuits before it reaches Supabase.
+  // Rendering the ordinary zero-state here would report a setup problem as an
+  // absence of work.
+  if (scope !== null && scope.visibleDeveloperIds?.length === 0) {
+    return (
+      <PagePlaceholder
+        description="This account is not linked to an employee record, so no assigned work can be shown. Ask your mentor or administrator to check the account setup."
+        title="No assigned work"
+      />
+    )
+  }
 
   const statusPicker = (
     <label className="my-tasks__filter">
@@ -64,7 +96,7 @@ export function MyTasksPage() {
         isPageHeading
         title="My tasks"
       >
-        {tasksQuery.isPending ? (
+        {allTasksQuery.isPending ? (
           <Skeleton label="Loading your tasks…" rows={4} />
         ) : (
           <div className="stat-card-grid">
@@ -88,19 +120,30 @@ export function MyTasksPage() {
         }
         title="Task list"
       >
-        {tasksQuery.error !== null ? (
+        {loadError !== null ? (
           <ErrorState
-            message={`Tasks could not be loaded: ${tasksQuery.error.message}`}
-            onRetry={() => void tasksQuery.refetch()}
+            message={`Tasks could not be loaded: ${loadError.message}`}
+            onRetry={() => {
+              void tasksQuery.refetch()
+              void allTasksQuery.refetch()
+            }}
           />
         ) : tasksQuery.isPending ? (
           <Skeleton rows={5} />
         ) : (
           <TaskTable
-            emptyMessage="No tasks match this filter."
+            // A filtered view that finds nothing and a genuinely empty list
+            // are different answers, and only one of them is worth clearing
+            // the filter over.
+            emptyMessage={
+              statusFilter === 'all'
+                ? 'No tasks have been assigned to you yet.'
+                : 'No tasks match this filter.'
+            }
             renderActions={(task) => (
               <StatusSelect
-                isDisabled={!canUpdateTaskStatus(user, scope, task) || updateTask.isPending}
+                isDisabled={!canUpdateTaskStatus(user, scope, task) || savingTaskId === task.id}
+                isSaving={savingTaskId === task.id}
                 onChange={(status) => {
                   updateTask.mutate({ id: task.id, changes: { status } })
                 }}
@@ -108,7 +151,7 @@ export function MyTasksPage() {
               />
             )}
             showDeveloper={canViewTeamData(user)}
-            tasks={tasks}
+            tasks={tasksQuery.data ?? []}
           />
         )}
 
@@ -129,10 +172,12 @@ export function MyTasksPage() {
  */
 function StatusSelect({
   isDisabled,
+  isSaving,
   onChange,
   task,
 }: {
   isDisabled: boolean
+  isSaving: boolean
   onChange: (status: TaskStatus) => void
   task: AssignedTaskView
 }) {
@@ -142,7 +187,11 @@ function StatusSelect({
       <select
         disabled={isDisabled}
         onChange={(event) => {
-          onChange(event.target.value as TaskStatus)
+          const next = event.target.value as TaskStatus
+
+          // Re-picking the value already showing is still a write, and one
+          // that would refetch every derived view to prove nothing changed.
+          if (next !== task.status) onChange(next)
         }}
         value={task.status}
       >
@@ -152,10 +201,24 @@ function StatusSelect({
           </option>
         ))}
       </select>
+
+      {isSaving ? (
+        <span className="my-tasks__saving" role="status">
+          Saving…
+        </span>
+      ) : null}
     </label>
   )
 }
 
+/**
+ * Counts for the summary cards.
+ *
+ * `isOverdue` is taken from the view rather than recomputed, so the cards and
+ * the "· overdue" marker in the table can never disagree about what counts as
+ * late. The rule lives in `WorkTrackerService.getTaskViews`: past its due date
+ * and not yet completed.
+ */
 function summariseTasks(tasks: readonly AssignedTaskView[]) {
   return {
     total: tasks.length,

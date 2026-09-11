@@ -25,6 +25,8 @@ import {
 } from '@utils/date.utils'
 import { buildDeveloperSummaries, buildProjectSummaries } from '@utils/work-summary.utils'
 
+import { AssignedWorkPanel } from '../components/AssignedWorkPanel'
+
 import './DashboardPage.scss'
 
 /**
@@ -216,6 +218,11 @@ export function DashboardPage() {
           </Panel>
         )}
       </div>
+
+      {/* Assigned work is the one part of a developer's progress that is not
+          derived from daily updates, so it needs its own read. Mentors and
+          admins get the team panels above instead. */}
+      {isTeamView ? null : <AssignedWorkPanel />}
 
       <Panel
         action={isTeamView ? <Link to="/team-activity">View all activity</Link> : undefined}

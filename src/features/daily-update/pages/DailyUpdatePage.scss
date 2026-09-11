@@ -1,13 +1,11 @@
 @use '@styles/variables' as *;
 
-.daily-update-page { display: grid; gap: $space-6; align-items: start; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+/// A single column now that the form is the whole screen. Capped rather than
+/// stretched: the fields are short, and a date picker spanning a wide monitor
+/// reads as a layout fault.
+.daily-update-page { display: grid; gap: $space-6; align-items: start; max-width: 56rem;
   &__panel { padding: $space-6; border: 1px solid $color-border; border-radius: $radius-lg; background: $color-white; box-shadow: $shadow-sm; }
   &__header { margin-bottom: $space-5; }
   &__title { margin: 0 0 $space-2; color: $color-text; font-size: $font-size-2xl; }
-  &__section-title { margin: 0 0 $space-2; color: $color-text; font-size: $font-size-lg; }
   &__subtitle { margin: 0; color: $color-text-muted; font-size: $font-size-sm; }
-
-  /// The form and the day's entries sit side by side on wide screens, and the
-  /// entries drop below the form when there is not room for both.
-  @media (max-width: 64rem) { grid-template-columns: 1fr; }
 }
