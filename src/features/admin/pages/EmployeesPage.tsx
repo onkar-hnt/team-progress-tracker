@@ -13,6 +13,7 @@ import {
   useProvisionDeveloperLogin,
   useUpdateDeveloper,
 } from '@hooks/use-work-tracker'
+import { writeState } from '@hooks/write-state'
 import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer, UserRole } from '@models/index'
 import { appConfig } from '@config/app.config'
@@ -102,7 +103,7 @@ export function EmployeesPage() {
   const deleteDeveloper = useDeleteDeveloper()
   const provisionLogin = useProvisionDeveloperLogin()
 
-  const writeError = createDeveloper.error ?? updateDeveloper.error ?? deleteDeveloper.error
+  const writes = writeState([createDeveloper, updateDeveloper, deleteDeveloper])
 
   /**
    * Asks the server for a login, and says plainly when it could not.
@@ -151,10 +152,13 @@ export function EmployeesPage() {
     <AdminPageLayout
       createLabel="Add employee"
       description="Employees, their access level and whether they can sign in."
-      onCreate={() => setIsCreating(true)}
+      onCreate={() => {
+        writes.clear()
+        setIsCreating(true)
+      }}
       title="Employees"
     >
-      {writeError === null ? null : <p className="form__alert">{writeError.message}</p>}
+      {writes.error === null ? null : <p className="form__alert">{writes.error.message}</p>}
 
       <ProvisioningNoticeView notice={notice} />
 
@@ -223,7 +227,10 @@ export function EmployeesPage() {
                         ) : null}
                         <button
                           className="button button--ghost button--small"
-                          onClick={() => setEditing(developer)}
+                          onClick={() => {
+                            writes.clear()
+                            setEditing(developer)
+                          }}
                           type="button"
                         >
                           Edit

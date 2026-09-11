@@ -122,7 +122,10 @@ export function FeedbackPage() {
                 <div className="row-actions">
                   <button
                     className="button button--ghost button--small"
-                    onClick={() => setEditing(comment)}
+                    onClick={() => {
+                      updateComment.reset()
+                      setEditing(comment)
+                    }}
                     type="button"
                   >
                     Edit

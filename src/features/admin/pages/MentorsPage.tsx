@@ -16,6 +16,7 @@ import {
   useSetMentorAssignments,
   useUpdateMentor,
 } from '@hooks/use-work-tracker'
+import { writeState } from '@hooks/write-state'
 import type { Mentor } from '@models/index'
 import { appConfig } from '@config/app.config'
 
@@ -97,7 +98,7 @@ export function MentorsPage() {
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
 
-  const writeError = createMentor.error ?? updateMentor.error ?? deleteMentor.error
+  const writes = writeState([createMentor, updateMentor, deleteMentor])
 
   /**
    * Asks the server for a login, and says plainly when it could not.
@@ -136,11 +137,14 @@ export function MentorsPage() {
   return (
     <AdminPageLayout
       description="Mentors, and the developers each of them can see."
-      onCreate={() => setIsCreating(true)}
+      onCreate={() => {
+        writes.clear()
+        setIsCreating(true)
+      }}
       createLabel="Add mentor"
       title="Mentors"
     >
-      {writeError === null ? null : <p className="form__alert">{writeError.message}</p>}
+      {writes.error === null ? null : <p className="form__alert">{writes.error.message}</p>}
 
       <ProvisioningNoticeView notice={notice} />
 
@@ -211,14 +215,20 @@ export function MentorsPage() {
                           ) : null}
                           <button
                             className="button button--ghost button--small"
-                            onClick={() => setAssigning(mentor)}
+                            onClick={() => {
+                              writes.clear()
+                              setAssigning(mentor)
+                            }}
                             type="button"
                           >
                             Assign
                           </button>
                           <button
                             className="button button--ghost button--small"
-                            onClick={() => setEditing(mentor)}
+                            onClick={() => {
+                              writes.clear()
+                              setEditing(mentor)
+                            }}
                             type="button"
                           >
                             Edit

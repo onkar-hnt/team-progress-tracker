@@ -14,6 +14,7 @@ import {
   useProjects,
   useUpdateProject,
 } from '@hooks/use-work-tracker'
+import { writeState } from '@hooks/write-state'
 import { PROJECT_STATUSES } from '@models/project.model'
 import type { Project, ProjectStatus } from '@models/index'
 import { formatShortDate } from '@utils/date.utils'
@@ -66,7 +67,7 @@ export function ProjectsPage() {
   const updateProject = useUpdateProject()
   const deleteProject = useDeleteProject()
 
-  const writeError = createProject.error ?? updateProject.error ?? deleteProject.error
+  const writes = writeState([createProject, updateProject, deleteProject])
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
 
@@ -74,10 +75,13 @@ export function ProjectsPage() {
     <AdminPageLayout
       createLabel="Add project"
       description="Projects, their clients and the developers assigned to them."
-      onCreate={() => setIsCreating(true)}
+      onCreate={() => {
+        writes.clear()
+        setIsCreating(true)
+      }}
       title="Projects"
     >
-      {writeError === null ? null : <p className="form__alert">{writeError.message}</p>}
+      {writes.error === null ? null : <p className="form__alert">{writes.error.message}</p>}
 
       <Panel description="Assignments decide who sees each project." title="All projects">
         {projectsQuery.error !== null ? (
@@ -120,7 +124,10 @@ export function ProjectsPage() {
                       <div className="row-actions">
                         <button
                           className="button button--ghost button--small"
-                          onClick={() => setEditing(project)}
+                          onClick={() => {
+                            writes.clear()
+                            setEditing(project)
+                          }}
                           type="button"
                         >
                           Edit

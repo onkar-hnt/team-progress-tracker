@@ -17,6 +17,7 @@ import {
   useTasks,
   useUpdateTask,
 } from '@hooks/use-work-tracker'
+import { writeState } from '@hooks/write-state'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { AssignedTask } from '@models/index'
 import { todayIsoDate } from '@utils/date.utils'
@@ -67,7 +68,7 @@ export function TasksPage() {
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
 
-  const writeError = createTask.error ?? updateTask.error ?? deleteTask.error
+  const writes = writeState([createTask, updateTask, deleteTask])
 
   const developerPicker = (
     <label className="admin-page__filter">
@@ -87,10 +88,13 @@ export function TasksPage() {
     <AdminPageLayout
       createLabel="Assign task"
       description="Work assigned to developers, with priority, status and due dates."
-      onCreate={() => setIsCreating(true)}
+      onCreate={() => {
+        writes.clear()
+        setIsCreating(true)
+      }}
       title="Tasks"
     >
-      {writeError === null ? null : <p className="form__alert">{writeError.message}</p>}
+      {writes.error === null ? null : <p className="form__alert">{writes.error.message}</p>}
 
       <Panel action={developerPicker} description="Overdue work is flagged." title="All tasks">
         {tasksQuery.error !== null ? (
@@ -107,7 +111,10 @@ export function TasksPage() {
               <div className="row-actions">
                 <button
                   className="button button--ghost button--small"
-                  onClick={() => setEditing(task)}
+                  onClick={() => {
+                    writes.clear()
+                    setEditing(task)
+                  }}
                   type="button"
                 >
                   Edit
