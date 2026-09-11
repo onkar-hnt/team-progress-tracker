@@ -15,6 +15,13 @@ interface ModalProps {
  * The browser then supplies focus trapping, restoring focus on close, the
  * Escape key and inert background content, all of which are easy to get
  * subtly wrong by hand.
+ *
+ * The content is mounted only while open. A `<dialog>` keeps its subtree in
+ * the DOM when closed, so a form left mounted holds whatever was last typed
+ * into it and reappears carrying the previous record's values. Tying the
+ * subtree to `isOpen` means every form here is built fresh from its own
+ * defaults each time, which is what callers already assume when they pass a
+ * record to edit.
  */
 export function Modal({ children, isOpen, onClose, title }: PropsWithChildren<ModalProps>) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -53,7 +60,7 @@ export function Modal({ children, isOpen, onClose, title }: PropsWithChildren<Mo
             ×
           </button>
         </header>
-        <div className="modal__body">{children}</div>
+        <div className="modal__body">{isOpen ? children : null}</div>
       </div>
     </dialog>
   )
