@@ -26,6 +26,11 @@ import type {
 } from '@models/index'
 import { describeScope } from '@services/auth/index'
 import type { AccessScope } from '@services/auth/index'
+import { provisionDeveloperLogin } from '@services/provisioning/provision-developer'
+import type {
+  ProvisionDeveloperInput,
+  ProvisionDeveloperResult,
+} from '@services/provisioning/provision-developer'
 import { getWorkTrackerService } from '@services/work-tracker.service'
 import type {
   AssignedTaskView,
@@ -261,6 +266,23 @@ export function useUpdateDeveloper(): UseMutationResult<
 export function useDeleteDeveloper(): UseMutationResult<void, Error, string> {
   const service = getWorkTrackerService()
   return useWorkTrackerMutation((id: string) => service.deleteDeveloper(id))
+}
+
+/**
+ * Gives an employee a login, through the server-side provisioning function.
+ *
+ * Not a `WorkTrackerService` call — provisioning is an auth concern, not a
+ * record one — but it shares the same invalidation, because a successful
+ * attempt sets `profile_id` and the employee list shows that column.
+ */
+export function useProvisionDeveloperLogin(): UseMutationResult<
+  ProvisionDeveloperResult,
+  Error,
+  ProvisionDeveloperInput
+> {
+  return useWorkTrackerMutation((input: ProvisionDeveloperInput) =>
+    provisionDeveloperLogin(input),
+  )
 }
 
 export function useCreateMentor(): UseMutationResult<Mentor, Error, CreateMentorRequest> {

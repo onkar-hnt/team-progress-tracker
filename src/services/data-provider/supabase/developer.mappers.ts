@@ -18,7 +18,7 @@ import { USER_ROLES } from '@models/user.model'
  */
 
 export const DEVELOPER_COLUMNS =
-  'id, code, name, employee_id, role, location, active, email, access_role, primary_project_id, created_date' as const
+  'id, code, name, employee_id, role, location, active, email, access_role, primary_project_id, created_date, profile_id' as const
 
 export const developerRowSchema = z.object({
   id: z.string().min(1),
@@ -32,6 +32,10 @@ export const developerRowSchema = z.object({
   access_role: z.enum(USER_ROLES).nullable(),
   primary_project_id: z.string().nullable(),
   created_date: z.string().nullable(),
+
+  // Read so the admin screen can tell who already has a login. Never written
+  // from here: the provisioning function owns it.
+  profile_id: z.string().nullable(),
 })
 
 export type DeveloperRow = z.infer<typeof developerRowSchema>
@@ -63,6 +67,7 @@ export function toDeveloper(row: DeveloperRow): Developer {
     ...optional('accessRole', row.access_role),
     ...optional('primaryProjectId', row.primary_project_id),
     ...optional('createdDate', row.created_date),
+    ...optional('profileId', row.profile_id),
   }
 }
 

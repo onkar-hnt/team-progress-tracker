@@ -48,6 +48,15 @@ export interface Developer {
   accessRole?: UserRole
 
   /**
+   * The login account this person owns, when one has been provisioned.
+   *
+   * Read-only here. It is set by the provisioning function, which holds the
+   * only credentials that can create the account it points at, and is never
+   * part of an insert or update sent from the browser.
+   */
+  profileId?: string
+
+  /**
    * Primary project.
    *
    * A convenience for reporting; the authoritative assignment list is

@@ -5,6 +5,7 @@ import { AppLayout } from '@components/layout/app-layout/AppLayout'
 import { Panel } from '@components/ui/panel/Panel'
 import { Skeleton } from '@components/ui/feedback/Feedback'
 import { LoginPage } from '@features/auth/pages/LoginPage'
+import { SetPasswordPage } from '@features/auth/pages/SetPasswordPage'
 
 import {
   RequireAdmin,
@@ -74,6 +75,13 @@ export function AppRouter() {
     <HashRouter>
       <Routes>
         <Route element={<LoginPage />} path="/login" />
+
+        {/* Public for the same reason as the login screen: somebody following
+            an invitation has no password yet. Not lazily loaded, because the
+            tokens it needs are held in memory and waiting on a chunk download
+            is the one thing that should not sit between arriving and using
+            them. */}
+        <Route element={<SetPasswordPage />} path="/set-password" />
 
         {/* Authentication, then the access scope: no screen renders before the
             limits on what it may show are known. */}

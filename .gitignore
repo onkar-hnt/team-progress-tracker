@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Supabase CLI working state, written by `supabase link`. Machine-local, and
+# it says nothing the project ref in the workflow does not already say.
+supabase/.temp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

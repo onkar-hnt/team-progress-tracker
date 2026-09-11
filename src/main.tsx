@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
+import { captureInviteLink } from '@services/auth/invite-link'
 import '@styles/global.scss'
 
 /**
@@ -34,6 +35,11 @@ function normaliseAddress(): void {
 }
 
 normaliseAddress()
+
+// After the path is settled and before the router reads the fragment, since
+// an invitation arrives as tokens in that fragment and the router would
+// treat them as a route.
+captureInviteLink()
 
 const rootElement = document.getElementById('root')
 

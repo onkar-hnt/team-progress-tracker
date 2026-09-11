@@ -10,10 +10,14 @@ import {
   useCreateDeveloper,
   useDeleteDeveloper,
   useDevelopers,
+  useProvisionDeveloperLogin,
   useUpdateDeveloper,
 } from '@hooks/use-work-tracker'
 import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer, UserRole } from '@models/index'
+import { appConfig } from '@config/app.config'
+import { ProvisioningError } from '@services/provisioning/provision-developer'
+import type { ProvisionOutcome } from '@services/provisioning/provision-developer'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 
@@ -28,23 +32,115 @@ const employeeFormSchema = z.object({
 
 type EmployeeFormValues = z.infer<typeof employeeFormSchema>
 
+/** What to say after a provisioning attempt, and how loudly. */
+interface Notice {
+  tone: 'success' | 'problem'
+  message: string
+}
+
 /**
- * The Employees sheet, which is also the list of who may sign in.
+ * Logins only mean something against Supabase.
  *
- * Adding a row here is what grants access, and the access role on that row is
- * what the application reads to decide a person's permissions. There is no
- * separate user list to keep in step.
+ * The offline providers have no auth accounts to create, so the action is
+ * hidden rather than offered and then refused by the server.
+ */
+const CAN_PROVISION_LOGINS = appConfig.dataSource === 'supabase'
+
+/**
+ * Whether this row is one the provisioning function will handle.
+ *
+ * It creates developer accounts and nothing else. Offering the action on a
+ * mentor or an administrator would produce a developer profile for them,
+ * which is worse than not offering it: the row would look provisioned while
+ * granting the wrong access. Those two are provisioned separately, and until
+ * that exists the honest answer here is to say nothing.
+ */
+function isProvisionable(developer: Developer): boolean {
+  return (developer.accessRole ?? 'developer') === 'developer'
+}
+
+function describeOutcome(outcome: ProvisionOutcome, name: string, email: string): string {
+  if (outcome === 'invited') return `${name} was created. A login invitation was sent to ${email}.`
+
+  if (outcome === 'linked-existing') {
+    return `${name} was attached to the existing account for ${email}. They can sign in with the password they already have.`
+  }
+
+  return `${name} already had a login, so nothing was changed.`
+}
+
+/**
+ * The Employees list, and where logins are handed out.
+ *
+ * Two separate things happen here and the distinction matters when one of
+ * them fails. The employee record is an ordinary row this screen writes
+ * through the usual path. The login is an auth account, which only the
+ * server may create, so it goes out to the provisioning function. A record
+ * without a login is a valid state — somebody recorded before they start —
+ * and the list shows which of the two each person has.
  */
 export function EmployeesPage() {
   const [editing, setEditing] = useState<Developer | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [notice, setNotice] = useState<Notice | null>(null)
 
   const developersQuery = useDevelopers()
   const createDeveloper = useCreateDeveloper()
   const updateDeveloper = useUpdateDeveloper()
   const deleteDeveloper = useDeleteDeveloper()
+  const provisionLogin = useProvisionDeveloperLogin()
 
   const writeError = createDeveloper.error ?? updateDeveloper.error ?? deleteDeveloper.error
+
+  /**
+   * Asks the server for a login, and says plainly when it could not.
+   *
+   * Never throws. The employee record is already saved by the time this
+   * runs, so a failure here is a partial success to report rather than an
+   * error to unwind — and the row action retries it without writing a
+   * second employee.
+   */
+  const requestLogin = async (developer: Developer, isNewRecord = false) => {
+    if (!CAN_PROVISION_LOGINS) return
+
+    setNotice(null)
+
+    if (!isProvisionable(developer)) {
+      setNotice({
+        tone: 'problem',
+        message: `${developer.name} was saved, but logins are only issued automatically for developers. A ${USER_ROLE_LABELS[developer.accessRole ?? 'developer']} account has to be set up separately.`,
+      })
+      return
+    }
+
+    try {
+      const result = await provisionLogin.mutateAsync({
+        developerId: developer.id,
+        ...(developer.email === undefined ? {} : { email: developer.email }),
+      })
+
+      // Said only on creation, where it is the next thing to do. Repeating it
+      // on every retry would train people to ignore it.
+      const reminder = isNewRecord
+        ? ' Assign them to an active project before they can submit daily updates.'
+        : ''
+
+      setNotice({
+        tone: 'success',
+        message: `${describeOutcome(result.outcome, developer.name, result.email)}${reminder}`,
+      })
+    } catch (error) {
+      const detail =
+        error instanceof ProvisioningError || error instanceof Error
+          ? error.message
+          : 'The reason is unknown.'
+
+      setNotice({
+        tone: 'problem',
+        message: `${developer.name} was saved, but their login could not be set up. ${detail} Use “Create login” on their row to try again.`,
+      })
+    }
+  }
 
   return (
     <AdminPageLayout
@@ -55,8 +151,16 @@ export function EmployeesPage() {
     >
       {writeError === null ? null : <p className="form__alert">{writeError.message}</p>}
 
+      <div aria-live="polite" role="status">
+        {notice === null ? null : (
+          <p className={notice.tone === 'problem' ? 'form__alert' : 'form__hint'}>
+            {notice.message}
+          </p>
+        )}
+      </div>
+
       <Panel
-        description="Access role decides what each person can see across the application."
+        description="Access role decides what each person can see. A login has to be created separately, and a developer also needs an active project before they can post daily updates."
         title="All employees"
       >
         {developersQuery.error !== null ? (
@@ -77,6 +181,7 @@ export function EmployeesPage() {
                   <th scope="col">Location</th>
                   <th scope="col">Access</th>
                   <th scope="col">Status</th>
+                  {CAN_PROVISION_LOGINS ? <th scope="col">Login</th> : null}
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
@@ -90,8 +195,33 @@ export function EmployeesPage() {
                     <td>{developer.location ?? '—'}</td>
                     <td>{USER_ROLE_LABELS[developer.accessRole ?? 'developer']}</td>
                     <td>{developer.active ? 'Active' : 'Inactive'}</td>
+                    {/* Linked means an account exists and is attached. Whether
+                        the invitation has actually been accepted is not
+                        readable from here, and guessing at it would be worse
+                        than saying nothing. */}
+                    {CAN_PROVISION_LOGINS ? (
+                      <td>
+                        {developer.profileId !== undefined
+                          ? 'Linked'
+                          : isProvisionable(developer)
+                            ? 'Not set up'
+                            : '—'}
+                      </td>
+                    ) : null}
                     <td>
                       <div className="row-actions">
+                        {CAN_PROVISION_LOGINS &&
+                        developer.profileId === undefined &&
+                        isProvisionable(developer) ? (
+                          <button
+                            className="button button--ghost button--small"
+                            disabled={provisionLogin.isPending}
+                            onClick={() => void requestLogin(developer)}
+                            type="button"
+                          >
+                            {provisionLogin.isPending ? 'Working…' : 'Create login'}
+                          </button>
+                        ) : null}
                         <button
                           className="button button--ghost button--small"
                           onClick={() => setEditing(developer)}
@@ -124,8 +254,12 @@ export function EmployeesPage() {
         <EmployeeForm
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
-            await createDeveloper.mutateAsync(toRequest(values))
+            // The record first, then the login. If provisioning fails the
+            // modal still closes, because the employee genuinely was created
+            // and leaving the form open would invite a duplicate.
+            const created = await createDeveloper.mutateAsync(toRequest(values))
             setIsCreating(false)
+            await requestLogin(created, true)
           }}
         />
       </Modal>
