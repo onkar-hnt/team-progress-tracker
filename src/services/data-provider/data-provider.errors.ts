@@ -118,12 +118,13 @@ export class ReadOnlyDataSourceError extends DataProviderError {
   }
 }
 
-export type ReferenceField = 'developerId' | 'mentorId' | 'projectId'
+export type ReferenceField = 'developerId' | 'mentorId' | 'projectId' | 'taskId'
 
 const REFERENCE_LABELS: Readonly<Record<ReferenceField, string>> = {
   developerId: 'employee',
   mentorId: 'mentor',
   projectId: 'project',
+  taskId: 'task',
 }
 
 /** A referenced record does not exist in its lookup table. */

@@ -39,6 +39,12 @@ import {
   updateDeveloperRow,
 } from './developers.repository'
 import {
+  deleteCommentRow,
+  insertComment,
+  selectComments,
+  updateCommentRow,
+} from './feedback.repository'
+import {
   replaceMentorAssignments,
   selectMentorAssignments,
 } from './mentor-assignments.repository'
@@ -64,19 +70,6 @@ import {
 
 export interface SupabaseDataProviderOptions {
   client: AppSupabaseClient
-
-  /**
-   * Serves the tables that have not moved to Supabase yet.
-   *
-   * The alternative was to throw from every unmigrated method, which would
-   * make the application unusable for the length of the migration and leave
-   * nothing to compare the migrated behaviour against. Delegating instead
-   * keeps every screen working while they are moved across one at a time.
-   *
-   * Typed as `DataProvider` rather than as the Excel provider, because this
-   * class has no business knowing what is behind it.
-   */
-  unmigrated: DataProvider
 }
 
 /**
@@ -88,10 +81,9 @@ export interface SupabaseDataProviderOptions {
  * unchanged, because none of them can tell which implementation they are
  * talking to.
  *
- * MIGRATION IN PROGRESS. Everything except feedback is served from Supabase.
- * Each phase moves one entity from the delegated block at the bottom of this
- * file up into a repository call, and the delegate disappears when the last
- * one lands.
+ * The migration is complete. Every entity is served from a repository here,
+ * and the fixture delegate that stood in for the tables still being moved is
+ * gone along with the last of them.
  *
  * Two responsibilities the Excel provider carried are deliberately absent
  * here, because the database has taken them over:
@@ -109,11 +101,9 @@ export interface SupabaseDataProviderOptions {
  */
 export class SupabaseDataProvider implements DataProvider {
   private readonly client: AppSupabaseClient
-  private readonly unmigrated: DataProvider
 
   constructor(options: SupabaseDataProviderOptions) {
     this.client = options.client
-    this.unmigrated = options.unmigrated
   }
 
   readonly name = 'Supabase'
@@ -266,25 +256,25 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   // ---------------------------------------------------------------------------
-  // Not yet migrated
+  // Feedback — served by Supabase
   // ---------------------------------------------------------------------------
-  // Delegated verbatim. Each of these becomes a repository call in a later
-  // phase; until then they behave exactly as they did before Supabase was
-  // introduced, which is what makes a phase's effect on the app easy to see.
+  // Each comment names the task it is about. The task must belong to the same
+  // developer, which `feedback_guard_task` enforces in the database because it
+  // compares two columns of the row and no pre-flight check can see that.
 
   getComments(query?: MentorCommentQuery): Promise<MentorComment[]> {
-    return this.unmigrated.getComments(query)
+    return selectComments(this.client, query)
   }
 
   createComment(request: CreateMentorCommentRequest): Promise<MentorComment> {
-    return this.unmigrated.createComment(request)
+    return insertComment(this.client, request)
   }
 
   updateComment(id: string, request: UpdateMentorCommentRequest): Promise<MentorComment> {
-    return this.unmigrated.updateComment(id, request)
+    return updateCommentRow(this.client, id, request)
   }
 
   deleteComment(id: string): Promise<void> {
-    return this.unmigrated.deleteComment(id)
+    return deleteCommentRow(this.client, id)
   }
 }

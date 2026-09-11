@@ -4,8 +4,9 @@
 
   &__item { padding: $space-4; border: 1px solid $color-border; border-left: 3px solid $color-brand; border-radius: $radius-md; background: $color-white; }
   &__header { display: flex; align-items: flex-start; justify-content: space-between; gap: $space-3; flex-wrap: wrap; }
-  &__meta { margin: 0; color: $color-text-muted; font-size: $font-size-xs; }
-  &__developer { margin: $space-1 0 0; color: $color-text; font-weight: 600; }
+  &__task { margin: 0; color: $color-text; font-weight: 600; }
+  &__meta { margin: $space-1 0 0; color: $color-text-muted; font-size: $font-size-xs; }
+  &__developer { margin: $space-1 0 0; color: $color-text-muted; font-size: $font-size-sm; font-weight: 600; }
   &__actions { display: flex; gap: $space-2; }
   &__comment { margin: $space-3 0 0; color: $color-text; white-space: pre-wrap; }
   &__detail { margin: $space-3 0 0; color: $color-text; font-size: $font-size-sm; white-space: pre-wrap; }

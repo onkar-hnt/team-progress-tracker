@@ -1,0 +1,9 @@
+@use '@styles/variables' as *;
+
+.feedback-form {
+  /* Progress, blockers and recommendations are prompts, not obligations.
+     Setting them below a rule with their own heading says so at a glance,
+     rather than leaving four textareas that all look equally expected. */
+  &__optional { display: grid; gap: $space-3; padding-top: $space-4; border-top: 1px solid $color-border; }
+  &__optional-label { margin: 0; color: $color-text-muted; font-size: $font-size-xs; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+}

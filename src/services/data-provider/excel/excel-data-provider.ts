@@ -651,7 +651,9 @@ export class ExcelDataProvider implements DataProvider {
         ? await this.readRecords(this.developerTable)
         : field === 'projectId'
           ? await this.readRecords(this.projectTable)
-          : await this.readRecords(this.mentorTable)
+          : field === 'taskId'
+            ? await this.readRecords(this.taskTable)
+            : await this.readRecords(this.mentorTable)
 
     if (!records.some((record) => record.id === value)) {
       throw new ReferentialIntegrityError(field, value)
@@ -690,11 +692,15 @@ export class ExcelDataProvider implements DataProvider {
     developerId: string
     mentorId: string
     projectId?: string
+    taskId?: string
   }): Promise<void> {
     await this.assertReferenceExists('developerId', comment.developerId)
     await this.assertReferenceExists('mentorId', comment.mentorId)
     if (comment.projectId !== undefined) {
       await this.assertReferenceExists('projectId', comment.projectId)
+    }
+    if (comment.taskId !== undefined) {
+      await this.assertReferenceExists('taskId', comment.taskId)
     }
   }
 

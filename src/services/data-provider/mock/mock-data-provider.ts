@@ -535,7 +535,9 @@ export class MockDataProvider implements DataProvider {
         ? this.developers.some((developer) => developer.id === value)
         : field === 'projectId'
           ? this.projects.some((project) => project.id === value)
-          : this.mentors.some((mentor) => mentor.id === value)
+          : field === 'taskId'
+            ? this.tasks.some((task) => task.id === value)
+            : this.mentors.some((mentor) => mentor.id === value)
 
     if (!exists) throw new ReferentialIntegrityError(field, value)
   }
@@ -564,10 +566,12 @@ export class MockDataProvider implements DataProvider {
     developerId: string
     mentorId: string
     projectId?: string
+    taskId?: string
   }): void {
     this.assertReferenceExists('developerId', comment.developerId)
     this.assertReferenceExists('mentorId', comment.mentorId)
     if (comment.projectId !== undefined) this.assertReferenceExists('projectId', comment.projectId)
+    if (comment.taskId !== undefined) this.assertReferenceExists('taskId', comment.taskId)
   }
 
   private assertNotInUse(

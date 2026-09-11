@@ -78,23 +78,18 @@ function createWorkbookGateway(): WorkbookGateway | null {
  * here; no feature code changes.
  */
 export function createDataProvider(): DataProvider {
+  // Every entity is now served from the database, so Supabase needs nothing
+  // standing behind it. The fixture delegate that covered the tables still
+  // being migrated went away with the last of them, feedback.
+  if (appConfig.dataSource === 'supabase') {
+    return new SupabaseDataProvider({ client: getSupabaseClient() })
+  }
+
   const gateway = getWorkbookGateway()
 
-  const workbookOrFixtures: DataProvider =
-    gateway === null
-      ? new MockDataProvider({ latencyMs: appConfig.mock.latencyMs })
-      : new ExcelDataProvider({ gateway })
-
-  if (appConfig.dataSource !== 'supabase') return workbookOrFixtures
-
-  // The fixtures stand in for the entities still being migrated, so the rest
-  // of the application keeps working while they are moved across one at a
-  // time. That delegate goes away with the last phase, at which point this
-  // becomes a plain `new SupabaseDataProvider({ client })`.
-  return new SupabaseDataProvider({
-    client: getSupabaseClient(),
-    unmigrated: workbookOrFixtures,
-  })
+  return gateway === null
+    ? new MockDataProvider({ latencyMs: appConfig.mock.latencyMs })
+    : new ExcelDataProvider({ gateway })
 }
 
 let cachedProvider: DataProvider | undefined

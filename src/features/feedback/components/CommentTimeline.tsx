@@ -38,11 +38,20 @@ export function CommentTimeline({
         <li className="comment-timeline__item" key={comment.id}>
           <div className="comment-timeline__header">
             <div>
+              {/* The task leads, because it is what the note is about; who
+                  said it and when are the qualifiers. Feedback recorded
+                  before it was task-scoped has none, and falls back to the
+                  project it named instead. */}
+              <p className="comment-timeline__task">
+                {comment.taskName ?? comment.projectName ?? 'General feedback'}
+              </p>
               <p className="comment-timeline__meta">
                 <time dateTime={comment.date}>{formatLongDate(comment.date)}</time>
                 {' · '}
                 {comment.mentorName}
-                {comment.projectName === undefined ? '' : ` · ${comment.projectName}`}
+                {comment.taskName === undefined || comment.projectName === undefined
+                  ? ''
+                  : ` · ${comment.projectName}`}
               </p>
               {showDeveloper ? (
                 <p className="comment-timeline__developer">{comment.developerName}</p>

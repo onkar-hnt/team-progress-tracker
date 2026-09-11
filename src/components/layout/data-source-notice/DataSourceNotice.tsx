@@ -113,18 +113,11 @@ function DataSourceModeNotice() {
       )
 
     case 'supabase':
-      // Not everything is stored in Supabase yet, and the difference matters
-      // to whoever is using the app: an edit to an employee is kept and an
-      // edit to a project is not. Saying which is which is the honest thing
-      // while the migration is part-way through, and this notice goes with
-      // the last entity.
-      return (
-        <p className="data-source-notice" role="status">
-          <strong>Partly connected to Supabase.</strong> Employees, mentors, projects, tasks and
-          daily updates are read from and saved to the database. Mentor feedback is still sample
-          data, so changes to it will be lost on refresh.
-        </p>
-      )
+      // Every entity is stored in the database now that feedback has moved
+      // across, so there is nothing left to warn about. A banner confirming
+      // normal operation would just become furniture, which is the same
+      // reason a connected workbook shows none.
+      return null
   }
 }
 

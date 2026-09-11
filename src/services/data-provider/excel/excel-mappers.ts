@@ -359,6 +359,9 @@ export function mapCommentRow(row: RawExcelRow): RowMapResult<MentorComment> {
     developerId: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.developerId)) ?? '',
     mentorId: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.mentorId)) ?? '',
     ...optionalField('projectId', parseExcelTextCell(readCell(row, COMMENT_COLUMNS.projectId))),
+    // Blank in rows written before feedback was task-scoped, and in a
+    // workbook that predates the column, which reads the same way.
+    ...optionalField('taskId', parseExcelTextCell(readCell(row, COMMENT_COLUMNS.taskId))),
     date,
     comment: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.comment)) ?? '',
     ...optionalField(
@@ -384,6 +387,7 @@ export function toCommentRow(comment: MentorComment): RawExcelRow {
   return {
     [COMMENT_COLUMNS.commentId]: comment.id,
     [COMMENT_COLUMNS.projectId]: comment.projectId ?? '',
+    [COMMENT_COLUMNS.taskId]: comment.taskId ?? '',
     [COMMENT_COLUMNS.developerId]: comment.developerId,
     [COMMENT_COLUMNS.mentorId]: comment.mentorId,
     [COMMENT_COLUMNS.comment]: comment.comment,

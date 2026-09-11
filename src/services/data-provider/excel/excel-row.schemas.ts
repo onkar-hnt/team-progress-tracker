@@ -112,6 +112,7 @@ export const mentorCommentSchema = z.object({
   developerId: nonEmptyStringSchema,
   mentorId: nonEmptyStringSchema,
   projectId: nonEmptyStringSchema.optional(),
+  taskId: nonEmptyStringSchema.optional(),
   date: isoDateSchema,
   comment: nonEmptyStringSchema,
   progressUpdate: nonEmptyStringSchema.optional(),

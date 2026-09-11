@@ -58,6 +58,26 @@ export async function assertMentorExists(
   if (data === null) throw new ReferentialIntegrityError('mentorId', mentorId)
 }
 
+/**
+ * Confirms a task exists, for the task a piece of feedback is about.
+ *
+ * Existence only. Whether that task belongs to the developer the feedback
+ * names is a comparison between two columns of the row being written, which
+ * `feedback_guard_task` makes in the database.
+ */
+export async function assertTaskExists(
+  client: AppSupabaseClient,
+  taskId: string,
+): Promise<void> {
+  if (!isSupabaseUuid(taskId)) throw new ReferentialIntegrityError('taskId', taskId)
+
+  const { data, error } = await client.from('tasks').select('id').eq('id', taskId).maybeSingle()
+
+  if (error !== null) throw mapPostgrestError(error, { table: 'Tasks', operation: 'read' })
+
+  if (data === null) throw new ReferentialIntegrityError('taskId', taskId)
+}
+
 /** Confirms one developer exists, for a record that names a single assignee. */
 export async function assertDeveloperExists(
   client: AppSupabaseClient,

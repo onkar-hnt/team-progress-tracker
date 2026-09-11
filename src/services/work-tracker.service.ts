@@ -68,6 +68,15 @@ export interface MentorCommentView extends MentorComment {
   developerName: string
   mentorName: string
   projectName?: string
+
+  /**
+   * The task the feedback is about.
+   *
+   * Absent for feedback recorded before it became task-scoped, and for a task
+   * that has since been deleted — the row survives its task on purpose, so
+   * the timeline has to read without one.
+   */
+  taskName?: string
 }
 
 /** Everything the dashboard needs for a single selected day. */
@@ -310,23 +319,31 @@ export class WorkTrackerService {
   ): Promise<MentorCommentView[]> {
     const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
 
-    const [comments, developers, projects, mentors] = await Promise.all([
+    // Tasks are read for the same people the comments are, so naming the work
+    // a note is about costs one more scoped query rather than one per comment.
+    const [comments, developers, projects, mentors, tasks] = await Promise.all([
       this.provider.getComments({ ...query, ...withDeveloperIds(effectiveIds) }),
       this.provider.getDevelopers(),
       this.provider.getProjects(),
       this.provider.getMentors(),
+      this.provider.getTasks({ ...withDeveloperIds(effectiveIds) }),
     ])
 
     return narrowToDevelopers(effectiveIds, comments)
       .sort((left, right) => right.date.localeCompare(left.date))
       .map((comment) => {
         const project = projects.find((candidate) => candidate.id === comment.projectId)
+        const task = tasks.find((candidate) => candidate.id === comment.taskId)
 
         return {
           ...comment,
           developerName: resolveName(developers, comment.developerId, 'developer'),
           mentorName: resolveName(mentors, comment.mentorId, 'mentor'),
           ...(project === undefined ? {} : { projectName: project.name }),
+          // Left off rather than reported as unknown: feedback predating the
+          // task link, and feedback whose task has been deleted, both legibly
+          // have no task — unlike an orphaned lookup, which is a fault.
+          ...(task === undefined ? {} : { taskName: task.name }),
         }
       })
   }

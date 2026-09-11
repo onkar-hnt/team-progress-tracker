@@ -6,13 +6,24 @@ import { todayIsoDate } from '@utils/date.utils'
 /**
  * Validation for the mentor feedback form.
  *
- * The comment itself is the only required field. Progress, blockers and
- * recommendations are prompts rather than obligations: forcing all four would
- * produce padding, and an empty field is more honest than an invented one.
+ * A developer, a task, a date and the comment itself are required. Progress,
+ * blockers and recommendations are prompts rather than obligations: forcing
+ * all of them would produce padding, and an empty field is more honest than
+ * an invented one.
+ *
+ * The task is required because feedback that names no work is hard to act on
+ * — "the error handling needs attention" against a project running for months
+ * does not tell the developer reading it which piece of work is meant. The
+ * model keeps `taskId` optional, because rows written before this existed
+ * genuinely have none.
+ *
+ * There is no project field. A task carries its own project, so asking again
+ * would let the two disagree; `toCreateCommentRequest` takes it from the
+ * chosen task instead.
  */
 export const feedbackFormSchema = z.object({
   developerId: z.string().min(1, { message: 'Choose a developer' }),
-  projectId: z.string(),
+  taskId: z.string().min(1, { message: 'Choose the task this feedback is about' }),
   date: z.string().min(1, { message: 'Choose a date' }),
   comment: z
     .string()
@@ -29,7 +40,7 @@ export type FeedbackFormValues = z.infer<typeof feedbackFormSchema>
 export function emptyFeedbackValues(developerId = ''): FeedbackFormValues {
   return {
     developerId,
-    projectId: '',
+    taskId: '',
     date: todayIsoDate(),
     comment: '',
     progressUpdate: '',
@@ -41,7 +52,7 @@ export function emptyFeedbackValues(developerId = ''): FeedbackFormValues {
 export function toFeedbackValues(comment: MentorComment): FeedbackFormValues {
   return {
     developerId: comment.developerId,
-    projectId: comment.projectId ?? '',
+    taskId: comment.taskId ?? '',
     date: comment.date,
     comment: comment.comment,
     progressUpdate: comment.progressUpdate ?? '',
@@ -53,18 +64,25 @@ export function toFeedbackValues(comment: MentorComment): FeedbackFormValues {
 /**
  * Converts form values into a request.
  *
+ * `projectId` is derived from the task rather than submitted, which is what
+ * keeps the stored project and the stored task from contradicting each other.
+ * It is passed in because only the caller has the task list to resolve it
+ * from, and it is omitted when the task has no project to give.
+ *
  * Blank optional fields are omitted rather than written as empty strings, so
- * the workbook keeps genuinely empty cells and a later read does not have to
+ * the record keeps genuinely empty values and a later read does not have to
  * distinguish "" from unset.
  */
 export function toCreateCommentRequest(
   values: FeedbackFormValues,
   mentorId: string,
+  projectId?: string,
 ): CreateMentorCommentRequest {
   return {
     developerId: values.developerId,
     mentorId,
-    ...omitBlank('projectId', values.projectId),
+    taskId: values.taskId,
+    ...omitBlank('projectId', projectId),
     date: values.date,
     comment: values.comment.trim(),
     ...omitBlank('progressUpdate', values.progressUpdate),

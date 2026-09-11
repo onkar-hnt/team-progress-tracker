@@ -47,16 +47,18 @@ export function FeedbackPage() {
   // they have one; without it there is nobody to attribute the note to.
   const mentorId = user?.mentorId ?? ''
 
-  const handleCreate = async (values: FeedbackFormValues) => {
-    await createComment.mutateAsync(toCreateCommentRequest(values, mentorId))
+  const handleCreate = async (values: FeedbackFormValues, projectId: string | undefined) => {
+    await createComment.mutateAsync(toCreateCommentRequest(values, mentorId, projectId))
   }
 
-  const handleUpdate = async (values: FeedbackFormValues) => {
+  // Re-attributing somebody else's feedback by editing it would rewrite who
+  // said it, so the original mentor is kept.
+  const handleUpdate = async (values: FeedbackFormValues, projectId: string | undefined) => {
     if (editing === null) return
 
     await updateComment.mutateAsync({
       id: editing.id,
-      changes: toCreateCommentRequest(values, editing.mentorId),
+      changes: toCreateCommentRequest(values, editing.mentorId, projectId),
     })
     setEditing(null)
   }
@@ -95,7 +97,7 @@ export function FeedbackPage() {
   return (
     <div className="feedback-page">
       <Panel
-        description="Record progress, blockers and recommendations for the developers you mentor."
+        description="Feedback is recorded against one of the developer's tasks, so they can see which piece of work it is about."
         isPageHeading
         title="Feedback"
       >

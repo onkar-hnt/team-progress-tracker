@@ -140,6 +140,7 @@ export const TASK_COLUMNS = {
 export const COMMENT_COLUMNS = {
   commentId: 'CommentID',
   projectId: 'ProjectID',
+  taskId: 'TaskID',
   developerId: 'DeveloperID',
   mentorId: 'MentorID',
   comment: 'Comment',

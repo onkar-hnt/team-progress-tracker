@@ -130,6 +130,7 @@ export const WORKBOOK_TEMPLATE: readonly SheetTemplate[] = [
     columns: [
       COMMENT_COLUMNS.commentId,
       COMMENT_COLUMNS.projectId,
+      COMMENT_COLUMNS.taskId,
       COMMENT_COLUMNS.developerId,
       COMMENT_COLUMNS.mentorId,
       COMMENT_COLUMNS.comment,

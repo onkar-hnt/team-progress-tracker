@@ -78,6 +78,7 @@ const REFERENCE_COLUMNS: Readonly<Record<string, ReferenceField>> = {
   developer_id: 'developerId',
   mentor_id: 'mentorId',
   project_id: 'projectId',
+  task_id: 'taskId',
 }
 
 /**
