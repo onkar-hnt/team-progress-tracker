@@ -134,11 +134,16 @@ export function MyTasksPage() {
           <TaskTable
             // A filtered view that finds nothing and a genuinely empty list
             // are different answers, and only one of them is worth clearing
-            // the filter over.
+            // the filter over. Whose work is missing depends on who is
+            // looking: this screen shows a mentor their team as well as
+            // themselves, so telling an admin that nothing is assigned "to
+            // you" would point at the wrong thing entirely.
             emptyMessage={
-              statusFilter === 'all'
-                ? 'No tasks have been assigned to you yet.'
-                : 'No tasks match this filter.'
+              statusFilter !== 'all'
+                ? 'No tasks match this filter.'
+                : canViewTeamData(user)
+                  ? 'No tasks have been assigned yet. Assign work from Administration → Tasks.'
+                  : 'No tasks have been assigned to you yet.'
             }
             renderActions={(task) => (
               <StatusSelect
