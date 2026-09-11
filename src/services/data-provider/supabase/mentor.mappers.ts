@@ -18,7 +18,7 @@ import type {
 
 /** The columns read for a mentor. Listed rather than `*`, so a schema change
  * that drops one fails here instead of arriving as a silent `undefined`. */
-export const MENTOR_COLUMNS = 'id, code, name, email, active, created_date' as const
+export const MENTOR_COLUMNS = 'id, code, name, email, active, created_date, profile_id' as const
 
 /**
  * `date` columns arrive as `YYYY-MM-DD` strings and `boolean` as real
@@ -33,6 +33,7 @@ export const mentorRowSchema = z.object({
   email: z.string().min(1),
   active: z.boolean(),
   created_date: z.string().nullable(),
+  profile_id: z.string().nullable(),
 })
 
 export type MentorRow = z.infer<typeof mentorRowSchema>
@@ -47,6 +48,7 @@ export function toMentor(row: MentorRow): Mentor {
     // Absent rather than null: the domain models "no date recorded" by not
     // having the property, and `createdDate?: string` cannot hold null.
     ...(row.created_date === null ? {} : { createdDate: row.created_date }),
+    ...(row.profile_id === null ? {} : { profileId: row.profile_id }),
   }
 }
 

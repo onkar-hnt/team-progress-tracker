@@ -15,6 +15,16 @@ export interface Mentor {
   active: boolean
 
   /**
+   * The Supabase Auth account this mentor signs in with, if they have one.
+   *
+   * Read-only here. It is set by the provisioning Edge Function and never by
+   * the client, which is what stops a browser attaching a mentor record to
+   * somebody else's login. Absent means no login has been created yet, which
+   * is a legitimate state for a mentor recorded before they start.
+   */
+  profileId?: string
+
+  /**
    * The human-readable reference, `MEN001` and up.
    *
    * Display and export data, never a key — `id` is the only thing to match
@@ -32,7 +42,8 @@ export interface Mentor {
   createdDate?: string
 }
 
-export type CreateMentorRequest = Omit<Mentor, 'id'>
+/** `profileId` is excluded: the link is the server's to make, not a caller's. */
+export type CreateMentorRequest = Omit<Mentor, 'id' | 'profileId'>
 
 export type UpdateMentorRequest = Partial<CreateMentorRequest>
 

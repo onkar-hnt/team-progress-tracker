@@ -31,6 +31,11 @@ import type {
   ProvisionDeveloperInput,
   ProvisionDeveloperResult,
 } from '@services/provisioning/provision-developer'
+import { provisionMentorLogin } from '@services/provisioning/provision-mentor'
+import type {
+  ProvisionMentorInput,
+  ProvisionMentorResult,
+} from '@services/provisioning/provision-mentor'
 import { getWorkTrackerService } from '@services/work-tracker.service'
 import type {
   AssignedTaskView,
@@ -283,6 +288,20 @@ export function useProvisionDeveloperLogin(): UseMutationResult<
   return useWorkTrackerMutation((input: ProvisionDeveloperInput) =>
     provisionDeveloperLogin(input),
   )
+}
+
+/**
+ * Gives a mentor a login. The employee equivalent, against the mentor table.
+ *
+ * Shares the same invalidation for the same reason: a successful attempt sets
+ * `profile_id`, and the mentor list shows that column.
+ */
+export function useProvisionMentorLogin(): UseMutationResult<
+  ProvisionMentorResult,
+  Error,
+  ProvisionMentorInput
+> {
+  return useWorkTrackerMutation((input: ProvisionMentorInput) => provisionMentorLogin(input))
 }
 
 export function useCreateMentor(): UseMutationResult<Mentor, Error, CreateMentorRequest> {

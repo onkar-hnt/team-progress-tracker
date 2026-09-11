@@ -16,10 +16,13 @@ import {
 import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer, UserRole } from '@models/index'
 import { appConfig } from '@config/app.config'
-import { ProvisioningError } from '@services/provisioning/provision-developer'
-import type { ProvisionDeveloperResult } from '@services/provisioning/provision-developer'
-
 import { AdminPageLayout } from '../components/AdminPageLayout'
+import { ProvisioningNoticeView } from '../components/ProvisioningNotice'
+import {
+  describeProvisionFailure,
+  describeProvisionOutcome,
+} from '../components/provisioning-notice'
+import type { ProvisioningNotice } from '../components/provisioning-notice'
 
 const employeeFormSchema = z.object({
   name: z.string().trim().min(2, { message: 'Enter the employee’s name' }),
@@ -31,24 +34,6 @@ const employeeFormSchema = z.object({
 })
 
 type EmployeeFormValues = z.infer<typeof employeeFormSchema>
-
-/** What to say after a provisioning attempt, and how loudly. */
-interface Notice {
-  tone: 'success' | 'problem'
-  message: string
-
-  /**
-   * The sign-in details, shown once and never fetched again.
-   *
-   * They exist here only for as long as this notice is on screen: the
-   * password is not written to the employee row, the profile, storage, or the
-   * query cache, and no endpoint will return it a second time. An
-   * administrator who navigates away before passing it on has to reset the
-   * password from the Supabase dashboard, which is the correct trade — the
-   * alternative is keeping a recoverable copy of a live password.
-   */
-  credentials?: { email: string; password: string }
-}
 
 /**
  * Logins only mean something against Supabase.
@@ -76,6 +61,14 @@ function describeUnprovisionable(developer: Developer): string | null {
     return 'Inactive employees are not given logins. Mark them active first.'
   }
 
+  // Mentors are provisioned from the Mentors screen, against their mentor
+  // record, so that the profile ends up with the mentor role. Doing it here
+  // would create a second auth account for the same address, or a developer
+  // profile for somebody who should not have one.
+  if ((developer.accessRole ?? 'developer') === 'mentor') {
+    return 'Mentor logins are created on the Mentors screen, against their mentor record.'
+  }
+
   if ((developer.accessRole ?? 'developer') !== 'developer') {
     const label = USER_ROLE_LABELS[developer.accessRole ?? 'developer']
     return `Logins are only issued automatically for developers. A ${label} account has to be set up separately.`
@@ -86,30 +79,6 @@ function describeUnprovisionable(developer: Developer): string | null {
 
 function isProvisionable(developer: Developer): boolean {
   return describeUnprovisionable(developer) === null
-}
-
-// Worded for both callers. This runs after creating an employee and after
-// retrying on an existing row, so it may not say the person was created.
-function describeOutcome(
-  result: ProvisionDeveloperResult,
-  name: string,
-): Pick<Notice, 'credentials' | 'message'> {
-  if (result.outcome === 'created') {
-    return {
-      message: `Login access created successfully for ${name}.`,
-      ...(result.initialPassword === undefined
-        ? {}
-        : { credentials: { email: result.email, password: result.initialPassword } }),
-    }
-  }
-
-  if (result.outcome === 'linked-existing') {
-    return {
-      message: `${name} was attached to the existing account for ${result.email}. They can sign in with the password they already have.`,
-    }
-  }
-
-  return { message: `${name} already had a login, so nothing was changed.` }
 }
 
 /**
@@ -125,7 +94,7 @@ function describeOutcome(
 export function EmployeesPage() {
   const [editing, setEditing] = useState<Developer | null>(null)
   const [isCreating, setIsCreating] = useState(false)
-  const [notice, setNotice] = useState<Notice | null>(null)
+  const [notice, setNotice] = useState<ProvisioningNotice | null>(null)
 
   const developersQuery = useDevelopers()
   const createDeveloper = useCreateDeveloper()
@@ -167,18 +136,13 @@ export function EmployeesPage() {
         ? ' Assign them to an active project before they can submit daily updates.'
         : ''
 
-      const outcome = describeOutcome(result, developer.name)
+      const outcome = describeProvisionOutcome(result, developer.name)
 
       setNotice({ tone: 'success', ...outcome, message: `${outcome.message}${reminder}` })
     } catch (error) {
-      const detail =
-        error instanceof ProvisioningError || error instanceof Error
-          ? error.message
-          : 'The reason is unknown.'
-
       setNotice({
         tone: 'problem',
-        message: `${developer.name} was saved, but their login could not be set up. ${detail} Use “Create login” on their row to try again.`,
+        message: `${developer.name} was saved, but their login could not be set up. ${describeProvisionFailure(error)} Use “Create login” on their row to try again.`,
       })
     }
   }
@@ -192,32 +156,7 @@ export function EmployeesPage() {
     >
       {writeError === null ? null : <p className="form__alert">{writeError.message}</p>}
 
-      <div aria-live="polite" role="status">
-        {notice === null ? null : (
-          <>
-            <p className={notice.tone === 'problem' ? 'form__alert' : 'form__hint'}>
-              {notice.message}
-            </p>
-            {notice.credentials === undefined ? null : (
-              <div className="credentials">
-                <p className="credentials__line">
-                  <span className="credentials__label">Email</span>
-                  <code>{notice.credentials.email}</code>
-                </p>
-                <p className="credentials__line">
-                  <span className="credentials__label">Temporary password</span>
-                  <code>{notice.credentials.password}</code>
-                </p>
-                <p className="credentials__note">
-                  Pass these on now — they are shown once and cannot be looked up again. The
-                  employee must change this password at first login, and nothing else in the
-                  application will open until they do.
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      <ProvisioningNoticeView notice={notice} />
 
       <Panel
         description="Access role decides what each person can see. A login has to be created separately, and a developer also needs an active project before they can post daily updates."

@@ -12,12 +12,20 @@ import {
   useDeleteMentor,
   useDevelopers,
   useMentors,
+  useProvisionMentorLogin,
   useSetMentorAssignments,
   useUpdateMentor,
 } from '@hooks/use-work-tracker'
 import type { Mentor } from '@models/index'
+import { appConfig } from '@config/app.config'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
+import { ProvisioningNoticeView } from '../components/ProvisioningNotice'
+import {
+  describeProvisionFailure,
+  describeProvisionOutcome,
+} from '../components/provisioning-notice'
+import type { ProvisioningNotice } from '../components/provisioning-notice'
 
 const mentorFormSchema = z.object({
   name: z.string().trim().min(2, { message: 'Enter the mentor’s name' }),
@@ -26,6 +34,30 @@ const mentorFormSchema = z.object({
 })
 
 type MentorFormValues = z.infer<typeof mentorFormSchema>
+
+/**
+ * Logins only mean something against Supabase.
+ *
+ * The offline providers have no auth accounts to create, so the action is
+ * hidden rather than offered and then refused by the server.
+ */
+const CAN_PROVISION_LOGINS = appConfig.dataSource === 'supabase'
+
+/**
+ * Why this mentor cannot be given a login, or null when they can.
+ *
+ * Only one reason, and it is the same one the Employees screen gives:
+ * signing in is governed by the account, not by this table, so creating one
+ * for somebody marked inactive would hand out access the screen appears to be
+ * withholding.
+ */
+function describeUnprovisionable(mentor: Mentor): string | null {
+  if (!mentor.active) {
+    return 'Inactive mentors are not given logins. Mark them active first.'
+  }
+
+  return null
+}
 
 /**
  * Mentor records and their assigned developers.
@@ -38,6 +70,7 @@ export function MentorsPage() {
   const [editing, setEditing] = useState<Mentor | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [assigning, setAssigning] = useState<Mentor | null>(null)
+  const [notice, setNotice] = useState<ProvisioningNotice | null>(null)
 
   const mentorsQuery = useMentors()
   const developersQuery = useDevelopers()
@@ -46,6 +79,7 @@ export function MentorsPage() {
   const createMentor = useCreateMentor()
   const updateMentor = useUpdateMentor()
   const deleteMentor = useDeleteMentor()
+  const provisionLogin = useProvisionMentorLogin()
 
   const assignmentsByMentor = useMemo(() => {
     const map = new Map<string, string[]>()
@@ -65,6 +99,40 @@ export function MentorsPage() {
 
   const writeError = createMentor.error ?? updateMentor.error ?? deleteMentor.error
 
+  /**
+   * Asks the server for a login, and says plainly when it could not.
+   *
+   * Never throws. The mentor record is already saved by the time this runs,
+   * so a failure here is a partial success to report rather than an error to
+   * unwind — and the row action retries it without writing a second mentor.
+   */
+  const requestLogin = async (mentor: Mentor) => {
+    if (!CAN_PROVISION_LOGINS) return
+
+    setNotice(null)
+
+    const refusal = describeUnprovisionable(mentor)
+
+    if (refusal !== null) {
+      setNotice({ tone: 'problem', message: `${mentor.name} was saved. ${refusal}` })
+      return
+    }
+
+    try {
+      const result = await provisionLogin.mutateAsync({
+        mentorId: mentor.id,
+        email: mentor.email,
+      })
+
+      setNotice({ tone: 'success', ...describeProvisionOutcome(result, mentor.name) })
+    } catch (error) {
+      setNotice({
+        tone: 'problem',
+        message: `${mentor.name} was saved, but their login could not be set up. ${describeProvisionFailure(error)} Use “Create login” on their row to try again.`,
+      })
+    }
+  }
+
   return (
     <AdminPageLayout
       description="Mentors, and the developers each of them can see."
@@ -73,6 +141,8 @@ export function MentorsPage() {
       title="Mentors"
     >
       {writeError === null ? null : <p className="form__alert">{writeError.message}</p>}
+
+      <ProvisioningNoticeView notice={notice} />
 
       <Panel description="Assignments control what each mentor can access." title="All mentors">
         {mentorsQuery.error !== null ? (
@@ -93,6 +163,7 @@ export function MentorsPage() {
                   <th scope="col">Email</th>
                   <th scope="col">Status</th>
                   <th scope="col">Assigned developers</th>
+                  {CAN_PROVISION_LOGINS ? <th scope="col">Login</th> : null}
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
@@ -111,8 +182,33 @@ export function MentorsPage() {
                           ? 'None'
                           : assigned.map(developerName).join(', ')}
                       </td>
+                      {/* Linked means an account exists and is attached.
+                          Whether the password has been changed is not
+                          readable from here, and guessing at it would be
+                          worse than saying nothing. */}
+                      {CAN_PROVISION_LOGINS ? (
+                        <td>
+                          {mentor.profileId !== undefined
+                            ? 'Linked'
+                            : describeUnprovisionable(mentor) === null
+                              ? 'Not set up'
+                              : '—'}
+                        </td>
+                      ) : null}
                       <td>
                         <div className="row-actions">
+                          {CAN_PROVISION_LOGINS &&
+                          mentor.profileId === undefined &&
+                          describeUnprovisionable(mentor) === null ? (
+                            <button
+                              className="button button--ghost button--small"
+                              disabled={provisionLogin.isPending}
+                              onClick={() => void requestLogin(mentor)}
+                              type="button"
+                            >
+                              {provisionLogin.isPending ? 'Working…' : 'Create login'}
+                            </button>
+                          ) : null}
                           <button
                             className="button button--ghost button--small"
                             onClick={() => setAssigning(mentor)}
@@ -153,8 +249,12 @@ export function MentorsPage() {
         <MentorForm
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
-            await createMentor.mutateAsync(values)
+            // The record first, then the login. If provisioning fails the
+            // modal still closes, because the mentor genuinely was created
+            // and leaving the form open would invite a duplicate.
+            const created = await createMentor.mutateAsync(values)
             setIsCreating(false)
+            await requestLogin(created)
           }}
         />
       </Modal>
@@ -232,7 +332,11 @@ function MentorForm({
           <input id="mentor-active" type="checkbox" {...register('active')} />
           Active
         </label>
-        <p className="form__hint">Inactive mentors keep their history but cannot sign in.</p>
+        <p className="form__hint">
+          Inactive mentors keep their history and are not given logins. Unticking this does not
+          revoke a login somebody already has: signing in is governed by the account itself, so an
+          existing login has to be disabled separately.
+        </p>
       </div>
 
       <div className="form__actions">
