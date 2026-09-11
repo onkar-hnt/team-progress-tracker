@@ -134,8 +134,29 @@ export async function provisionDeveloperLogin(
 ): Promise<ProvisionDeveloperResult> {
   const client = getSupabaseClient()
 
+  // The caller's token, attached by hand.
+  //
+  // `functions.invoke` starts from the client's default headers, which already
+  // carry `Authorization: Bearer <publishable key>`, and the auth-aware fetch
+  // wrapper only sets that header when it is missing. So the default is never
+  // replaced and the project's anon key travels where a user's token was
+  // meant. The gateway accepts it — an anon key is a valid JWT — and the
+  // function then cannot identify the caller at all, which is
+  // indistinguishable from an expired session.
+  const {
+    data: { session },
+  } = await client.auth.getSession()
+
+  if (session === null) {
+    throw new ProvisioningError(
+      'Your session has expired, so the login could not be created. Sign in again and retry.',
+      'no-session',
+    )
+  }
+
   const { data, error } = await client.functions.invoke('provision-developer-user', {
     body: input,
+    headers: { Authorization: `Bearer ${session.access_token}` },
   })
 
   if (error !== null) throw await describeFailure(error)

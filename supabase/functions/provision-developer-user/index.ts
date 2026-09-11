@@ -67,7 +67,7 @@ interface DeveloperRow {
  * supplied as a secret even deliberately — the `SUPABASE_` prefix is
  * reserved, so `secrets set` refuses those names.
  */
-function readPrivilegedKey(): string | undefined {
+function readPrivilegedKey(): { key: string | undefined; source: string } {
   const dictionary = Deno.env.get('SUPABASE_SECRET_KEYS')
 
   if (dictionary !== undefined) {
@@ -75,23 +75,43 @@ function readPrivilegedKey(): string | undefined {
       const keys = JSON.parse(dictionary) as Record<string, unknown>
       const preferred = keys.default ?? Object.values(keys)[0]
 
-      if (typeof preferred === 'string') return preferred
+      if (typeof preferred === 'string') {
+        return { key: preferred, source: 'SUPABASE_SECRET_KEYS' }
+      }
     } catch {
       // Not the dictionary we expected. The legacy variable is still there.
     }
   }
 
-  return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+  return { key: legacy, source: legacy === undefined ? 'none' : 'SUPABASE_SERVICE_ROLE_KEY' }
 }
 
-function corsHeaders(origin: string | null): Record<string, string> {
+function corsHeaders(origin: string | null, request?: Request): Record<string, string> {
   if (origin === null || !ALLOWED_ORIGINS.has(origin)) return {}
+
+  // Reflected rather than listed. `supabase-js` attaches its own headers to
+  // an invoke — `x-client-info` and `apikey` alongside the obvious two — and
+  // a preflight that omits even one of them makes the browser refuse to send
+  // the request at all. That failure is invisible from the client: no status,
+  // no body, nothing to read but "could not be reached". Guessing the list
+  // is what caused exactly that, so the list is no longer guessed.
+  //
+  // Echoing back whatever was asked for is safe because the origin has
+  // already been checked against the allowlist above; a browser will not send
+  // this header for an origin it was refused.
+  const requested = request?.headers.get('Access-Control-Request-Headers')
 
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Headers': 'authorization, content-type',
+    'Access-Control-Allow-Headers':
+      requested === null || requested === undefined || requested.trim() === ''
+        ? 'authorization, x-client-info, apikey, content-type'
+        : requested,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    Vary: 'Origin',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin, Access-Control-Request-Headers',
   }
 }
 
@@ -119,6 +139,24 @@ function failure(
 }
 
 /**
+ * Why a caller was turned away.
+ *
+ * Separated because one message for four causes is not diagnosable. "Sign in
+ * again" is sound advice for an expired token and a waste of everybody's time
+ * when the real problem is a misconfigured key on this side — and from the
+ * browser the two are indistinguishable.
+ */
+type CallerRejection =
+  /** No bearer token on the request at all. */
+  | 'missing-header'
+  /** The auth server would not resolve the token to a user. */
+  | 'invalid-token'
+  /** A valid account with no `public.profiles` row. */
+  | 'no-profile'
+  /** A real profile, but not an active administrator. */
+  | 'not-admin'
+
+/**
  * The caller, if they are an active administrator.
  *
  * The role is read from `public.profiles` rather than from the token: a JWT
@@ -128,25 +166,62 @@ function failure(
 async function resolveAdminCaller(
   admin: SupabaseClient,
   request: Request,
-): Promise<{ user: User } | { error: 'unauthenticated' | 'forbidden' }> {
+): Promise<{ user: User } | { rejection: CallerRejection }> {
   const header = request.headers.get('Authorization')
 
-  if (header === null || !header.startsWith('Bearer ')) return { error: 'unauthenticated' }
+  if (header === null || !header.startsWith('Bearer ')) return { rejection: 'missing-header' }
 
   const { data, error } = await admin.auth.getUser(header.slice('Bearer '.length))
 
-  if (error !== null || data.user === null) return { error: 'unauthenticated' }
+  if (error !== null || data.user === null) {
+    // Logged rather than returned. The cause is often something only this
+    // side can see — a rejected service key looks exactly like an expired
+    // user token from the browser — and the detail belongs in the function
+    // logs, not in a response to a caller who has not been identified yet.
+    console.error('provision-developer-user: token not resolved', {
+      message: error?.message,
+      status: error?.status,
+    })
 
-  const { data: profile } = await admin
+    return { rejection: 'invalid-token' }
+  }
+
+  const { data: profile, error: profileError } = await admin
     .from('profiles')
     .select('id, role, status')
     .eq('id', data.user.id)
     .maybeSingle<Pick<ProfileRow, 'id' | 'role' | 'status'>>()
 
-  if (profile === null) return { error: 'forbidden' }
-  if (profile.role !== 'admin' || profile.status !== 'active') return { error: 'forbidden' }
+  if (profileError !== null) {
+    console.error('provision-developer-user: profile lookup failed', profileError)
+    return { rejection: 'no-profile' }
+  }
+
+  if (profile === null) return { rejection: 'no-profile' }
+  if (profile.role !== 'admin' || profile.status !== 'active') return { rejection: 'not-admin' }
 
   return { user: data.user }
+}
+
+/** Each rejection gets the status and the wording that actually fits it. */
+function describeRejection(rejection: CallerRejection): { status: number; message: string } {
+  switch (rejection) {
+    case 'missing-header':
+      return { status: 401, message: 'The request carried no sign-in token. Sign in again.' }
+    case 'invalid-token':
+      return {
+        status: 401,
+        message:
+          'The sign-in token was not accepted by the authentication server. If signing in again does not help, check this function’s logs — a rejected key on the server looks the same from here.',
+      }
+    case 'no-profile':
+      return {
+        status: 403,
+        message: 'Your account has no profile record, so its role cannot be established.',
+      }
+    case 'not-admin':
+      return { status: 403, message: 'Only an active administrator may provision logins.' }
+  }
 }
 
 async function parseBody(request: Request): Promise<ProvisionRequest | null> {
@@ -166,18 +241,16 @@ async function parseBody(request: Request): Promise<ProvisionRequest | null> {
   }
 }
 
-Deno.serve(async (request: Request): Promise<Response> => {
-  const origin = request.headers.get('Origin')
-
+async function handle(request: Request, origin: string | null): Promise<Response> {
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders(origin) })
+    return new Response(null, { status: 204, headers: corsHeaders(origin, request) })
   }
 
   if (request.method !== 'POST') {
     return failure('method-not-allowed', 'Use POST.', 405, origin)
   }
 
-  const serviceRoleKey = readPrivilegedKey()
+  const { key: serviceRoleKey, source: keySource } = readPrivilegedKey()
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
 
   // Where the invitation link sends the person once Supabase has verified it.
@@ -200,10 +273,16 @@ Deno.serve(async (request: Request): Promise<Response> => {
 
   const caller = await resolveAdminCaller(admin, request)
 
-  if ('error' in caller) {
-    return caller.error === 'unauthenticated'
-      ? failure('unauthenticated', 'Sign in again and retry.', 401, origin)
-      : failure('forbidden', 'Only an active administrator may provision logins.', 403, origin)
+  if ('rejection' in caller) {
+    // Which variable supplied the key, never the key. If the auth server
+    // refused the token, the likeliest cause on this side is the wrong one
+    // having been picked, and that is not visible from anywhere else.
+    if (caller.rejection === 'invalid-token') {
+      console.error('provision-developer-user: privileged key came from', keySource)
+    }
+
+    const { message, status } = describeRejection(caller.rejection)
+    return failure(caller.rejection, message, status, origin)
   }
 
   const body = await parseBody(request)
@@ -387,4 +466,26 @@ Deno.serve(async (request: Request): Promise<Response> => {
   }
 
   return json({ developerId: developer.id, authUserId, email, outcome }, 200, origin)
+}
+
+Deno.serve(async (request: Request): Promise<Response> => {
+  const origin = request.headers.get('Origin')
+
+  try {
+    return await handle(request, origin)
+  } catch (error) {
+    // An uncaught throw becomes a platform 500 with no CORS headers, which
+    // the browser blocks before any status reaches JavaScript. The admin
+    // screen can then only say the service was unreachable — true, and
+    // useless. Answering here keeps the diagnosis in the response, where
+    // whoever clicked the button can actually read it.
+    return failure(
+      'unhandled',
+      `The provisioning function failed unexpectedly: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      500,
+      origin,
+    )
+  }
 })

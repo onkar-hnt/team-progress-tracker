@@ -60,7 +60,11 @@ function isProvisionable(developer: Developer): boolean {
 }
 
 function describeOutcome(outcome: ProvisionOutcome, name: string, email: string): string {
-  if (outcome === 'invited') return `${name} was created. A login invitation was sent to ${email}.`
+  // Worded for both callers. This runs after creating an employee and after
+  // retrying on an existing row, so it may not say the person was created.
+  if (outcome === 'invited') {
+    return `A login was created for ${name}. An invitation was sent to ${email}.`
+  }
 
   if (outcome === 'linked-existing') {
     return `${name} was attached to the existing account for ${email}. They can sign in with the password they already have.`
