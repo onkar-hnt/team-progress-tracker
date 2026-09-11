@@ -24,4 +24,14 @@
     }
   }
   &__missing-role { color: $color-text-muted; font-size: $font-size-xs; }
+
+  /// The entry panels are narrow, so the control keeps to the compact sizing
+  /// the task list uses and is allowed to wrap under the badges.
+  &__entry-status { display: inline-flex; align-items: center; gap: $space-2;
+    select { padding: $space-1 $space-2; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-xs; background: $color-white;
+      &:focus-visible { @include focus-ring; border-color: $color-brand; }
+      &:disabled { color: $color-text-muted; }
+    }
+  }
+  &__entry-saving { color: $color-text-muted; font-size: $font-size-xs; white-space: nowrap; }
 }

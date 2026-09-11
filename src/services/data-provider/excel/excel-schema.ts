@@ -156,6 +156,7 @@ export const DAILY_WORK_COLUMNS = {
   entryId: 'EntryID',
   developerId: 'DeveloperID',
   projectId: 'ProjectID',
+  taskId: 'TaskID',
   date: 'Date',
   taskTitle: 'TaskTitle',
   taskDescription: 'TaskDescription',

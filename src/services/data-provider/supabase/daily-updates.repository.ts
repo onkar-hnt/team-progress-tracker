@@ -14,7 +14,7 @@ import {
   toDailyUpdateUpdate,
   toDailyWorkEntry,
 } from './daily-update.mappers'
-import { assertDeveloperExists, assertProjectExists } from './references'
+import { assertDeveloperExists, assertProjectExists, assertTaskExists } from './references'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
 /**
@@ -177,13 +177,25 @@ async function requireDailyUpdate(
 /**
  * Checks the references an entry makes, for whichever of them are being set.
  *
- * Both are `NOT NULL`, so unlike a task's mentor there is no clearing case to
- * skip: a key that is present is a value being written.
+ * The first two are `NOT NULL`, so unlike a task's mentor there is no
+ * clearing case to skip: a key that is present is a value being written.
+ * `taskId` is nullable, so an explicit `undefined` unlinks the entry and has
+ * nothing to check.
+ *
+ * Whether the task belongs to the same developer is settled in the database
+ * by `daily_updates_guard_task`, not here. A check from the browser could
+ * only be advisory, and the rule has to hold for a write that never passed
+ * through this code.
  */
 async function assertEntryReferences(
   client: AppSupabaseClient,
-  request: { developerId?: string | undefined; projectId?: string | undefined },
+  request: {
+    developerId?: string | undefined
+    projectId?: string | undefined
+    taskId?: string | undefined
+  },
 ): Promise<void> {
   if (request.developerId !== undefined) await assertDeveloperExists(client, request.developerId)
   if (request.projectId !== undefined) await assertProjectExists(client, request.projectId)
+  if (request.taskId !== undefined) await assertTaskExists(client, request.taskId)
 }

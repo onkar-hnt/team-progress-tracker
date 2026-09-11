@@ -124,8 +124,19 @@ export async function updateTaskRow(
   await assertTaskReferences(client, request)
 
   const payload = toTaskUpdate(request)
+  const changed = Object.keys(payload)
 
-  if (Object.keys(payload).length === 0) return requireTask(client, id)
+  if (changed.length === 0) return requireTask(client, id)
+
+  // A developer may change the status of their own task and nothing else — a
+  // distinction row-level security cannot draw, because a policy is evaluated
+  // per row and sees no columns. So a status-only edit goes through
+  // `set_task_status`, which checks the caller and writes just that column,
+  // while every other edit takes the direct path where `tasks_update` now
+  // admits only admins and mentors.
+  if (changed.length === 1 && payload.status !== undefined) {
+    return setTaskStatus(client, id, payload.status)
+  }
 
   const { data, error } = await client
     .from('tasks')
@@ -133,6 +144,38 @@ export async function updateTaskRow(
     .eq('id', id)
     .select(TASK_COLUMNS)
     .maybeSingle()
+
+  if (error !== null) {
+    throw mapPostgrestError(error, { table: 'Tasks', operation: 'update', recordId: id })
+  }
+
+  if (data === null) throw new RecordNotFoundError('Tasks', id)
+
+  return parseRows('Tasks', taskRowSchema, [data], toAssignedTask)[0]!
+}
+
+/**
+ * Moves a task along, as the assignee, their mentor, or an admin.
+ *
+ * The function returns the whole row, so the result is parsed with the same
+ * schema a select goes through rather than trusted because it came from a
+ * write. It returns null for a task that does not exist, which is reported
+ * here as the not-found it is; a caller who may not touch an existing task
+ * gets a privilege error from the function instead, which the error mapper
+ * turns into "you do not have permission to change this record".
+ */
+async function setTaskStatus(
+  client: AppSupabaseClient,
+  id: string,
+  // `string` rather than `TaskStatus`, matching the insert payload: this is a
+  // column value on its way to a `text` parameter, and the table's check
+  // constraint is what decides which values are legal.
+  status: string,
+): Promise<AssignedTask> {
+  const { data, error } = await client.rpc('set_task_status', {
+    target_task_id: id,
+    new_status: status,
+  })
 
   if (error !== null) {
     throw mapPostgrestError(error, { table: 'Tasks', operation: 'update', recordId: id })

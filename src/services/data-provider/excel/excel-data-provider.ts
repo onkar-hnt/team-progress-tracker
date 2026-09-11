@@ -503,6 +503,7 @@ export class ExcelDataProvider implements DataProvider {
     this.assertWritable()
     await this.assertReferenceExists('developerId', request.developerId)
     await this.assertReferenceExists('projectId', request.projectId)
+    if (request.taskId !== undefined) await this.assertReferenceExists('taskId', request.taskId)
 
     const now = new Date().toISOString()
     const entry = this.validate(
@@ -523,6 +524,9 @@ export class ExcelDataProvider implements DataProvider {
 
     await this.assertReferenceExists('developerId', request.developerId ?? existing.developerId)
     await this.assertReferenceExists('projectId', request.projectId ?? existing.projectId)
+
+    const taskId = request.taskId ?? existing.taskId
+    if (taskId !== undefined) await this.assertReferenceExists('taskId', taskId)
 
     return this.writeRecord(this.dailyWorkTable, dailyWorkEntrySchema, {
       ...existing,

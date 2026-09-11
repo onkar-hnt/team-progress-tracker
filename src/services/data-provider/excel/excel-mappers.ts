@@ -445,6 +445,7 @@ export function mapDailyWorkRow(row: RawExcelRow): RowMapResult<DailyWorkEntry> 
     developerId: parseExcelTextCell(readCell(row, DAILY_WORK_COLUMNS.developerId)) ?? '',
     projectId: parseExcelTextCell(readCell(row, DAILY_WORK_COLUMNS.projectId)) ?? '',
     taskTitle: parseExcelTextCell(readCell(row, DAILY_WORK_COLUMNS.taskTitle)) ?? '',
+    ...optionalField('taskId', parseExcelTextCell(readCell(row, DAILY_WORK_COLUMNS.taskId))),
     ...optionalField(
       'description',
       parseExcelTextCell(readCell(row, DAILY_WORK_COLUMNS.taskDescription)),
@@ -490,6 +491,7 @@ export function toDailyWorkRow(entry: DailyWorkEntry): RawExcelRow {
     [DAILY_WORK_COLUMNS.entryId]: entry.id,
     [DAILY_WORK_COLUMNS.developerId]: entry.developerId,
     [DAILY_WORK_COLUMNS.projectId]: entry.projectId,
+    [DAILY_WORK_COLUMNS.taskId]: entry.taskId ?? '',
     [DAILY_WORK_COLUMNS.date]: entry.date,
     [DAILY_WORK_COLUMNS.taskTitle]: entry.taskTitle,
     [DAILY_WORK_COLUMNS.taskDescription]: entry.description ?? '',

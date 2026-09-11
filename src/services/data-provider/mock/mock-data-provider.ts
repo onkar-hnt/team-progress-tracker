@@ -455,6 +455,7 @@ export class MockDataProvider implements DataProvider {
     await this.simulateLatency()
     this.assertReferenceExists('developerId', request.developerId)
     this.assertReferenceExists('projectId', request.projectId)
+    if (request.taskId !== undefined) this.assertReferenceExists('taskId', request.taskId)
 
     const now = new Date().toISOString()
     const entry = this.validate(
@@ -479,6 +480,9 @@ export class MockDataProvider implements DataProvider {
 
     this.assertReferenceExists('developerId', request.developerId ?? existing.developerId)
     this.assertReferenceExists('projectId', request.projectId ?? existing.projectId)
+
+    const taskId = request.taskId ?? existing.taskId
+    if (taskId !== undefined) this.assertReferenceExists('taskId', taskId)
 
     const entry = this.validate(
       dailyWorkEntrySchema,

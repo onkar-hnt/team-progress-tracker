@@ -17,7 +17,46 @@ import { todayIsoDate } from '@utils/date.utils'
 
 const TASK_TITLE_MAX = 160
 
-export const dailyUpdateFormSchema = z
+/**
+ * Built per render rather than declared once, because one rule depends on the
+ * data: a developer with assigned work must say which task the day belonged
+ * to, and a developer with none must still be able to log the day.
+ *
+ * Only that rule varies. `taskTitle` and `projectId` stay unconditionally
+ * required because the form fills both from the chosen task, so a linked
+ * entry satisfies them without a second question.
+ */
+export function createDailyUpdateFormSchema(options: { requireTask: boolean }) {
+  return baseSchema.superRefine((values, ctx) => {
+    if (options.requireTask && values.taskId === '') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['taskId'],
+        message: 'Choose the task you worked on',
+      })
+    }
+
+    // Completed work at partial progress would make completion rates
+    // meaningless, so the two fields are kept consistent.
+    if (values.status === 'completed' && Number(values.progress) !== PROGRESS_MAX) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['progress'],
+        message: 'Completed work should be at 100%',
+      })
+    }
+
+    if (values.status === 'not-started' && Number(values.progress) !== PROGRESS_MIN) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['progress'],
+        message: 'Work that has not started should be at 0%',
+      })
+    }
+  })
+}
+
+const baseSchema = z
   .object({
     date: z
       .string()
@@ -31,6 +70,16 @@ export const dailyUpdateFormSchema = z
     developerId: z.string().min(1, { message: 'Select a developer' }),
 
     projectId: z.string().min(1, { message: 'Select a project' }),
+
+    /**
+     * The assigned task the day's work belongs to.
+     *
+     * Empty only for a developer with nothing assigned, or for an entry
+     * logged before updates were task-linked. Where it is set, the database
+     * keeps the task and this entry at the same status, which is what stops
+     * My Tasks and the dashboard disagreeing about the same work.
+     */
+    taskId: z.string(),
 
     taskTitle: z
       .string()
@@ -58,27 +107,8 @@ export const dailyUpdateFormSchema = z
      */
     priority: z.enum(TASK_PRIORITIES),
   })
-  .superRefine((values, ctx) => {
-    // Completed work at partial progress would make completion rates
-    // meaningless, so the two fields are kept consistent.
-    if (values.status === 'completed' && Number(values.progress) !== PROGRESS_MAX) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['progress'],
-        message: 'Completed work should be at 100%',
-      })
-    }
 
-    if (values.status === 'not-started' && Number(values.progress) !== PROGRESS_MIN) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['progress'],
-        message: 'Work that has not started should be at 0%',
-      })
-    }
-  })
-
-export type DailyUpdateFormValues = z.infer<typeof dailyUpdateFormSchema>
+export type DailyUpdateFormValues = z.infer<typeof baseSchema>
 
 /** Fills the form from an existing entry, for editing. */
 export function toFormValues(entry: DailyWorkEntry): DailyUpdateFormValues {
@@ -86,6 +116,7 @@ export function toFormValues(entry: DailyWorkEntry): DailyUpdateFormValues {
     date: entry.date,
     developerId: entry.developerId,
     projectId: entry.projectId,
+    taskId: entry.taskId ?? '',
     taskTitle: entry.taskTitle,
     status: entry.status,
     progress: String(entry.progress),
@@ -101,6 +132,7 @@ export function createEmptyFormValues(options: {
     date: options.date,
     developerId: options.developerId,
     projectId: '',
+    taskId: '',
     taskTitle: '',
     status: 'in-progress',
     progress: '0',
@@ -132,6 +164,9 @@ export function toCreateDailyWorkEntryRequest(
     date: values.date,
     developerId: values.developerId,
     projectId: values.projectId,
+    // Always present, so editing an entry that had a task and now has none
+    // clears the column rather than silently keeping the old link.
+    taskId: values.taskId === '' ? undefined : values.taskId,
     taskTitle: values.taskTitle.trim(),
     status: values.status,
     priority: values.priority,

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
@@ -18,10 +19,19 @@ interface EntryListProps {
 
   /** Caps long lists; the caller decides whether to link to the full view. */
   limit?: number
+
+  /**
+   * Rendered beside the badges, for the actions a given screen allows.
+   *
+   * Omitted on the reporting screens, where an entry is evidence rather than
+   * something to change. The caller decides per entry, so the permission
+   * check stays with the screen that knows who is looking.
+   */
+  renderActions?: (entry: DailyWorkEntryView) => ReactNode
 }
 
 /**
- * Read-only list of work entries.
+ * A list of work entries.
  *
  * Shared by the dashboard, blocker panels and developer history so that an
  * entry looks and reads the same wherever it appears.
@@ -30,6 +40,7 @@ export function EntryList({
   emptyMessage,
   entries,
   limit,
+  renderActions,
   showDate = false,
   showDeveloper = true,
 }: EntryListProps) {
@@ -61,9 +72,19 @@ export function EntryList({
               )}
             </div>
 
-            <div className="entry-list__badges">
-              <StatusBadge status={entry.status} />
-              <PriorityBadge priority={entry.priority} />
+            {/* Badges and controls sit under the title rather than beside it.
+                These panels are often a narrow column of a two-column row,
+                and competing for the same line left the title wrapping one
+                word at a time. */}
+            <div className="entry-list__footer">
+              <div className="entry-list__badges">
+                <StatusBadge status={entry.status} />
+                <PriorityBadge priority={entry.priority} />
+              </div>
+
+              {renderActions === undefined ? null : (
+                <div className="entry-list__actions">{renderActions(entry)}</div>
+              )}
             </div>
           </li>
         ))}

@@ -4,8 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useActiveDevelopers, useTasks } from '@hooks/use-work-tracker'
 import type { MentorComment } from '@models/index'
-import type { AssignedTaskView } from '@services/work-tracker.service'
-import { compareStatus } from '@utils/task.utils'
+import { describeTask, groupTasksByCompletion } from '@utils/task.utils'
 
 import {
   emptyFeedbackValues,
@@ -85,7 +84,7 @@ export function FeedbackForm({
   // Held steady across renders so the grouping below is memoised against
   // something that only changes when the data does.
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
-  const { completed, open } = useMemo(() => groupTasks(tasks), [tasks])
+  const { completed, open } = useMemo(() => groupTasksByCompletion(tasks), [tasks])
 
   const developerField = register('developerId')
   const isDeveloperLocked = developerId !== undefined || comment !== undefined
@@ -244,31 +243,4 @@ export function FeedbackForm({
       </div>
     </form>
   )
-}
-
-/** Name, project and status, so one option identifies the work unambiguously. */
-function describeTask(task: AssignedTaskView): string {
-  return `${task.name} · ${task.projectName}${task.isOverdue ? ' · overdue' : ''}`
-}
-
-/**
- * Splits the developer's tasks into live work and finished work.
- *
- * Within each group the existing `compareStatus` ordering applies, which walks
- * a task from untouched to finished, and the name breaks ties so the list is
- * stable between renders.
- */
-function groupTasks(tasks: readonly AssignedTaskView[]): {
-  completed: AssignedTaskView[]
-  open: AssignedTaskView[]
-} {
-  const sorted = [...tasks].sort((left, right) => {
-    const byStatus = compareStatus(left.status, right.status)
-    return byStatus !== 0 ? byStatus : left.name.localeCompare(right.name)
-  })
-
-  return {
-    completed: sorted.filter((task) => task.status === 'completed'),
-    open: sorted.filter((task) => task.status !== 'completed'),
-  }
 }

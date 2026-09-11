@@ -20,6 +20,15 @@ export interface DailyWorkEntry {
   developerId: string
   projectId: string
 
+  /**
+   * The assigned task this day of work belongs to.
+   *
+   * Absent for entries logged before updates were task-linked, and for a
+   * developer with nothing assigned. Where it is present the task holds the
+   * status of the work, and the two are kept in step by the database.
+   */
+  taskId?: string
+
   taskTitle: string
   description?: string
 

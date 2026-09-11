@@ -128,6 +128,7 @@ export const dailyWorkEntrySchema = z
     date: isoDateSchema,
     developerId: nonEmptyStringSchema,
     projectId: nonEmptyStringSchema,
+    taskId: nonEmptyStringSchema.optional(),
     taskTitle: nonEmptyStringSchema,
     description: nonEmptyStringSchema.optional(),
     workDone: nonEmptyStringSchema.optional(),

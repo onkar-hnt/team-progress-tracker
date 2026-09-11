@@ -25,7 +25,7 @@ import { isIsoDateString } from '../excel/excel-value.utils'
  */
 
 export const DAILY_UPDATE_COLUMNS =
-  'id, developer_id, project_id, entry_date, task_title, description, work_done, planned_work, status, priority, progress, hours_spent, is_blocked, blocker_description, remarks, created_at, updated_at' as const
+  'id, developer_id, project_id, task_id, entry_date, task_title, description, work_done, planned_work, status, priority, progress, hours_spent, is_blocked, blocker_description, remarks, created_at, updated_at' as const
 
 /**
  * `entry_date` is validated as a real calendar day, not merely as text.
@@ -39,6 +39,7 @@ export const dailyUpdateRowSchema = z.object({
   id: z.string().min(1),
   developer_id: z.string().min(1),
   project_id: z.string().min(1),
+  task_id: z.string().nullable(),
   entry_date: z.string().refine(isIsoDateString, { message: 'expected a yyyy-MM-dd date' }),
   task_title: z.string().min(1),
   description: z.string().nullable(),
@@ -97,6 +98,7 @@ export function toDailyWorkEntry(row: DailyUpdateRow): DailyWorkEntry {
     isBlocked: row.is_blocked,
     createdAt: toIsoTimestamp(row.created_at),
     updatedAt: toIsoTimestamp(row.updated_at),
+    ...optional('taskId', row.task_id),
     ...optional('description', row.description),
     ...optional('workDone', row.work_done),
     ...optional('plannedWork', row.planned_work),
@@ -109,6 +111,7 @@ export function toDailyWorkEntry(row: DailyUpdateRow): DailyWorkEntry {
 export interface DailyUpdateInsert {
   developer_id: string
   project_id: string
+  task_id: string | null
   entry_date: string
   task_title: string
   description: string | null
@@ -136,6 +139,7 @@ export function toDailyUpdateInsert(request: CreateDailyWorkEntryRequest): Daily
   return {
     developer_id: request.developerId,
     project_id: request.projectId,
+    task_id: request.taskId ?? null,
     entry_date: request.date,
     task_title: request.taskTitle.trim(),
     description: blankToNull(request.description),
@@ -185,6 +189,7 @@ export function toDailyUpdateUpdate(
   }
 
   // Nullable columns: an explicit undefined clears them.
+  if ('taskId' in request) payload.task_id = request.taskId ?? null
   if ('description' in request) payload.description = blankToNull(request.description)
   if ('workDone' in request) payload.work_done = blankToNull(request.workDone)
   if ('plannedWork' in request) payload.planned_work = blankToNull(request.plannedWork)

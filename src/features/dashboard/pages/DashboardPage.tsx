@@ -11,11 +11,23 @@ import {
 import { DeveloperSummaryTable } from '@components/summaries/SummaryTables'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { EntryList } from '@components/ui/entry-list/EntryList'
+import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { useAuth } from '@app/providers/auth-context'
-import { useDayOverview, useDevelopers, useProjects, useRangeOverview } from '@hooks/use-work-tracker'
-import { canViewTeamData } from '@services/auth/index'
+import { DailyUpdateForm } from '@features/daily-update/components/DailyUpdateForm'
+import { TASK_STATUS_OPTIONS } from '@constants/task.constants'
+import {
+  useDayOverview,
+  useDevelopers,
+  useProjects,
+  useRangeOverview,
+  useUpdateDailyWorkEntry,
+} from '@hooks/use-work-tracker'
+import type { TaskStatus } from '@models/index'
+import { canEditEntry, canViewTeamData } from '@services/auth/index'
+import type { DailyWorkEntryView } from '@services/work-tracker.service'
+import { progressForStatus } from '@utils/task.utils'
 import {
   formatLongDate,
   getWeekRange,
@@ -46,6 +58,11 @@ export function DashboardPage() {
   // empty screen, so the default is nudged back to a working day.
   const [selectedDate, setSelectedDate] = useState(() => toNearestWorkingDay(todayIsoDate()))
 
+  const [editing, setEditing] = useState<DailyWorkEntryView | null>(null)
+
+  const updateEntry = useUpdateDailyWorkEntry()
+  const savingEntryId = updateEntry.isPending ? (updateEntry.variables?.id ?? null) : null
+
   const weekRange = getWeekRange(selectedDate)
 
   const dayQuery = useDayOverview(selectedDate)
@@ -64,6 +81,52 @@ export function DashboardPage() {
   )
 
   const error = dayQuery.error ?? weekQuery.error ?? developersQuery.error ?? projectsQuery.error
+
+  /**
+   * Amending your own update, from where you noticed it needed amending.
+   *
+   * A daily update carries its own status and progress, so logging at midday
+   * and finishing by five means the entry needs changing rather than
+   * replacing. Status gets a select because it is the field that changes most
+   * and carries no risk; everything else is behind Edit.
+   *
+   * `canEditEntry` decides per row, so an admin gets these on anybody's entry
+   * and a mentor gets them on none — a mentor reading their team's work must
+   * not be able to rewrite a first-hand record.
+   *
+   * Offered only on a developer's own dashboard. Mentors and admins have the
+   * Team Activity table, which does the same job across everybody.
+   */
+  const renderEntryActions = (entry: DailyWorkEntryView) =>
+    canEditEntry(user, entry) ? (
+      <>
+        <EntryStatusSelect
+          entry={entry}
+          isSaving={savingEntryId === entry.id}
+          onChange={(status) => {
+            const progress = progressForStatus(status)
+
+            // Progress travels with the status, so the list never shows
+            // "Completed · 50%". Left alone for in-progress and blocked,
+            // where the developer's own number is the meaningful one.
+            updateEntry.mutate({
+              id: entry.id,
+              changes: progress === null ? { status } : { status, progress },
+            })
+          }}
+        />
+
+        <button
+          className="button button--ghost button--small"
+          onClick={() => setEditing(entry)}
+          type="button"
+        >
+          Edit
+        </button>
+      </>
+    ) : null
+
+  const entryActions = isTeamView ? undefined : renderEntryActions
 
   const datePicker = (
     <label className="dashboard__date">
@@ -99,12 +162,16 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard">
+      {/* The description names what these cards count. They are built from
+          daily updates, not from assigned tasks, and the two have their own
+          statuses — so a task marked Completed on My Tasks does not move
+          "Completed" here, which reads as a miscount unless it is said. */}
       <Panel
         action={datePicker}
         description={
           isTeamView
-            ? `Team progress for ${formatLongDate(selectedDate)}.`
-            : `Your progress for ${formatLongDate(selectedDate)}.`
+            ? `Daily updates submitted on ${formatLongDate(selectedDate)}. Assigned tasks are counted separately on the Tasks screen.`
+            : `Your daily updates for ${formatLongDate(selectedDate)}. Your assigned tasks are counted separately on My Tasks.`
         }
         isPageHeading
         title="Dashboard"
@@ -113,12 +180,12 @@ export function DashboardPage() {
           <Skeleton label="Loading dashboard metrics…" rows={4} />
         ) : (
           <div className="stat-card-grid">
-            <StatCard label="Tasks today" value={day.statuses.total} tone="progress" />
+            <StatCard label="Updates today" value={day.statuses.total} tone="progress" />
             <StatCard
               label="Completed"
               tone="positive"
               value={day.statuses.completed}
-              detail={`${String(day.completionRate)}% completion rate`}
+              detail={`${String(day.completionRate)}% of today's updates`}
             />
             <StatCard label="In progress" value={day.statuses.inProgress} />
             <StatCard label="Not started" value={day.statuses.notStarted} />
@@ -211,6 +278,7 @@ export function DashboardPage() {
                 emptyMessage="Nothing logged this week yet."
                 entries={week.entries}
                 limit={5}
+                renderActions={entryActions}
                 showDate
                 showDeveloper={false}
               />
@@ -236,6 +304,7 @@ export function DashboardPage() {
             emptyMessage="No work updates found for the selected date."
             entries={day.entries}
             limit={8}
+            renderActions={entryActions}
             showDeveloper={isTeamView}
           />
         )}
@@ -283,6 +352,60 @@ export function DashboardPage() {
           {isLoading ? <Skeleton rows={4} /> : <DeveloperSummaryTable summaries={developerSummaries} />}
         </Panel>
       ) : null}
+
+      {/* The form opens on the entry's own date rather than today's, so
+          amending Tuesday's update does not quietly move it to Friday. */}
+      <Modal isOpen={editing !== null} onClose={() => setEditing(null)} title="Edit update">
+        {editing === null ? null : (
+          <DailyUpdateForm date={editing.date} entry={editing} onSaved={() => setEditing(null)} />
+        )}
+      </Modal>
     </div>
+  )
+}
+
+/**
+ * An update's status, changed in place.
+ *
+ * The same reasoning as the task list: this is the most frequent change and
+ * carries no risk of data loss, so a select that saves on change costs one
+ * interaction rather than opening a form to alter one field.
+ */
+function EntryStatusSelect({
+  entry,
+  isSaving,
+  onChange,
+}: {
+  entry: DailyWorkEntryView
+  isSaving: boolean
+  onChange: (status: TaskStatus) => void
+}) {
+  return (
+    <label className="dashboard__entry-status">
+      <span className="sr-only">{`Status for ${entry.taskTitle}`}</span>
+      <select
+        disabled={isSaving}
+        onChange={(event) => {
+          const next = event.target.value as TaskStatus
+
+          // Re-picking the value already showing is still a write, and one
+          // that would refetch every derived view to prove nothing changed.
+          if (next !== entry.status) onChange(next)
+        }}
+        value={entry.status}
+      >
+        {TASK_STATUS_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+
+      {isSaving ? (
+        <span className="dashboard__entry-saving" role="status">
+          Saving…
+        </span>
+      ) : null}
+    </label>
   )
 }

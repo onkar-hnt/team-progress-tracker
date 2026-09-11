@@ -151,6 +151,7 @@ export const WORKBOOK_TEMPLATE: readonly SheetTemplate[] = [
       DAILY_WORK_COLUMNS.entryId,
       DAILY_WORK_COLUMNS.developerId,
       DAILY_WORK_COLUMNS.projectId,
+      DAILY_WORK_COLUMNS.taskId,
       DAILY_WORK_COLUMNS.date,
       DAILY_WORK_COLUMNS.taskTitle,
       DAILY_WORK_COLUMNS.taskDescription,
