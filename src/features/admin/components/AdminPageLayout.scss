@@ -11,12 +11,10 @@
   }
 
   &__filter {
-    display: flex;
-    align-items: center;
-    gap: $space-2;
+    @include flex($gap: $space-2);
     color: $color-text-muted;
     font-size: $font-size-sm;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
 
     select {
       padding: $space-2 $space-3;
@@ -37,8 +35,7 @@
 // Shown once, immediately after a login is provisioned. Deliberately hard to
 // miss and hard to mistake for anything retrievable later.
 .credentials {
-  display: grid;
-  gap: $space-2;
+  @include grid($gap: $space-2);
   margin: 0 0 $space-4;
   padding: $space-4;
   border: 1px solid $color-border;
@@ -46,10 +43,7 @@
   background: $color-white;
 
   &__line {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: $space-2;
+    @include flex($align: baseline, $gap: $space-2, $wrap: wrap);
     margin: 0;
 
     code {
@@ -65,7 +59,7 @@
     min-width: 11rem;
     color: $color-text-muted;
     font-size: $font-size-sm;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
   }
 
   &__note {

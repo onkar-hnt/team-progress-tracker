@@ -5,6 +5,7 @@ import { Button, ButtonLink } from '@components/ui/button/Button'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { appConfig } from '@config/app.config'
 import { APP_EYEBROW, APP_NAME } from '@constants/app.constants'
+import { NotificationBell } from '@features/notifications/components/NotificationBell'
 import { useRefreshWorkTracker } from '@hooks/use-work-tracker'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import { canOpenWorkbook } from '@services/auth/index'
@@ -95,6 +96,12 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
             </Button>
           </Tooltip>
         )}
+
+        {/* Beside the refresh control rather than out on its own, because both
+            are about what the application knows right now. Renders nothing at
+            all unless the data source can produce notifications, and nothing
+            when signed out. */}
+        {user === null ? null : <NotificationBell />}
 
         {/* Opening the master file is a maintenance action for the people who
             own the data, so it sits with the account controls rather than in

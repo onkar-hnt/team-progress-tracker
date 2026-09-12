@@ -1,0 +1,155 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.notification-panel {
+  @include card($shadow: $shadow-md);
+
+  overflow: hidden;
+
+  /// Stays put while the list scrolls under it, so "Mark all read" is reachable
+  /// from anywhere in a full inbox.
+  &__header {
+    @include flex($justify: space-between, $gap: $space-3);
+
+    position: sticky;
+    top: 0;
+    z-index: $z-sticky;
+    min-height: 3.25rem;
+    padding: $space-3 $space-3 $space-3 $space-4;
+    border-bottom: 1px solid $color-border;
+    background: $color-surface-subtle;
+  }
+
+  &__heading {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-tight;
+  }
+
+  /// Capped at roughly five rows, then scrolls. Tall enough to show that there
+  /// is a list rather than a single message, short enough that the popover never
+  /// runs off the bottom of a laptop screen.
+  &__body {
+    max-height: min(26rem, calc(100dvh - #{$header-height} - #{$space-8}));
+    padding: $space-3;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  &__list {
+    @include grid($gap: $space-1);
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__error {
+    margin: 0;
+    padding: $space-3 $space-4;
+    border-top: 1px solid $color-danger-border;
+    color: $color-danger-dark;
+    font-size: $font-size-xs;
+    background: $color-danger-surface;
+  }
+}
+
+.notification-row {
+  @include flex($align: flex-start, $gap: $space-3);
+
+  width: 100%;
+  padding: $space-3;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  font: inherit;
+  text-align: left;
+  background: none;
+  cursor: pointer;
+  transition:
+    border-color $transition-fast,
+    background-color $transition-fast;
+
+  &:hover {
+    border-color: $color-border;
+    background: $color-surface-subtle;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  /// Unread carries three cues, not one: a tinted surface, a bolder title and a
+  /// dot — plus the words "unread" for a screen reader. Colour alone would leave
+  /// the distinction unavailable to some of the people reading it.
+  &--unread {
+    background: $color-brand-light;
+
+    &:hover {
+      border-color: $color-brand-muted;
+      background: $color-brand-light;
+    }
+  }
+
+  &__icon {
+    @include flex-center;
+    @include square(1.75rem);
+
+    flex-shrink: 0;
+    margin-top: 0.0625rem;
+    border-radius: $radius-md;
+    color: $color-info;
+    background: $color-info-surface;
+  }
+
+  /// The one type that is asking for something rather than reporting it.
+  &--attention &__icon {
+    color: $color-danger;
+    background: $color-danger-surface;
+  }
+
+  &__body {
+    @include grid($gap: $space-1);
+
+    min-width: 0;
+  }
+
+  &__title {
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    line-height: $line-height-tight;
+  }
+
+  &--unread &__title {
+    font-weight: $font-weight-semibold;
+  }
+
+  /// Two lines, then an ellipsis. The full text is on the page it links to, and
+  /// a notification that grows to six lines pushes the rest of the inbox out of
+  /// sight.
+  &__message {
+    display: -webkit-box;
+    overflow: hidden;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    line-height: $line-height-base;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  &__time {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  &__dot {
+    @include square(0.5rem);
+
+    flex-shrink: 0;
+    margin-top: 0.5rem;
+    border-radius: 50%;
+    background: $color-brand;
+  }
+}

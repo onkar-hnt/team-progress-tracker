@@ -13,24 +13,38 @@
 /// component, which is what the header's four near-identical controls were
 /// before `--inverse` existed.
 .button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: $space-2;
+  @include flex-center($gap: $space-2, $inline: true);
+
   padding: $space-2 $space-4;
   border: 1px solid transparent;
   border-radius: $radius-md;
   color: $color-text;
   font: inherit;
   font-size: $font-size-sm;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   text-decoration: none;
   white-space: nowrap;
   background: transparent;
   cursor: pointer;
 
+  /// Colour, border and shadow are the only things that move. A button that
+  /// also shifted or scaled under the cursor would be a moving target for
+  /// anyone aiming at it, and there are rows here with three of them side by
+  /// side.
+  transition:
+    color $transition-fast,
+    border-color $transition-fast,
+    background-color $transition-fast,
+    box-shadow $transition-fast;
+
   &:focus-visible {
     @include focus-ring;
+  }
+
+  /// Presses in by the one pixel it will not be missed at. Skipped under a
+  /// reduced-motion preference along with everything else.
+  &:active:not(:disabled) {
+    transform: translateY(1px);
   }
 
   &:disabled {
@@ -38,12 +52,24 @@
     cursor: not-allowed;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+
+  /// The one button on a screen that carries a shadow, so that the eye lands on
+  /// it before reading any of the labels.
   &--primary {
     color: $color-white;
     background: $color-brand;
+    box-shadow: $shadow-sm;
 
     &:hover:not(:disabled) {
       background: $color-brand-dark;
+      box-shadow: $shadow-raised;
     }
   }
 
@@ -52,6 +78,7 @@
     background: $color-white;
 
     &:hover:not(:disabled) {
+      border-color: $color-neutral-border;
       background: $color-surface-subtle;
     }
   }
@@ -94,8 +121,8 @@
   /// A square control holding an icon and nothing else. Sized to the icon plus
   /// its focus ring rather than to text, since there is no text to size to.
   &--icon {
-    width: 2.25rem;
-    height: 2.25rem;
+    @include square(2.25rem);
+
     flex-shrink: 0;
     padding: 0;
   }

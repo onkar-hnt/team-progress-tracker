@@ -2,19 +2,25 @@
 @use '@styles/mixins' as *;
 
 .entry-list {
-  display: grid;
-  gap: $space-3;
+  @include grid($gap: $space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 
   &__item {
-    display: grid;
-    gap: $space-3;
+    @include grid($gap: $space-3);
     padding: $space-3 $space-4;
     border: 1px solid $color-border;
     border-radius: $radius-md;
     background: $color-white;
+    transition:
+      border-color $transition-fast,
+      background-color $transition-fast;
+
+    &:hover {
+      border-color: $color-neutral-border;
+      background: $color-surface-subtle;
+    }
   }
 
   &__main {
@@ -25,7 +31,7 @@
     margin: 0 0 $space-2;
     color: $color-text;
     font-size: $font-size-sm;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
   }
 
   &__meta {
@@ -36,7 +42,7 @@
 
   &__link {
     color: $color-brand;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
     text-decoration: none;
 
     &:hover {
@@ -55,24 +61,15 @@
   }
 
   &__footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: $space-3;
-    flex-wrap: wrap;
+    @include flex($justify: space-between, $gap: $space-3, $wrap: wrap);
   }
 
   &__badges {
-    display: flex;
-    gap: $space-2;
-    flex-wrap: wrap;
+    @include flex($gap: $space-2, $wrap: wrap);
   }
 
   &__actions {
-    display: flex;
-    align-items: center;
-    gap: $space-2;
-    flex-wrap: wrap;
+    @include flex($gap: $space-2, $wrap: wrap);
   }
 
   &__more {

@@ -1,17 +1,18 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
 .page-placeholder {
+  @include card;
+
   max-width: 50rem;
   padding: $space-8;
-  border: 1px solid $color-border;
-  border-radius: $radius-lg;
-  background: $color-white;
-  box-shadow: $shadow-sm;
 
   h1 {
     margin: 0 0 $space-3;
     color: $color-text;
     font-size: $font-size-2xl;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-tight;
   }
 
   p {

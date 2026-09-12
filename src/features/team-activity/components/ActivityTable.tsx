@@ -90,7 +90,13 @@ export function ActivityTable({
   }, [entries, sort])
 
   if (entries.length === 0) {
-    return <EmptyState message="No entries match the current filters." />
+    return (
+      <EmptyState
+        message="Widen the date range, or clear a filter, to see more of the team's work."
+        title="No entries match these filters"
+        variant="filtered"
+      />
+    )
   }
 
   const toggleSort = (key: SortKey) => {

@@ -1,7 +1,8 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 
 .workbook-gate {
-  display: grid;
+  @include grid();
   place-items: center;
   min-height: 100vh;
   padding: $space-4;
@@ -23,7 +24,7 @@
     p {
       margin: 0 0 $space-4;
       color: $color-text-muted;
-      line-height: 1.6;
+      line-height: $line-height-loose;
     }
 
     code {
@@ -35,9 +36,7 @@
   }
 
   &__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $space-2;
+    @include flex($align: null, $gap: $space-2, $wrap: wrap);
     margin-bottom: $space-4;
   }
 
@@ -62,14 +61,14 @@
     summary {
       cursor: pointer;
       color: $color-text;
-      font-weight: 600;
+      font-weight: $font-weight-semibold;
     }
 
     ul {
       margin: $space-3 0 0;
       padding-left: $space-5;
       color: $color-text-muted;
-      line-height: 1.6;
+      line-height: $line-height-loose;
     }
 
     strong {

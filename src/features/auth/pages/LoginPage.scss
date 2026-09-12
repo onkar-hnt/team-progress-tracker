@@ -4,9 +4,7 @@
 /// The document does not scroll, so this screen scrolls itself when a short
 /// viewport cannot fit the card.
 .login {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include flex($justify: center);
   height: 100%;
   padding: $space-6;
   overflow-y: auto;
@@ -29,11 +27,7 @@
   &__eyebrow {
     display: block;
     margin-bottom: $space-2;
-    color: $color-brand;
-    font-size: $font-size-xs;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    @include overline($color: $color-brand);
   }
 
   &__title {
@@ -52,8 +46,7 @@
   /// form styles and `Button` — this screen used to restate all three. The one
   /// thing that is specific to it is that its buttons fill the card.
   &__form {
-    display: grid;
-    gap: $space-5;
+    @include grid($gap: $space-5);
 
     .button {
       padding-block: $space-3;

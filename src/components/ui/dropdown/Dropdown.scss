@@ -8,10 +8,7 @@
   position: relative;
 
   &__trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: $space-2;
+    @include flex($justify: space-between, $gap: $space-2);
     width: 100%;
     padding: $space-3;
     border: 1px solid $color-border;
@@ -21,6 +18,13 @@
     text-align: left;
     background: $color-white;
     cursor: pointer;
+    transition:
+      border-color $transition-fast,
+      background-color $transition-fast;
+
+    &:hover:not(:disabled) {
+      border-color: $color-neutral-border;
+    }
 
     &:focus-visible {
       @include focus-ring;
@@ -51,7 +55,7 @@
   /// Sized for a table row or a list item, where the control is one detail of
   /// many rather than a field of its own.
   &--compact {
-    display: inline-flex;
+    @include flex($inline: true);
 
     .dropdown__trigger {
       padding: $space-1 $space-2;
@@ -69,7 +73,7 @@
   /// from squeezing it. Without it the sizer could push a form field wider than
   /// its column.
   &__value {
-    display: grid;
+    @include grid;
     min-width: 0;
 
     >* {
@@ -112,7 +116,7 @@
   /// The z-index clears the modal's sticky footer, which sits at 1.
   &__list {
     position: fixed;
-    z-index: 30;
+    z-index: $z-popover;
     margin: 0;
     padding: $space-1;
     border: 1px solid $color-border;
@@ -122,15 +126,16 @@
     box-shadow: $shadow-md;
     overflow-y: auto;
     overscroll-behavior: contain;
+    animation: dropdown-list-enter $transition-base;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &__group {
     padding: $space-2 $space-2 $space-1;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    @include overline($weight: $font-weight-bold);
     white-space: nowrap;
   }
 
@@ -156,6 +161,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: pointer;
+    transition: background-color $transition-fast;
 
     /// Hover and keyboard share one highlight, so there is never a second
     /// thing that also looks chosen.
@@ -164,7 +170,7 @@
     }
 
     &[aria-selected='true'] {
-      font-weight: 600;
+      font-weight: $font-weight-semibold;
     }
 
     /// In the gutter the padding above reserves, so it never takes room from
@@ -181,5 +187,12 @@
       color: $color-text-muted;
       cursor: not-allowed;
     }
+  }
+}
+
+@keyframes dropdown-list-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
   }
 }

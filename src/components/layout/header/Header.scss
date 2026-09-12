@@ -10,19 +10,14 @@
 /// where things sit on it.
 .header {
   grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $space-4;
+  @include flex($justify: space-between, $gap: $space-4);
   min-height: $header-height;
   padding: $space-3 $space-8;
   color: $color-white;
   background: $color-brand-dark;
 
   &__brand {
-    display: flex;
-    align-items: center;
-    gap: $space-4;
+    @include flex($gap: $space-4);
     min-width: 0;
   }
 
@@ -39,9 +34,7 @@
   }
 
   &__account {
-    display: flex;
-    align-items: center;
-    gap: $space-4;
+    @include flex($gap: $space-4);
   }
 
   &__identity {
@@ -60,12 +53,12 @@
   }
 
   &__rail-toggle {
-    display: flex;
+    @include flex($align: null);
   }
 
   @include respond-to-tablet {
     &__drawer-toggle {
-      display: flex;
+      @include flex($align: null);
     }
 
     &__rail-toggle {

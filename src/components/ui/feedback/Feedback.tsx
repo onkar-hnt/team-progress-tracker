@@ -1,14 +1,51 @@
+import type { ReactNode } from 'react'
+
 import { Button } from '@components/ui/button/Button'
+import { Icon, type IconName } from '@components/ui/icons/Icon'
 
 import './Feedback.scss'
 
+/**
+ * Why there is nothing to show.
+ *
+ * `empty` means nothing has been created yet, and the reader's next move is to
+ * create something. `filtered` means the data exists but the current filters
+ * exclude it, and the next move is to widen them. Saying which one it is saves
+ * the reader working it out, and they are the two cases people confuse.
+ */
+type EmptyStateVariant = 'empty' | 'filtered'
+
 interface EmptyStateProps {
+  /** The one line that explains the absence, and what would fill it. */
   message: string
+
+  /** A short headline above the message, for a whole panel that is empty. */
+  title?: string
+
+  icon?: IconName
+  variant?: EmptyStateVariant
+
+  /** Whatever the reader should do next — usually a single `Button`. */
+  action?: ReactNode
+}
+
+const DEFAULT_ICON: Readonly<Record<EmptyStateVariant, IconName>> = {
+  empty: 'inbox',
+  filtered: 'filter',
 }
 
 /** Explains that there is genuinely nothing to show, rather than a failure. */
-export function EmptyState({ message }: EmptyStateProps) {
-  return <p className="feedback feedback--empty">{message}</p>
+export function EmptyState({ action, icon, message, title, variant = 'empty' }: EmptyStateProps) {
+  return (
+    <div className="feedback feedback--empty">
+      <span aria-hidden="true" className="feedback__badge">
+        <Icon name={icon ?? DEFAULT_ICON[variant]} size={20} />
+      </span>
+      {title === undefined ? null : <p className="feedback__title">{title}</p>}
+      <p className="feedback__message">{message}</p>
+      {action === undefined ? null : <div className="feedback__action">{action}</div>}
+    </div>
+  )
 }
 
 interface ErrorStateProps {
@@ -19,9 +56,12 @@ interface ErrorStateProps {
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
     <div className="feedback feedback--error" role="alert">
+      <span aria-hidden="true" className="feedback__badge feedback__badge--error">
+        <Icon name="alert" size={20} />
+      </span>
       <p className="feedback__message">{message}</p>
       {onRetry === undefined ? null : (
-        <Button onClick={onRetry} size="small" variant="danger">
+        <Button icon="refresh" onClick={onRetry} size="small" variant="danger">
           Try again
         </Button>
       )}

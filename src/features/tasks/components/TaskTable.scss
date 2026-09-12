@@ -8,7 +8,7 @@
     display: block;
     max-width: 26rem;
     color: $color-text;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
   }
 
   &__description {
@@ -21,6 +21,6 @@
 
   &__due--overdue {
     color: $color-danger;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
   }
 }

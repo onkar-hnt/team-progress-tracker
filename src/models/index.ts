@@ -39,6 +39,12 @@ export type {
   UpdateMentorCommentRequest,
 } from './comment.model'
 export {
+  NOTIFICATION_TYPES,
+  type AppNotification,
+  type NotificationEntityType,
+  type NotificationType,
+} from './notification.model'
+export {
   USER_ROLES,
   USER_ROLE_LABELS,
   type AppUser,

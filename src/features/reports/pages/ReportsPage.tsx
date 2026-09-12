@@ -14,6 +14,7 @@ import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedba
 import { EntryList } from '@components/ui/entry-list/EntryList'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
+import { DeveloperReportPanel } from '@features/reports/components/DeveloperReportPanel'
 import { useDevelopers, useProjects, useRangeOverview } from '@hooks/use-work-tracker'
 import type { DateRange } from '@utils/date.utils'
 import {
@@ -128,15 +129,20 @@ export function ReportsPage() {
     </div>
   )
 
+  // The per-developer report is rendered here too. It reads a different query,
+  // so a failure in the period analytics is no reason to withhold it — and it is
+  // the one thing on this screen somebody may have come specifically to do.
   if (error !== null) {
     return (
       <div className="reports">
         <Panel isPageHeading title="Reports">
           <ErrorState
-            message={`The report could not be generated: ${error.message}`}
+            message={`The period analytics could not be loaded: ${error.message}`}
             onRetry={() => void rangeQuery.refetch()}
           />
         </Panel>
+
+        <DeveloperReportPanel />
       </div>
     )
   }
@@ -153,35 +159,62 @@ export function ReportsPage() {
           <Skeleton label="Generating the report…" rows={4} />
         ) : (
           <div className="stat-card-grid">
-            <StatCard label="Total tasks" tone="progress" value={rangeQuery.data?.statuses.total ?? 0} />
             <StatCard
+              icon="tasks"
+              label="Total tasks"
+              tone="progress"
+              value={rangeQuery.data?.statuses.total ?? 0}
+            />
+            <StatCard
+              icon="check"
               label="Completed"
               tone="positive"
               value={rangeQuery.data?.statuses.completed ?? 0}
             />
-            <StatCard label="In progress" value={rangeQuery.data?.statuses.inProgress ?? 0} />
-            <StatCard label="Not started" value={rangeQuery.data?.statuses.notStarted ?? 0} />
             <StatCard
+              icon="activity"
+              label="In progress"
+              value={rangeQuery.data?.statuses.inProgress ?? 0}
+            />
+            <StatCard
+              icon="tasks"
+              label="Not started"
+              value={rangeQuery.data?.statuses.notStarted ?? 0}
+            />
+            <StatCard
+              icon="alert"
               label="Needs attention"
               tone={(rangeQuery.data?.statuses.needsAttention ?? 0) > 0 ? 'attention' : 'neutral'}
               value={rangeQuery.data?.statuses.needsAttention ?? 0}
             />
             <StatCard
+              icon="chart"
               label="Completion rate"
               value={`${String(rangeQuery.data?.completionRate ?? 0)}%`}
             />
-            <StatCard label="Hours logged" value={rangeQuery.data?.hoursLogged ?? 0} />
             <StatCard
+              icon="chart"
+              label="Hours logged"
+              value={rangeQuery.data?.hoursLogged ?? 0}
+            />
+            <StatCard
+              detail={`${String(submittedUpdates)} of ${String(expectedUpdates)} expected`}
+              icon="users"
               label="Update rate"
               tone={updateRate < 80 ? 'attention' : 'positive'}
               value={`${String(updateRate)}%`}
-              detail={`${String(submittedUpdates)} of ${String(expectedUpdates)} expected`}
             />
           </div>
         )}
       </Panel>
 
-      <Panel description="Totals per developer for the selected period." title="Developer report">
+      {/* Above the period analytics, because generating one person's report is a
+          deliberate errand somebody arrives with, while the figures below are
+          what they read when they arrive without one. It carries its own filters
+          and is unaffected by the period picker in the heading. */}
+      <DeveloperReportPanel />
+
+      <Panel description="Totals per developer for the selected period." title="Developer totals">
         {isLoading ? <Skeleton rows={5} /> : <DeveloperSummaryTable summaries={developerSummaries} />}
       </Panel>
 
@@ -237,7 +270,11 @@ export function ReportsPage() {
           {isLoading ? (
             <Skeleton rows={3} />
           ) : inactiveDevelopers.length === 0 ? (
-            <EmptyState message="Every active developer logged work in this period." />
+            <EmptyState
+              icon="check"
+              message="Every active developer logged work in this period."
+              title="Full coverage"
+            />
           ) : (
             <ul className="reports__list">
               {inactiveDevelopers.map((summary) => (

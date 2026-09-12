@@ -5,34 +5,27 @@
   @include page-stack;
 
   &__row {
-    display: grid;
-    gap: $space-6;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    @include grid(repeat(2, minmax(0, 1fr)), $space-6);
 
-    @media (max-width: 64rem) {
+    @include respond-to-laptop {
       grid-template-columns: 1fr;
     }
   }
 
   &__controls {
-    display: flex;
-    align-items: flex-end;
-    gap: $space-3;
-    flex-wrap: wrap;
+    @include flex($align: flex-end, $gap: $space-3, $wrap: wrap);
   }
 
   &__list {
-    display: grid;
-    gap: $space-2;
+    @include grid($gap: $space-2);
+
     margin: 0;
     padding: 0;
     list-style: none;
 
     li {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: $space-3;
+      @include flex($justify: space-between, $align: baseline, $gap: $space-3);
+
       padding: $space-3;
       border: 1px solid $color-border;
       border-radius: $radius-md;

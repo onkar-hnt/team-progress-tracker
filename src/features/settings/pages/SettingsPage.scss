@@ -5,10 +5,8 @@
   @include page-stack;
 
   &__facts {
-    display: grid;
-    gap: $space-4;
+    @include grid(repeat(auto-fit, minmax(14rem, 1fr)), $space-4);
     margin: 0;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   }
 
   &__fact {
@@ -18,16 +16,12 @@
     background: $color-surface-subtle;
 
     dt {
-      color: $color-text-muted;
-      font-size: $font-size-xs;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      @include overline();
     }
 
     dd {
       margin: $space-1 0 0;
-      font-weight: 600;
+      font-weight: $font-weight-semibold;
     }
   }
 
@@ -48,8 +42,7 @@
     }
 
     ol {
-      display: grid;
-      gap: $space-2;
+      @include grid($gap: $space-2);
       margin: 0;
       padding-left: $space-5;
       color: $color-text;
@@ -58,15 +51,12 @@
   }
 
   &__actions {
-    display: flex;
-    gap: $space-2;
+    @include flex($align: null, $gap: $space-2, $wrap: wrap);
     margin-top: $space-5;
-    flex-wrap: wrap;
   }
 
   &__sheets {
-    display: grid;
-    gap: $space-3;
+    @include grid($gap: $space-3);
     margin: 0;
   }
 
@@ -94,7 +84,7 @@
   /// something to be read in one line.
   &__columns {
     margin-top: $space-2 !important;
-    font-family: monospace;
+    font-family: $font-family-mono;
     font-size: $font-size-xs !important;
     overflow-wrap: anywhere;
   }

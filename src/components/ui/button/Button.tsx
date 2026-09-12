@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
+import type { AnchorHTMLAttributes, ComponentPropsWithRef, ReactNode } from 'react'
 
 import { Icon } from '@components/ui/icons/Icon'
 import type { IconName } from '@components/ui/icons/Icon'
@@ -93,8 +93,14 @@ function ButtonContent({
   )
 }
 
+/**
+ * `ComponentPropsWithRef` rather than `ButtonHTMLAttributes`, so `ref` is among
+ * the props. The notification bell needs it: closing the popover has to put
+ * focus back on the control that opened it, and a control the caller cannot
+ * reach is a control the caller cannot focus.
+ */
 type ButtonProps = ButtonAppearance &
-  Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & { children: ReactNode }
+  Omit<ComponentPropsWithRef<'button'>, 'className'> & { children: ReactNode }
 
 /**
  * `type` defaults to `button` rather than to the HTML default of `submit`.

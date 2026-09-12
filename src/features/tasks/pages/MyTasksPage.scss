@@ -5,12 +5,10 @@
   @include page-stack;
 
   &__filter {
-    display: flex;
-    align-items: center;
-    gap: $space-2;
+    @include flex($gap: $space-2);
     color: $color-text-muted;
     font-size: $font-size-sm;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
 
     select {
       padding: $space-2 $space-3;
@@ -29,9 +27,7 @@
 
   /// Sizing lives on the control itself, as `Dropdown`'s compact variant.
   &__status {
-    display: inline-flex;
-    align-items: center;
-    gap: $space-2;
+    @include flex($gap: $space-2, $inline: true);
   }
 
   /// Reserves no space of its own: the wrapper is inline-flex, so the row does

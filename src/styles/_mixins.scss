@@ -1,12 +1,72 @@
 @use 'sass:color';
 @use 'variables' as *;
 
-/// Derived from the brand colour rather than written out as `rgb(49 85 166 …)`,
-/// which is what this was: the same colour in decimal, in a second file, where
-/// changing the brand would have left it behind.
-@mixin focus-ring {
-    outline: 3px solid color.change($color-brand, $alpha: 0.35);
-    outline-offset: 2px;
+/// ---------------------------------------------------------------------------
+/// Layout
+/// ---------------------------------------------------------------------------
+
+/// A flex container, with the properties that are nearly always set alongside
+/// `display: flex` in this application.
+///
+/// `null` means "say nothing", so a block that deliberately leaves a property
+/// to CSS can do that without the mixin emitting a value that only looks like
+/// the default. `$align` defaults to `center` because that is what forty-odd of
+/// the flex rows here want; a row that wants the default stretch passes
+/// `$align: null`.
+@mixin flex(
+    $direction: row,
+    $justify: null,
+    $align: center,
+    $gap: null,
+    $wrap: null,
+    $inline: false
+) {
+    @if $inline {
+        display: inline-flex;
+    } @else {
+        display: flex;
+    }
+
+    @if $direction != row {
+        flex-direction: $direction;
+    }
+
+    @if $justify != null {
+        justify-content: $justify;
+    }
+
+    @if $align != null {
+        align-items: $align;
+    }
+
+    @if $gap != null {
+        gap: $gap;
+    }
+
+    @if $wrap != null {
+        flex-wrap: $wrap;
+    }
+}
+
+/// Centred on both axes: an icon inside its button, a spinner in the viewport,
+/// a count bubble over a bell.
+@mixin flex-center($gap: null, $inline: false) {
+    @include flex($justify: center, $align: center, $gap: $gap, $inline: $inline);
+}
+
+/// A grid container. As with `flex`, a `null` column list emits nothing, which
+/// is what the eighteen blocks here that use a grid purely to get gap-separated
+/// stacking want.
+@mixin grid($columns: null, $gap: null) {
+    display: grid;
+
+    @if $columns != null {
+        grid-template-columns: $columns;
+    }
+
+    @if $gap != null {
+        gap: $gap;
+    }
 }
 
 /// The single column a screen's sections stack in.
@@ -19,9 +79,121 @@
 /// to the space available and leaves the table to scroll inside its own panel,
 /// which is what `.data-table__scroll` is for.
 @mixin page-stack {
-    display: grid;
-    gap: $space-6;
-    grid-template-columns: minmax(0, 1fr);
+    @include grid($columns: minmax(0, 1fr), $gap: $space-6);
+}
+
+@mixin size($width, $height) {
+    width: $width;
+    height: $height;
+}
+
+/// Every place in this application that sets both dimensions sets them equal —
+/// an icon button, the spinner, a checkbox, the offscreen 1px box — so this is
+/// the form that actually gets used.
+@mixin square($size) {
+    @include size($size, $size);
+}
+
+/// ---------------------------------------------------------------------------
+/// Surfaces
+/// ---------------------------------------------------------------------------
+
+/// The white, hairline-bordered, rounded panel that every section of every page
+/// is drawn on.
+@mixin card($radius: $radius-lg, $shadow: $shadow-sm) {
+    border: 1px solid $color-border;
+    border-radius: $radius;
+    background: $color-white;
+    box-shadow: $shadow;
+}
+
+/// Lifts a card under the cursor. Applied to a card that leads somewhere or
+/// summarises something the user can drill into — not to every surface, since a
+/// surface that lifts without being clickable is a false affordance.
+///
+/// The lift is 1px: enough to register as movement, not enough to shift the
+/// text under it noticeably.
+@mixin card-lift($border: $color-brand-muted) {
+    transition:
+        border-color $transition-fast,
+        box-shadow $transition-fast,
+        transform $transition-fast;
+
+    &:hover {
+        border-color: $border;
+        box-shadow: $shadow-raised;
+        transform: translateY(-1px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+
+        &:hover {
+            transform: none;
+        }
+    }
+}
+
+/// ---------------------------------------------------------------------------
+/// Type
+/// ---------------------------------------------------------------------------
+
+/// The small capitalised label that sits above a value: a stat card caption, a
+/// table header, a field label, a group heading in a menu.
+///
+/// The eight places that had this had drifted to three different trackings —
+/// 0.02em, 0.04em and 0.06em — which is visible when a table header and a stat
+/// card caption sit on the same screen. One value now.
+///
+/// The weight is a parameter only because two of the labels are bold rather
+/// than semibold, and both sit alone above a block of text rather than in a row
+/// of sibling labels, so the difference does not read as an inconsistency.
+@mixin overline($size: $font-size-xs, $color: $color-text-muted, $weight: $font-weight-semibold) {
+    color: $color;
+    font-size: $size;
+    font-weight: $weight;
+    letter-spacing: $letter-spacing-wide;
+    text-transform: uppercase;
+}
+
+/// ---------------------------------------------------------------------------
+/// Interaction
+/// ---------------------------------------------------------------------------
+
+/// Derived from the brand colour rather than written out as `rgb(49 85 166 …)`,
+/// which is what this was: the same colour in decimal, in a second file, where
+/// changing the brand would have left it behind.
+@mixin focus-ring {
+    outline: 3px solid color.change($color-brand, $alpha: 0.35);
+    outline-offset: 2px;
+}
+
+/// Removes an element from view while leaving it available to screen readers.
+/// Used where a label is redundant visually but still needed as an accessible
+/// name, such as headings on the collapsed sidebar rail.
+@mixin visually-hidden {
+    position: absolute;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+
+    @include square(1px);
+}
+
+/// ---------------------------------------------------------------------------
+/// Breakpoints
+/// ---------------------------------------------------------------------------
+
+/// Where the two-column page layouts fold to one. Four pages had this as a bare
+/// `@media (max-width: 64rem)`, which made it the one breakpoint in the
+/// application without a name.
+@mixin respond-to-laptop {
+    @media (max-width: 64rem) {
+        @content;
+    }
 }
 
 @mixin respond-to-tablet {
@@ -34,19 +206,4 @@
     @media (max-width: 30rem) {
         @content;
     }
-}
-
-/// Removes an element from view while leaving it available to screen readers.
-/// Used where a label is redundant visually but still needed as an accessible
-/// name, such as headings on the collapsed sidebar rail.
-@mixin visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
 }

@@ -1,0 +1,57 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.developer-report {
+  @include grid($gap: $space-5);
+
+  /// The filters sit on the sunken surface rather than on the panel's white, so
+  /// the controls read as one group and the report below reads as its result.
+  &__filters {
+    @include grid($gap: $space-4);
+
+    padding: $space-4;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: $color-surface-subtle;
+  }
+
+  /// Four filters across on a wide screen, folding to two and then one. The
+  /// minimum is wide enough for a date input, which is the widest of them and the
+  /// one that gets clipped first.
+  &__filter-grid {
+    @include grid(repeat(auto-fit, minmax(11rem, 1fr)), $space-4);
+  }
+
+  /// The message takes the slack, which pushes both buttons to the right edge and
+  /// keeps them there whether there is a message or not.
+  &__filter-actions {
+    @include flex($justify: flex-end, $gap: $space-3, $wrap: wrap);
+  }
+
+  &__hint {
+    flex: 1;
+    min-width: 12rem;
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+
+    &--problem {
+      color: $color-warning;
+    }
+  }
+
+  &__results {
+    @include grid($gap: $space-4);
+  }
+
+  &__table-header {
+    @include flex($justify: space-between, $gap: $space-3, $wrap: wrap);
+  }
+
+  &__count {
+    @include overline;
+
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -82,7 +82,11 @@ export function DevelopersPage() {
         {isLoading ? (
           <Skeleton label="Loading the team…" rows={4} />
         ) : ordered.length === 0 ? (
-          <EmptyState message="No developers are configured yet." />
+          <EmptyState
+            icon="users"
+            message="Employees assigned to you will appear here, with a summary of the work they have logged."
+            title="No developers yet"
+          />
         ) : (
           <ul className="developers__grid">
             {ordered.map((summary) => (

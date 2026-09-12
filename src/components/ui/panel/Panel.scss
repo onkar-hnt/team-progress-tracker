@@ -2,25 +2,25 @@
 @use '@styles/mixins' as *;
 
 .panel {
+  @include card;
+
   padding: $space-6;
-  border: 1px solid $color-border;
-  border-radius: $radius-lg;
-  background: $color-white;
-  box-shadow: $shadow-sm;
 
   &__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: $space-4;
+    @include flex($justify: space-between, $align: flex-start, $gap: $space-4, $wrap: wrap);
+
     margin-bottom: $space-5;
-    flex-wrap: wrap;
   }
 
+  /// Semibold rather than the browser's bold. At 1.75rem a bold heading is
+  /// heavy enough to fight the content under it, and the weight was the last
+  /// piece of typography in the application still left to the user agent.
   &__title {
     margin: 0;
     color: $color-text;
     font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-tight;
 
     &--page {
       font-size: $font-size-2xl;
@@ -34,10 +34,7 @@
   }
 
   &__action {
-    display: flex;
-    align-items: center;
-    gap: $space-3;
-    flex-wrap: wrap;
+    @include flex($gap: $space-3, $wrap: wrap);
   }
 
   @include respond-to-mobile {

@@ -11,13 +11,19 @@ import type { ReactElement } from 'react'
 
 export type IconName =
   | 'activity'
+  | 'alert'
+  | 'bell'
   | 'calendar'
   | 'chart'
+  | 'check'
   | 'chevron-down'
   | 'chevron-left'
   | 'chevron-right'
   | 'comments'
   | 'dashboard'
+  | 'download'
+  | 'filter'
+  | 'inbox'
   | 'menu'
   | 'mentors'
   | 'projects'
@@ -97,6 +103,39 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
     </>
   ),
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+
+  // The clapper is a separate arc below the bell so it still reads at 16px,
+  // where a closed bell outline turns into a blob.
+  bell: (
+    <>
+      <path d="M6 9.5a6 6 0 0 1 12 0c0 3.8 1 5.1 1.7 5.9.4.4.1 1.1-.5 1.1H4.8c-.6 0-.9-.7-.5-1.1C5 14.6 6 13.3 6 9.5z" />
+      <path d="M9.5 19a2.5 2.5 0 0 0 5 0" />
+    </>
+  ),
+  alert: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5v5M12 16.3h.01" />
+    </>
+  ),
+  check: <path d="M5 12.5 9.5 17 19 7.5" />,
+  download: (
+    <>
+      <path d="M12 4v10.5" />
+      <path d="M7.5 10.5 12 15l4.5-4.5" />
+      <path d="M5 19h14" />
+    </>
+  ),
+
+  // Narrowing rules rather than a funnel outline: the same idea, and it stays
+  // legible at the size the filter labels use it.
+  filter: <path d="M4 6.5h16M7 12h10M10 17.5h4" />,
+  inbox: (
+    <>
+      <rect height="14" rx="2" width="18" x="3" y="5" />
+      <path d="M3 13h5l1.2 2h5.6L16 13h5" />
+    </>
+  ),
 
   // Two three-quarter arcs rather than a full circle, so the arrowheads read
   // as direction of travel instead of decoration on a ring.

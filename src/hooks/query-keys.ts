@@ -54,6 +54,24 @@ export const queryKeys = {
     [ROOT, 'range-overview', scopeId, range.from, range.to] as const,
 
   /**
+   * The signed-in person's own notifications.
+   *
+   * Scoped like the lists above, and for the same reason: the rows belong to one
+   * account, and two people sharing a browser profile must not read each other's
+   * from a shared key. The database would not have served them the rows, but the
+   * cache sits in front of the database.
+   */
+  notifications: (scopeId: string) => [ROOT, 'notifications', scopeId] as const,
+
+  /**
+   * Counted separately from the list because the list is capped — see
+   * `NOTIFICATION_PAGE_SIZE`. Nested under the list's key so one invalidation
+   * refreshes the panel and the badge together.
+   */
+  unreadNotificationCount: (scopeId: string) =>
+    [ROOT, 'notifications', scopeId, 'unread-count'] as const,
+
+  /**
    * Prefixes, for invalidating a whole family after a write.
    *
    * The keys above all carry a scope and often a filter, and a write has no
@@ -65,6 +83,7 @@ export const queryKeys = {
   allComments: () => [ROOT, 'comments'] as const,
   allDailyWork: () => [ROOT, 'daily-work'] as const,
   allDayOverviews: () => [ROOT, 'day-overview'] as const,
+  allNotifications: () => [ROOT, 'notifications'] as const,
   allRangeOverviews: () => [ROOT, 'range-overview'] as const,
   allTasks: () => [ROOT, 'tasks'] as const,
 

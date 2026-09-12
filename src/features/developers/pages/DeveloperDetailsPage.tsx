@@ -168,25 +168,28 @@ export function DeveloperDetailsPage() {
           <Skeleton label="Loading developer metrics…" rows={4} />
         ) : (
           <div className="stat-card-grid">
-            <StatCard label="Tasks" value={statuses.total} tone="progress" />
-            <StatCard label="Completed" tone="positive" value={statuses.completed} />
-            <StatCard label="In progress" value={statuses.inProgress} />
-            <StatCard label="Not started" value={statuses.notStarted} />
+            <StatCard icon="tasks" label="Tasks" tone="progress" value={statuses.total} />
+            <StatCard icon="check" label="Completed" tone="positive" value={statuses.completed} />
+            <StatCard icon="activity" label="In progress" value={statuses.inProgress} />
+            <StatCard icon="tasks" label="Not started" value={statuses.notStarted} />
             <StatCard
+              icon="alert"
               label="Needs attention"
               tone={statuses.needsAttention > 0 ? 'attention' : 'neutral'}
               value={statuses.needsAttention}
             />
             <StatCard
+              icon="chart"
               label="Completion rate"
               value={`${String(calculateCompletionRate(entries))}%`}
             />
-            <StatCard label="Hours logged" value={sumHoursLogged(entries)} />
+            <StatCard icon="chart" label="Hours logged" value={sumHoursLogged(entries)} />
             <StatCard
+              detail={`of ${String(workingDays)} working days`}
+              icon="calendar"
               label="Days updated"
               tone={daysLogged < workingDays ? 'attention' : 'positive'}
               value={daysLogged}
-              detail={`of ${String(workingDays)} working days`}
             />
           </div>
         )}

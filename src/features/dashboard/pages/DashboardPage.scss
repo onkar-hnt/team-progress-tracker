@@ -5,8 +5,7 @@
   @include page-stack;
 
   &__row {
-    display: grid;
-    gap: $space-6;
+    @include grid($gap: $space-6);
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
     /// Blockers and missing updates are the mentor's first questions, so they
@@ -15,23 +14,19 @@
       grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     }
 
-    @media (max-width: 64rem) {
+    @include respond-to-laptop {
       grid-template-columns: 1fr;
     }
   }
 
   &__missing {
-    display: grid;
-    gap: $space-2;
+    @include grid($gap: $space-2);
     margin: 0;
     padding: 0;
     list-style: none;
 
     li {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: $space-3;
+      @include flex($align: baseline, $justify: space-between, $gap: $space-3);
       padding: $space-3;
       border: 1px solid $color-danger-border;
       border-radius: $radius-md;
@@ -41,7 +36,7 @@
 
     a {
       color: $color-danger-dark;
-      font-weight: 600;
+      font-weight: $font-weight-semibold;
       text-decoration: none;
 
       &:hover {
@@ -63,9 +58,7 @@
   /// the task list uses and is allowed to wrap under the badges. That sizing
   /// lives on the control itself, as `Dropdown`'s compact variant.
   &__entry-status {
-    display: inline-flex;
-    align-items: center;
-    gap: $space-2;
+    @include flex($inline: true, $gap: $space-2);
   }
 
   &__entry-saving {

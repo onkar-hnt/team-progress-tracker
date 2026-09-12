@@ -167,7 +167,11 @@ export function MentorsPage() {
         ) : mentorsQuery.isPending ? (
           <Skeleton label="Loading mentors…" rows={4} />
         ) : mentorsQuery.data?.length === 0 ? (
-          <EmptyState message="No mentors added yet." />
+          <EmptyState
+            icon="mentors"
+            message="Add a mentor to start assigning employees to them."
+            title="No mentors yet"
+          />
         ) : (
           <div className="data-table__scroll">
             <table className="data-table">

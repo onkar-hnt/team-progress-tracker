@@ -9,24 +9,21 @@
 /// with the component that renders them, in `ui/button/Button.scss`.
 
 .form {
-  display: grid;
-  gap: $space-5;
+  @include grid($gap: $space-5);
 
   &__grid {
-    display: grid;
-    gap: $space-4;
+    @include grid($gap: $space-4);
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   }
 
   &__field {
-    display: grid;
-    gap: $space-2;
+    @include grid($gap: $space-2);
 
     label,
     >span {
       color: $color-text;
       font-size: $font-size-sm;
-      font-weight: 600;
+      font-weight: $font-weight-semibold;
     }
 
     input,
@@ -39,14 +36,25 @@
       color: $color-text;
       font: inherit;
       background: $color-white;
+      transition:
+        border-color $transition-fast,
+        box-shadow $transition-fast;
+
+      &:hover:not(:disabled):not(:focus) {
+        border-color: $color-neutral-border;
+      }
 
       &:focus-visible {
         @include focus-ring;
         border-color: $color-brand;
       }
 
+      /// Border and surface together, and after the focus rule so an invalid
+      /// field stays marked while it is being corrected — the focus ring is an
+      /// outline, so both are visible at once.
       &[aria-invalid='true'] {
         border-color: $color-danger;
+        background: $color-danger-surface;
       }
 
       &:disabled {
@@ -105,17 +113,12 @@
   }
 
   &__actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: $space-3;
-    flex-wrap: wrap;
+    @include flex($justify: flex-end, $gap: $space-3, $wrap: wrap);
   }
 
   /// Checkbox lists, used for assigning developers to mentors and projects.
   &__checklist {
-    display: grid;
-    gap: $space-2;
+    @include grid($gap: $space-2);
     max-height: 16rem;
     padding: $space-3;
     overflow-y: auto;
@@ -125,11 +128,9 @@
   }
 
   &__checkbox {
-    display: flex;
-    align-items: center;
-    gap: $space-2;
+    @include flex($gap: $space-2);
     font-size: $font-size-sm;
-    font-weight: 500;
+    font-weight: $font-weight-medium;
 
     input {
       width: auto;
@@ -145,15 +146,11 @@
 /// being the content. It is one class rather than the two identical copies —
 /// `.activity-filters__field` and `.reports__field` — that used to exist.
 .filter-field {
-  display: grid;
-  gap: $space-2;
+  @include grid($gap: $space-2);
   font-size: $font-size-xs;
 
   >span {
-    color: $color-text-muted;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
+    @include overline;
   }
 
   input,
@@ -185,13 +182,12 @@
   /// Caption beside the control rather than above it, for a lone filter sitting
   /// next to a heading rather than in a grid of them.
   &--inline {
-    display: flex;
-    align-items: center;
-    gap: $space-2;
+    @include flex($gap: $space-2);
     font-size: $font-size-sm;
 
     >span {
       color: $color-text-muted;
+      font-size: inherit;
       letter-spacing: normal;
       text-transform: none;
     }
@@ -206,7 +202,5 @@
 /// actions it happened to offer. The table scrolls sideways instead, and
 /// `_table.scss` pins this column so the buttons stay reachable while it does.
 .row-actions {
-  display: flex;
-  gap: $space-2;
-  flex-wrap: nowrap;
+  @include flex($gap: $space-2, $wrap: nowrap);
 }

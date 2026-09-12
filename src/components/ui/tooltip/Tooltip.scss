@@ -1,10 +1,11 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
 .tooltip {
   /// A block-level flex box, so wrapping something in a tooltip does not change
   /// its width. `min-width: 0` so it can still be squeezed by whatever holds
   /// it, which is the situation that makes text truncate in the first place.
-  display: flex;
+  @include flex($align: null);
   min-width: 0;
 
   /// One line, clipped with an ellipsis. This is also the box the component
@@ -23,13 +24,13 @@
   /// wrapper, and a long name would otherwise run off the side as one line.
   &__bubble {
     position: fixed;
-    z-index: 40;
+    z-index: $z-tooltip;
     max-width: 20rem;
     padding: $space-2 $space-3;
     border-radius: $radius-md;
     color: $color-white;
     font-size: $font-size-xs;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
     line-height: 1.35;
     white-space: normal;
     background: $color-brand-dark;

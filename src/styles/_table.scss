@@ -20,27 +20,32 @@
 
   th,
   td {
-    padding: $space-3;
+    padding: $space-3 $space-4;
     border-bottom: 1px solid $color-border;
     text-align: left;
     vertical-align: top;
   }
 
+  /// The header sits on the subtle surface rather than white, and closes with a
+  /// heavier rule than the rows use, so that when it is stuck to the top of a
+  /// scrolled table it still reads as a header rather than as the first row.
   thead th {
+    @include overline;
+
     position: sticky;
     top: 0;
-    z-index: 1;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
+    z-index: $z-sticky;
+    border-bottom-color: $color-neutral-border;
     white-space: nowrap;
     background: $color-surface-subtle;
   }
 
-  tbody tr:hover {
-    background: $color-surface-subtle;
+  tbody tr {
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background: $color-surface-subtle;
+    }
   }
 
   tbody tr:last-child td {
@@ -58,9 +63,8 @@
 
   /// Sortable headers are real buttons so they are reachable by keyboard.
   &__sort {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
+    @include flex($gap: $space-1, $inline: true);
+
     padding: 0;
     border: 0;
     color: inherit;
@@ -69,6 +73,7 @@
     text-transform: inherit;
     background: none;
     cursor: pointer;
+    transition: color $transition-fast;
 
     &:hover {
       color: $color-text;
@@ -109,7 +114,7 @@
   /// The corner cell is stuck to both the top and the right, so it has to sit
   /// above the header row and the pinned column it belongs to.
   thead th:last-child {
-    z-index: 2;
+    z-index: $z-sticky-corner;
     background: $color-surface-subtle;
   }
 

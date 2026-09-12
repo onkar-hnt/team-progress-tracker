@@ -1,55 +1,126 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
 .stat-card {
-  padding: $space-4;
-  border: 1px solid $color-border;
-  border-left: 3px solid $color-border;
-  border-radius: $radius-md;
-  background: $color-white;
+  @include card($radius-md);
+  @include grid($gap: $space-2);
+
+  position: relative;
+  padding: $space-4 $space-4 $space-4 $space-5;
+  overflow: hidden;
+
+  /// The tone accent, as a bar inside the card rather than as a thick left
+  /// border. A border would be overwritten wholesale by the hover state of the
+  /// link variant, which sets `border-color` on all four sides.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: $color-neutral-border;
+  }
+
+  &__head {
+    @include flex($gap: $space-2);
+
+    min-height: 1.75rem;
+  }
+
+  /// A tinted chip rather than a bare glyph, so the icon reads as part of the
+  /// card's furniture and not as content.
+  &__icon {
+    @include flex-center;
+    @include square(1.75rem);
+
+    flex-shrink: 0;
+    border-radius: $radius-md;
+    color: $color-text-muted;
+    background: $color-surface-subtle;
+  }
 
   &__label {
-    margin: 0 0 $space-2;
+    @include overline;
+  }
+
+  &__chevron {
+    @include flex-center;
+
+    margin-left: auto;
     color: $color-text-muted;
-    font-size: $font-size-xs;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
+    transition: transform $transition-fast;
   }
 
   &__value {
-    margin: 0;
     color: $color-text;
     font-size: $font-size-2xl;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
   }
 
   &__detail {
-    margin: $space-2 0 0;
     color: $color-text-muted;
     font-size: $font-size-xs;
   }
 
-  &--neutral {
-    border-left-color: $color-border;
+  &--neutral::before {
+    background: $color-neutral-border;
   }
 
-  &--progress {
-    border-left-color: $color-brand;
+  &--progress::before {
+    background: $color-brand;
   }
 
-  &--positive {
-    border-left-color: $color-success;
+  &--positive::before {
+    background: $color-success;
   }
 
-  &--attention {
-    border-left-color: $color-danger;
+  &--attention::before {
+    background: $color-danger;
+  }
+
+  /// Tints the icon chip to match the accent, which is what makes a row of
+  /// cards scannable: the eye finds the red one before it reads any of them.
+  &--progress &__icon {
+    color: $color-brand;
+    background: $color-brand-light;
+  }
+
+  &--positive &__icon {
+    color: $color-success;
+    background: $color-success-surface;
+  }
+
+  &--attention &__icon {
+    color: $color-danger;
+    background: $color-danger-surface;
+  }
+
+  &--link {
+    @include card-lift;
+
+    color: inherit;
+    text-decoration: none;
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
+    /// The chevron leans towards where it is going. Two pixels, which is enough
+    /// to notice and not enough to look like a bounce.
+    &:hover &__chevron {
+      color: $color-brand;
+      transform: translateX(2px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &:hover &__chevron {
+        transform: none;
+      }
+    }
   }
 }
 
 .stat-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  gap: $space-4;
+  @include grid(repeat(auto-fit, minmax(9.5rem, 1fr)), $space-4);
 }

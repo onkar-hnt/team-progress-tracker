@@ -17,16 +17,11 @@
   &__heading {
     margin: 0 0 $space-3;
     padding-inline: $space-4;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    @include overline($weight: $font-weight-bold);
   }
 
   &__list {
-    display: grid;
-    gap: $space-2;
+    @include grid($gap: $space-2);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -36,16 +31,17 @@
   /// `Tooltip`, which is a flex box, and a link left at its content width would
   /// only highlight as far as its own text.
   &__link {
-    display: flex;
+    @include flex($gap: $space-3);
     flex: 1;
-    align-items: center;
-    gap: $space-3;
     padding: $space-3 $space-4;
     border-radius: $radius-md;
     color: $color-text-muted;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
     text-decoration: none;
     white-space: nowrap;
+    transition:
+      color $transition-fast,
+      background-color $transition-fast;
 
     &:hover,
     &--active {
@@ -59,7 +55,7 @@
   }
 
   &__icon {
-    display: flex;
+    @include flex($align: null);
     flex-shrink: 0;
   }
 
@@ -95,12 +91,12 @@
     top: $header-height;
     bottom: 0;
     left: 0;
-    z-index: 20;
+    z-index: $z-drawer;
     width: $sidebar-width;
     border-right: 1px solid $color-border;
     box-shadow: $shadow-md;
     transform: translateX(-100%);
-    transition: transform 180ms ease;
+    transition: transform $transition-base;
 
     &--drawer-open {
       transform: translateX(0);

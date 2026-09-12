@@ -100,10 +100,16 @@ export function MyTasksPage() {
           <Skeleton label="Loading your tasks…" rows={4} />
         ) : (
           <div className="stat-card-grid">
-            <StatCard label="Assigned" value={counts.total} />
-            <StatCard label="In progress" value={counts.inProgress} tone="progress" />
-            <StatCard label="Completed" tone="positive" value={counts.completed} />
+            <StatCard icon="tasks" label="Assigned" value={counts.total} />
             <StatCard
+              icon="activity"
+              label="In progress"
+              tone="progress"
+              value={counts.inProgress}
+            />
+            <StatCard icon="check" label="Completed" tone="positive" value={counts.completed} />
+            <StatCard
+              icon="alert"
               label="Overdue"
               tone={counts.overdue > 0 ? 'attention' : 'neutral'}
               value={counts.overdue}

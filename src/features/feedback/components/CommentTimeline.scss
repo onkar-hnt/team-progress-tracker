@@ -1,8 +1,8 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
 .comment-timeline {
-  display: grid;
-  gap: $space-4;
+  @include grid($gap: $space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -16,17 +16,13 @@
   }
 
   &__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: $space-3;
-    flex-wrap: wrap;
+    @include flex($justify: space-between, $align: flex-start, $gap: $space-3, $wrap: wrap);
   }
 
   &__task {
     margin: 0;
     color: $color-text;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
   }
 
   &__meta {
@@ -39,12 +35,11 @@
     margin: $space-1 0 0;
     color: $color-text-muted;
     font-size: $font-size-sm;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
   }
 
   &__actions {
-    display: flex;
-    gap: $space-2;
+    @include flex($align: null, $gap: $space-2);
   }
 
   &__comment {
@@ -61,11 +56,8 @@
   }
 
   &__detail-label {
+    @include overline($weight: $font-weight-bold);
+
     display: block;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
   }
 }

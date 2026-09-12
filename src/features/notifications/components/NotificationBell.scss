@@ -1,0 +1,90 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.notification-bell {
+  position: relative;
+
+  /// The badge is a sibling of the button rather than a child of it, because the
+  /// button's content is an icon and its accessible name, and a count inside it
+  /// would be read out as part of that name — twice, since the name already
+  /// states the figure.
+  &__trigger {
+    position: relative;
+    display: inline-block;
+  }
+
+  /// Sits over the top-right corner of the control. `pointer-events: none` so
+  /// pressing the badge presses the bell underneath it.
+  &__badge {
+    @include flex-center;
+
+    position: absolute;
+    top: -0.25rem;
+    right: -0.25rem;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 0.25rem;
+    border: 1px solid $color-brand-dark;
+    border-radius: $radius-pill;
+    color: $color-white;
+    font-size: 0.625rem;
+    font-weight: $font-weight-bold;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    background: $color-danger;
+    pointer-events: none;
+
+    /// One pulse as the count changes, and then still. A badge that pulses
+    /// forever is something the eye learns to filter out, which is the opposite
+    /// of what a badge is for.
+    animation: notification-badge-in $transition-base;
+  }
+
+  /// Anchored to the bell and pulled left, since the bell sits near the right
+  /// edge of the header. `position: absolute` rather than `fixed`: the header
+  /// does not clip its overflow, so there is nothing to escape from.
+  &__popover {
+    position: absolute;
+    top: calc(100% + #{$space-2});
+    right: 0;
+    z-index: $z-popover;
+    width: min(24rem, calc(100vw - #{$space-4}));
+    animation: notification-popover-enter $transition-base;
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
+    /// On a narrow screen the bell is close enough to the edge that a panel
+    /// anchored to it would hang off the side, so it spans the viewport instead
+    /// and is positioned against that rather than against the button.
+    @include respond-to-mobile {
+      position: fixed;
+      top: calc(#{$header-height} + #{$space-1});
+      right: $space-2;
+      left: $space-2;
+      width: auto;
+    }
+  }
+}
+
+@keyframes notification-badge-in {
+  from {
+    transform: scale(0.6);
+  }
+}
+
+@keyframes notification-popover-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.375rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .notification-bell__badge,
+  .notification-bell__popover {
+    animation: none;
+  }
+}

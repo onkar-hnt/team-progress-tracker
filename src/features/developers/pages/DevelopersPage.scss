@@ -5,9 +5,7 @@
   @include page-stack;
 
   &__period {
-    display: flex;
-    align-items: center;
-    gap: $space-2;
+    @include flex($gap: $space-2);
     color: $color-text-muted;
     font-size: $font-size-sm;
 
@@ -28,8 +26,7 @@
   }
 
   &__grid {
-    display: grid;
-    gap: $space-4;
+    @include grid($gap: $space-4);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -38,36 +35,27 @@
 }
 
 .developer-card {
-  display: grid;
-  gap: $space-2;
+  @include grid($gap: $space-2);
   padding: $space-4;
   border: 1px solid $color-border;
   border-radius: $radius-md;
   color: inherit;
   text-decoration: none;
   background: $color-white;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
-
-  &:hover {
-    border-color: $color-brand;
-    box-shadow: $shadow-sm;
-  }
+  @include card-lift;
 
   &:focus-visible {
     @include focus-ring;
   }
 
   &__header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: $space-2;
+    @include flex($align: baseline, $justify: space-between, $gap: $space-2);
   }
 
   &__name {
     color: $color-text;
     font-size: $font-size-md;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
   }
 
   &__inactive {
@@ -84,12 +72,10 @@
   }
 
   &__metrics {
-    display: flex;
-    gap: $space-3;
+    @include flex($gap: $space-3, $wrap: wrap);
     margin-top: $space-2;
     color: $color-text-muted;
     font-size: $font-size-xs;
-    flex-wrap: wrap;
 
     strong {
       color: $color-text;
@@ -100,6 +86,6 @@
   &__attention {
     color: $color-danger-dark;
     font-size: $font-size-xs;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
   }
 }

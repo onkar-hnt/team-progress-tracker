@@ -74,16 +74,21 @@ export function TeamActivityPage() {
         />
 
         <div className="team-activity__stats stat-card-grid">
-          <StatCard label="Entries" value={statuses.total} tone="progress" />
-          <StatCard label="Completed" tone="positive" value={statuses.completed} />
-          <StatCard label="In progress" value={statuses.inProgress} />
+          <StatCard icon="calendar" label="Entries" tone="progress" value={statuses.total} />
+          <StatCard icon="check" label="Completed" tone="positive" value={statuses.completed} />
+          <StatCard icon="activity" label="In progress" value={statuses.inProgress} />
           <StatCard
+            icon="alert"
             label="Needs attention"
             tone={statuses.needsAttention > 0 ? 'attention' : 'neutral'}
             value={statuses.needsAttention}
           />
-          <StatCard label="Completion rate" value={`${String(calculateCompletionRate(visibleEntries))}%`} />
-          <StatCard label="Hours logged" value={sumHoursLogged(visibleEntries)} />
+          <StatCard
+            icon="chart"
+            label="Completion rate"
+            value={`${String(calculateCompletionRate(visibleEntries))}%`}
+          />
+          <StatCard icon="chart" label="Hours logged" value={sumHoursLogged(visibleEntries)} />
         </div>
       </Panel>
 

@@ -11,33 +11,46 @@
 /// side. 36rem is enough for the forms here; anything longer scrolls in the
 /// body, which is what the body is for.
 .modal {
+  @include card($shadow: $shadow-lg);
+
   width: min(46rem, calc(100vw - #{$space-8}));
   max-height: min(36rem, calc(100dvh - #{$space-8}));
   padding: 0;
-  border: 1px solid $color-border;
-  border-radius: $radius-lg;
-  background: $color-white;
-  box-shadow: $shadow-lg;
+
+  /// Rises the short distance it is about to occupy rather than appearing
+  /// outright, which is what tells the reader it came from the page underneath
+  /// instead of replacing it.
+  ///
+  /// An animation rather than a transition: a `<dialog>` goes from
+  /// `display: none` to shown, and only a keyframe runs reliably across that in
+  /// every browser this targets. There is no matching exit — closing is
+  /// immediate, and waiting for an animation before releasing focus is worse
+  /// than no animation at all.
+  &[open] {
+    animation: modal-enter $transition-base;
+  }
 
   &::backdrop {
     background: $color-overlay;
+  }
+
+  &[open]::backdrop {
+    animation: modal-backdrop-enter $transition-base;
   }
 
   /// The same cap as the dialog. The panel is the flex column that decides
   /// which part scrolls, so it has to know the limit too rather than inherit an
   /// `auto` height and let the body grow past it.
   &__panel {
-    display: flex;
-    flex-direction: column;
+    @include flex(column, $align: null);
+
     max-height: min(36rem, calc(100dvh - #{$space-8}));
   }
 
   &__header {
-    display: flex;
+    @include flex($justify: space-between, $gap: $space-4);
+
     flex-shrink: 0;
-    align-items: center;
-    justify-content: space-between;
-    gap: $space-4;
     padding: $space-5 $space-6;
     border-bottom: 1px solid $color-border;
   }
@@ -46,11 +59,13 @@
     margin: 0;
     color: $color-text;
     font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-tight;
   }
 
   &__close {
-    width: 2rem;
-    height: 2rem;
+    @include square(2rem);
+
     border: 1px solid $color-border;
     border-radius: $radius-md;
     color: $color-text-muted;
@@ -58,8 +73,13 @@
     line-height: 1;
     background: $color-white;
     cursor: pointer;
+    transition:
+      color $transition-fast,
+      border-color $transition-fast,
+      background-color $transition-fast;
 
     &:hover {
+      border-color: $color-neutral-border;
       color: $color-text;
       background: $color-surface-subtle;
     }
@@ -98,10 +118,31 @@
   &__body .daily-update-form__actions {
     position: sticky;
     bottom: 0;
-    z-index: 1;
+    z-index: $z-sticky;
     margin-inline: -$space-6;
     padding: $space-4 $space-6;
     border-top: 1px solid $color-border;
     background: $color-white;
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.985);
+  }
+}
+
+@keyframes modal-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .modal[open],
+  .modal[open]::backdrop {
+    animation: none;
   }
 }

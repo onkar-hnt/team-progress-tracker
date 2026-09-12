@@ -1,3 +1,60 @@
+/// ---------------------------------------------------------------------------
+/// Typography
+/// ---------------------------------------------------------------------------
+
+/// One typeface for the whole application, applied once on `html` in
+/// `_reset.scss` and inherited by every control through `font: inherit`. Named
+/// here rather than written into the reset so that the one other place needing
+/// a different face — a code sample, which has to be monospaced — is stated
+/// alongside it instead of reaching for `monospace` on its own.
+$font-family-base:
+  Inter,
+  ui-sans-serif,
+  system-ui,
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  sans-serif;
+
+/// For values meant to be read character by character: a file name, an
+/// environment variable, an id.
+$font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+/// The type scale. `xs` and `sm` carry most of the interface — badges, hints,
+/// table cells — `md` is body text, `lg` a panel title and `2xl` a page title.
+///
+/// `xl` completes the scale and has no consumer today: nothing currently sits
+/// between a panel title and a page title. It is here so the next thing that
+/// does has a rung to land on rather than a literal.
+$font-size-xs: 0.75rem;
+$font-size-sm: 0.875rem;
+$font-size-md: 1rem;
+$font-size-lg: 1.125rem;
+$font-size-xl: 1.375rem;
+$font-size-2xl: 1.75rem;
+
+/// Four weights, because the literals had settled into exactly four uses: 600
+/// for nearly every label and heading, 700 for the two brand marks, 500 for a
+/// checkbox caption, and the browser's own 400 for body text.
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+/// The two line heights in use: one for running text, one for a heading or a
+/// single-line label where the looser figure would push the box out of shape.
+$line-height-tight: 1.25;
+$line-height-base: 1.5;
+$line-height-loose: 1.6;
+
+/// Applied to the small upper-case labels above a value — a stat card caption,
+/// a table header, a field label. Without it the letters crowd at that size.
+$letter-spacing-wide: 0.04em;
+
+/// ---------------------------------------------------------------------------
+/// Colour
+/// ---------------------------------------------------------------------------
+
 $color-brand: #3155a6;
 $color-brand-dark: #172554;
 $color-brand-light: #eef3ff;
@@ -55,6 +112,10 @@ $color-surface-sunken: rgb(15 23 42 / 7%);
 /// What dims the page behind a modal or an open drawer.
 $color-overlay: rgb(15 23 42 / 45%);
 
+/// ---------------------------------------------------------------------------
+/// Spacing, radius and elevation
+/// ---------------------------------------------------------------------------
+
 $space-1: 0.25rem;
 $space-2: 0.5rem;
 $space-3: 0.75rem;
@@ -62,24 +123,56 @@ $space-4: 1rem;
 $space-5: 1.25rem;
 $space-6: 1.5rem;
 $space-8: 2rem;
-$font-size-xs: 0.75rem;
-$font-size-sm: 0.875rem;
-$font-size-md: 1rem;
-$font-size-lg: 1.125rem;
-$font-size-2xl: 1.75rem;
+
 $radius-sm: 0.25rem;
 $radius-md: 0.5rem;
 $radius-lg: 0.75rem;
+/// For anything drawn as a capsule: a badge, a count bubble, a pill filter.
+$radius-pill: 999px;
 
-/// Three elevations, one shadow colour.
+/// Four elevations, one shadow colour.
 ///
-/// `sm` sits a card off the page, `md` floats a popover — a dropdown list, the
-/// sidebar drawer, a tooltip — and `lg` is for a modal. The middle one existed
-/// three times before this, as the same `0 8px 24px` at 12%, 14% and 22% in
-/// three separate files.
+/// `sm` sits a card off the page, `raised` is where a card goes on hover, `md`
+/// floats a popover — a dropdown list, the sidebar drawer, a tooltip — and `lg`
+/// is for a modal. The `md` step existed three times before this, as the same
+/// `0 8px 24px` at 12%, 14% and 22% in three separate files.
 $shadow-sm: 0 1px 3px rgb(15 23 42 / 8%);
+$shadow-raised: 0 4px 12px rgb(15 23 42 / 10%);
 $shadow-md: 0 8px 24px rgb(15 23 42 / 14%);
 $shadow-lg: 0 12px 32px rgb(15 23 42 / 18%);
+
+/// ---------------------------------------------------------------------------
+/// Motion
+/// ---------------------------------------------------------------------------
+
+/// Two speeds. `fast` is for something that has to feel immediate under the
+/// cursor — a colour, a border, a shadow — and `base` for something that moves,
+/// where the eye needs long enough to follow it.
+///
+/// Every use of these is a property the user is already expecting to change, so
+/// they are all safe to skip: each of the three animated components turns its
+/// transition off under `prefers-reduced-motion`.
+$transition-fast: 120ms ease;
+$transition-base: 160ms ease;
+
+/// ---------------------------------------------------------------------------
+/// Stacking order
+/// ---------------------------------------------------------------------------
+
+/// The one place the application's layers are written down, in the order they
+/// sit: a sticky table header inside its own scroll box, the corner cell that
+/// has to clear it, the backdrop behind the mobile drawer, the drawer itself,
+/// then a popover over all of it and a tooltip over that.
+$z-sticky: 1;
+$z-sticky-corner: 2;
+$z-backdrop: 15;
+$z-drawer: 20;
+$z-popover: 30;
+$z-tooltip: 40;
+
+/// ---------------------------------------------------------------------------
+/// Layout
+/// ---------------------------------------------------------------------------
 
 $header-height: 4.5rem;
 $sidebar-width: 15rem;

@@ -4,6 +4,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  formatDistanceToNowStrict,
   getISODay,
   isValid,
   parseISO,
@@ -142,4 +143,30 @@ export function formatWeekday(isoDate: string): string {
 export function formatTimestamp(isoTimestamp: string): string {
   const parsed = new Date(isoTimestamp)
   return Number.isNaN(parsed.getTime()) ? isoTimestamp : format(parsed, 'dd MMM yyyy, HH:mm')
+}
+
+/**
+ * How long ago something happened, as "5 minutes ago".
+ *
+ * For a list read newest-first, where the interval matters more than the clock
+ * time — a notification is either just now or it is history. Anything older than
+ * a week falls back to the date, because "23 days ago" is a number the reader
+ * then has to convert.
+ *
+ * `Strict` picks a single unit, so this never produces "about 1 hour".
+ */
+export function formatRelativeTime(isoTimestamp: string, now: Date = new Date()): string {
+  const parsed = new Date(isoTimestamp)
+  if (Number.isNaN(parsed.getTime())) return isoTimestamp
+
+  const elapsedMs = now.getTime() - parsed.getTime()
+  const weekMs = 7 * 24 * 60 * 60 * 1000
+
+  if (elapsedMs >= weekMs) return format(parsed, 'dd MMM yyyy')
+
+  // Under a minute reads as "0 minutes ago" otherwise, which is both wrong and
+  // oddly precise about it.
+  if (elapsedMs < 60_000) return 'Just now'
+
+  return `${formatDistanceToNowStrict(parsed)} ago`
 }

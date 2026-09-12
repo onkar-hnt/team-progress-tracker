@@ -1,22 +1,38 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
 /// Colour is paired with the text label rather than used on its own, so the
 /// status is still readable without colour perception.
 .status-badge,
 .priority-badge {
-  display: inline-block;
+  @include flex($gap: $space-2, $inline: true);
+
   padding: 0.125rem $space-2;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: $radius-pill;
   font-size: $font-size-xs;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   white-space: nowrap;
 }
 
 /// Both scales run the same five palettes, so a "blocked" status and a
 /// "critical" priority are the same red rather than two reds that happen to
 /// look alike.
+///
+/// Only the status carries a dot. The two scales sit side by side in every
+/// table that shows both, and the dot is what tells them apart at a glance
+/// before either word has been read.
 .status-badge {
+
+  &::before {
+    content: '';
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: currentcolor;
+
+    @include square(0.375rem);
+  }
+
   &--not-started {
     border-color: $color-neutral-border;
     color: $color-neutral-text;

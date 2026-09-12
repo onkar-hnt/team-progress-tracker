@@ -2,7 +2,7 @@
 @use '@styles/mixins' as *;
 
 .app-layout {
-  display: grid;
+  @include grid;
   height: 100%;
   overflow: hidden;
   grid-template-rows: $header-height minmax(0, 1fr);
@@ -10,7 +10,7 @@
 
   /// Animating the track width keeps the content edge attached to the rail as
   /// it collapses, instead of the two moving independently.
-  transition: grid-template-columns 160ms ease;
+  transition: grid-template-columns $transition-base;
 
   &--collapsed {
     grid-template-columns: $sidebar-width-collapsed minmax(0, 1fr);
@@ -51,7 +51,7 @@
       display: block;
       position: fixed;
       inset: $header-height 0 0;
-      z-index: 15;
+      z-index: $z-backdrop;
       background: $color-overlay;
     }
   }

@@ -9,8 +9,7 @@
 /// `Button`, so what is left here is the one thing genuinely particular to this
 /// screen: its four-column grid.
 .daily-update-form {
-  display: grid;
-  gap: $space-5;
+  @include grid($gap: $space-5);
 
   /// Four columns, which is what lets the whole form be read without
   /// scrolling: the short answers — a date, a project, a status — take one
@@ -21,11 +20,9 @@
   /// available, and a field asking for two of an unknown number of columns is
   /// either most of the row or a sliver of it.
   &__grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: $space-4;
+    @include grid(repeat(4, minmax(0, 1fr)), $space-4);
 
-    @media (max-width: 64rem) {
+    @include respond-to-laptop {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -60,7 +57,7 @@
     border: 1px solid $color-border;
     border-radius: $radius-md;
     color: $color-text;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
     background: $color-surface-subtle;
   }
 
@@ -70,9 +67,6 @@
   }
 
   &__actions {
-    display: flex;
-    align-items: center;
-    gap: $space-4;
-    flex-wrap: wrap;
+    @include flex($gap: $space-4, $wrap: wrap);
   }
 }

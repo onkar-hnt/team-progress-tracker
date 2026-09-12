@@ -178,46 +178,64 @@ export function DashboardPage() {
           <Skeleton label="Loading dashboard metrics…" rows={4} />
         ) : (
           <div className="stat-card-grid">
-            <StatCard label="Updates today" value={day.statuses.total} tone="progress" />
+            {/* Only two of these are links, and both lead somewhere that answers
+                the question the number raises: the count of updates leads to the
+                updates, and an unsubmitted update leads to the form. The rest are
+                figures with no filtered view behind them, and a card that lifts
+                under the cursor and then goes nowhere is worse than one that
+                never moved. */}
             <StatCard
+              icon="calendar"
+              label="Updates today"
+              to={isTeamView ? '/team-activity' : '/daily-update'}
+              tone="progress"
+              value={day.statuses.total}
+            />
+            <StatCard
+              detail={`${String(day.completionRate)}% of today's updates`}
+              icon="check"
               label="Completed"
               tone="positive"
               value={day.statuses.completed}
-              detail={`${String(day.completionRate)}% of today's updates`}
             />
-            <StatCard label="In progress" value={day.statuses.inProgress} />
-            <StatCard label="Not started" value={day.statuses.notStarted} />
+            <StatCard icon="activity" label="In progress" value={day.statuses.inProgress} />
+            <StatCard icon="tasks" label="Not started" value={day.statuses.notStarted} />
             <StatCard
+              detail="Blocked by status or flag"
+              icon="alert"
               label="Needs attention"
               tone={day.statuses.needsAttention > 0 ? 'attention' : 'neutral'}
               value={day.statuses.needsAttention}
-              detail="Blocked by status or flag"
             />
-            <StatCard label="Hours logged" value={day.hoursLogged} />
+            <StatCard icon="chart" label="Hours logged" value={day.hoursLogged} />
 
             {/* Counts across people only mean something to someone who
                 oversees more than themselves. */}
             {isTeamView ? (
               <>
                 <StatCard
+                  detail={`of ${String((developersQuery.data ?? []).filter((developer) => developer.active).length)} active`}
+                  icon="users"
                   label="Updated today"
                   tone="positive"
                   value={day.developersUpdated.length}
-                  detail={`of ${String((developersQuery.data ?? []).filter((developer) => developer.active).length)} active`}
                 />
                 <StatCard
+                  detail={isWorkingDay(selectedDate) ? undefined : 'Not a working day'}
+                  icon="alert"
                   label="Missing updates"
                   tone={day.developersMissingUpdate.length > 0 ? 'attention' : 'positive'}
                   value={day.developersMissingUpdate.length}
-                  detail={isWorkingDay(selectedDate) ? undefined : 'Not a working day'}
                 />
               </>
             ) : (
               <StatCard
+                detail={isWorkingDay(selectedDate) ? undefined : 'Not a working day'}
+                icon="calendar"
                 label="Your update"
+                to="/daily-update"
                 tone={day.developersMissingUpdate.length === 0 ? 'positive' : 'attention'}
                 value={day.developersMissingUpdate.length === 0 ? 'Submitted' : 'Not submitted'}
-                detail={isWorkingDay(selectedDate) ? undefined : 'Not a working day'}
               />
             )}
           </div>
@@ -253,7 +271,11 @@ export function DashboardPage() {
             {isLoading || day === undefined ? (
               <Skeleton rows={2} />
             ) : day.developersMissingUpdate.length === 0 ? (
-              <EmptyState message="Everyone has submitted an update." />
+              <EmptyState
+                icon="check"
+                message="Everyone active has logged their work for this day."
+                title="Nothing outstanding"
+              />
             ) : (
               <ul className="dashboard__missing">
                 {day.developersMissingUpdate.map((developer) => (
