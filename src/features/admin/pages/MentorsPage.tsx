@@ -70,10 +70,9 @@ function describeUnprovisionable(mentor: Mentor): string | null {
  * which developers a mentor can see anywhere in the application, so it is
  * edited in one obvious place rather than buried in a developer's profile.
  *
- * Which is why mentors maintain this screen but cannot use that one action.
- * A mentor able to edit assignments could hand themselves every developer's
- * work and feedback, so it stays with administrators and the action is hidden
- * rather than offered and then refused by the database.
+ * Which is why Assign is offered per row rather than per person. An admin gets
+ * it on every mentor; a mentor gets it on themselves alone, and on a colleague's
+ * row it is absent rather than offered and then refused by the database.
  */
 export function MentorsPage() {
   const { user } = useAuth()
@@ -85,8 +84,6 @@ export function MentorsPage() {
   const mentorsQuery = useRosterMentors()
   const developersQuery = useRosterDevelopers()
   const assignmentsQuery = useMentorAssignments()
-
-  const canAssign = canManageMentorAssignments(user)
 
   const createMentor = useCreateMentor()
   const updateMentor = useUpdateMentor()
@@ -225,7 +222,7 @@ export function MentorsPage() {
                               {provisionLogin.isPending ? 'Working…' : 'Create login'}
                             </button>
                           ) : null}
-                          {canAssign ? (
+                          {canManageMentorAssignments(user, mentor.id) ? (
                             <button
                               className="button button--ghost button--small"
                               onClick={() => {

@@ -15,10 +15,10 @@ import { canViewDeveloper } from './access-scope'
  * - Admin sees and manages everything.
  * - A mentor manages the roster alongside the admin — employees, mentors,
  *   projects, tasks and logins — but still sees work, feedback and tasks only
- *   for the developers assigned to them. Two powers are withheld, because
- *   granting them would let a mentor widen their own reach: changing anybody's
- *   role or account status, and editing the mentor assignments that define
- *   whose work they can see.
+ *   for the developers assigned to them. They maintain that assignment list
+ *   themselves, and so can widen their own reach by claiming an employee; what
+ *   stays withheld is changing anybody's role or account status, and touching
+ *   another mentor's assignments.
  * - A developer sees only their own records, and may only change their own.
  *
  * Visibility questions take an `AccessScope`, because "may I see this" always
@@ -54,15 +54,25 @@ export function canAssignTasks(user: AppUser | null): boolean {
 }
 
 /**
- * Editing the mentor mapping: admin only, and deliberately so.
+ * Editing the developers assigned to one mentor.
  *
- * A mentor's reach is defined by this mapping, so a mentor who could edit it
- * could grant themselves every developer's work and feedback. Withholding it
- * is what keeps the rest of a mentor's narrowing meaningful rather than
- * nominal, and it is enforced by the `mentor_assignments` policies too.
+ * An admin maintains anybody's list. A mentor maintains their own and no other,
+ * which is why this asks about a particular mentor rather than about the person
+ * signed in — the same question has different answers row by row on the Mentors
+ * screen.
+ *
+ * A mentor adding to their own list does widen what they can see: this mapping
+ * is what `can_view_developer()` reads, so claiming an employee grants sight of
+ * that employee's work and feedback. That is the accepted trade rather than an
+ * oversight, and it is bounded in the database rather than here — the
+ * `mentor_assignments` policies pin a mentor's writes to rows naming
+ * themselves, so a mentor cannot edit a colleague's list even by calling
+ * PostgREST directly.
  */
-export function canManageMentorAssignments(user: AppUser | null): boolean {
-  return isAdmin(user)
+export function canManageMentorAssignments(user: AppUser | null, mentorId: string): boolean {
+  if (user === null) return false
+  if (isAdmin(user)) return true
+  return isMentor(user) && user.mentorId === mentorId
 }
 
 /** Mentors record feedback; an admin can too, on anyone's behalf. */
