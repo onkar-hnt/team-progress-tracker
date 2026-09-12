@@ -15,6 +15,7 @@ import {
   toDailyWorkEntry,
 } from './daily-update.mappers'
 import { assertDeveloperExists, assertProjectExists, assertTaskExists } from './references'
+import { filterList } from './rpc-params'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
 /**
@@ -28,6 +29,12 @@ import { mapPostgrestError, parseRows } from './supabase-errors'
  * reaches the database. This is the busiest table in the application; the
  * dashboard reads it for every day and every week it draws.
  *
+ * The filtered read goes through `list_daily_updates` rather than a filter
+ * chain — seven optional predicates was the longest of the three, and the
+ * reasoning is recorded in
+ * `20260913060000_filtered_list_functions.sql`. Reading, writing and deleting
+ * one entry by id stay ordinary PostgREST calls.
+ *
  * The translation must agree with `matchesDailyWorkQuery`, the in-memory
  * evaluation the other two providers share. `WorkTrackerService` re-applies
  * the developer predicate over whatever comes back, so a mistake here could
@@ -39,11 +46,11 @@ import { mapPostgrestError, parseRows } from './supabase-errors'
  * An empty list in the query means "nothing matches".
  *
  * `matchesDailyWorkQuery` reaches that answer naturally, since
- * `[].includes(x)` is false. Sending it to PostgREST as `in.()` would rely on
- * how the server treats an empty set, so the answer is given here instead —
- * and it saves a request. This is a real case, not a defensive one: a mentor
- * with no assigned developers has exactly this scope, and every dashboard
- * panel would otherwise ask for it.
+ * `[].includes(x)` is false. Asking the database instead would rely on the
+ * difference between an empty list and no list surviving the round trip, so
+ * the answer is given here — and it saves a request. This is a real case, not
+ * a defensive one: a mentor with no assigned developers has exactly this
+ * scope, and every dashboard panel would otherwise ask for it.
  */
 function matchesNothing(query: DailyWorkQuery): boolean {
   return (
@@ -60,28 +67,21 @@ export async function selectDailyUpdates(
 ): Promise<DailyWorkEntry[]> {
   if (query !== undefined && matchesNothing(query)) return []
 
-  // Each filter method returns the same builder, so the query is assembled
-  // by reassignment rather than by casting between shapes.
-  let builder = client.from('daily_updates').select(DAILY_UPDATE_COLUMNS)
-
-  // Inclusive bounds, matching the `<`/`>` rejections in the in-memory
-  // version. Compared here as dates rather than as text, which agrees with
+  // The bounds are inclusive, matching the `<`/`>` rejections in the in-memory
+  // version, and are compared as dates rather than as text — which agrees with
   // the string comparison for the zero-padded values the contract specifies.
-  if (query?.dateFrom !== undefined) builder = builder.gte('entry_date', query.dateFrom)
-  if (query?.dateTo !== undefined) builder = builder.lte('entry_date', query.dateTo)
-
-  if (query?.developerIds !== undefined) {
-    builder = builder.in('developer_id', [...query.developerIds])
-  }
-  if (query?.projectIds !== undefined) builder = builder.in('project_id', [...query.projectIds])
-  if (query?.statuses !== undefined) builder = builder.in('status', [...query.statuses])
-  if (query?.priorities !== undefined) builder = builder.in('priority', [...query.priorities])
-
-  // `is_blocked` is NOT NULL, so equality covers both answers and there is no
-  // third state for a null to fall into.
-  if (query?.isBlocked !== undefined) builder = builder.eq('is_blocked', query.isBlocked)
-
-  const { data, error } = await builder
+  //
+  // `isBlocked` is coalesced rather than listed, because `false` is an answer:
+  // `false ?? null` is false, so asking for unblocked entries still asks.
+  const { data, error } = await client.rpc('list_daily_updates', {
+    p_date_from: query?.dateFrom ?? null,
+    p_date_to: query?.dateTo ?? null,
+    p_developer_ids: filterList(query?.developerIds),
+    p_project_ids: filterList(query?.projectIds),
+    p_statuses: filterList(query?.statuses),
+    p_priorities: filterList(query?.priorities),
+    p_is_blocked: query?.isBlocked ?? null,
+  })
 
   if (error !== null) throw mapPostgrestError(error, { table: 'DailyWork', operation: 'read' })
 

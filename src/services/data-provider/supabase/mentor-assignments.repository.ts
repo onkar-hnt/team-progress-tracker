@@ -47,87 +47,43 @@ export async function selectMentorAssignments(
  * `buildAccessScope` alike — treats a present row as an assignment, so a
  * deactivated one would still show the developer as assigned.
  *
- * Not a transaction. PostgREST exposes no multi-statement transaction, so a
- * failure between the delete and the insert would leave the set partly
- * applied. Acceptable because the operation is idempotent: saving again
- * converges on the requested set. Moving this into a single `rpc()` is the
- * fix if that ever stops being good enough.
+ * The difference is now computed and applied inside
+ * `set_mentor_assignments`, which is one transaction: the delete and the
+ * insert either both land or neither does. This used to be three statements
+ * issued from here around two reads of the whole table, and a failure between
+ * them left the set partly applied — and because `can_view_developer()` reads
+ * these rows, a half-applied write here is a half-applied permission.
+ *
+ * The date is passed rather than left to the database. `current_date` is the
+ * server's, in UTC, and a team assigning somebody late in the evening would
+ * have it recorded as the day before.
  */
 export async function replaceMentorAssignments(
   client: AppSupabaseClient,
   mentorId: string,
   developerIds: readonly string[],
 ): Promise<MentorAssignment[]> {
-  // Both checked before any write, so a mistyped id cannot clear an existing
-  // mapping as a side effect.
+  // Both checked before the write, so a mistyped id cannot clear an existing
+  // mapping as a side effect. Kept here rather than folded into the function:
+  // these produce `RecordNotFoundError` and `ReferentialIntegrityError` naming
+  // the field, which is what every screen already renders, and neither is the
+  // multi-statement problem the function exists to solve.
   await requireMentor(client, mentorId)
   await assertDevelopersExist(client, developerIds)
 
-  const current = (await selectMentorAssignments(client)).filter(
-    (assignment) => assignment.mentorId === mentorId,
-  )
+  const { data, error } = await client.rpc('set_mentor_assignments', {
+    p_mentor_id: mentorId,
+    p_developer_ids: [...developerIds],
+    p_assigned_date: todayIsoDate(),
+  })
 
-  const target = new Set(developerIds)
-  const removed = current
-    .filter((assignment) => !target.has(assignment.developerId))
-    .map((assignment) => assignment.developerId)
-
-  if (removed.length > 0) {
-    const { error } = await client
-      .from('mentor_assignments')
-      .delete()
-      .eq('mentor_id', mentorId)
-      .in('developer_id', removed)
-
-    if (error !== null) {
-      throw mapPostgrestError(error, {
-        table: 'MentorMapping',
-        operation: 'delete',
-        recordId: mentorId,
-      })
-    }
+  if (error !== null) {
+    throw mapPostgrestError(error, {
+      table: 'MentorMapping',
+      operation: 'update',
+      recordId: mentorId,
+    })
   }
 
-  const existing = new Map(current.map((assignment) => [assignment.developerId, assignment]))
-  const added = developerIds.filter((developerId) => !existing.has(developerId))
-
-  if (added.length > 0) {
-    const { error } = await client.from('mentor_assignments').insert(
-      added.map((developerId) => ({
-        mentor_id: mentorId,
-        developer_id: developerId,
-        assigned_date: todayIsoDate(),
-        active: true,
-      })),
-    )
-
-    if (error !== null) {
-      throw mapPostgrestError(error, { table: 'MentorMapping', operation: 'insert' })
-    }
-  }
-
-  // A pair that survived from an earlier assignment may have been left
-  // inactive by an older client. Ticking the developer again has to grant
-  // visibility, so those rows are revived rather than ignored.
-  const revived = developerIds.filter((developerId) => existing.get(developerId)?.active === false)
-
-  if (revived.length > 0) {
-    const { error } = await client
-      .from('mentor_assignments')
-      .update({ active: true })
-      .eq('mentor_id', mentorId)
-      .in('developer_id', revived)
-
-    if (error !== null) {
-      throw mapPostgrestError(error, {
-        table: 'MentorMapping',
-        operation: 'update',
-        recordId: mentorId,
-      })
-    }
-  }
-
-  return (await selectMentorAssignments(client)).filter(
-    (assignment) => assignment.mentorId === mentorId,
-  )
+  return parseRows('MentorMapping', mentorAssignmentRowSchema, data ?? [], toMentorAssignment)
 }

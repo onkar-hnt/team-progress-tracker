@@ -8,6 +8,7 @@ import type { AppSupabaseClient } from '@services/supabase/index'
 
 import { RecordNotFoundError } from '../data-provider.errors'
 import { assertDeveloperExists, assertMentorExists, assertProjectExists } from './references'
+import { filterList } from './rpc-params'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 import { TASK_COLUMNS, taskRowSchema, toAssignedTask, toTaskInsert, toTaskUpdate } from './task.mappers'
 
@@ -19,6 +20,12 @@ import { TASK_COLUMNS, taskRowSchema, toAssignedTask, toTaskInsert, toTaskUpdate
  * indexes built for exactly these predicates — `tasks_developer_status_idx`
  * and `tasks_due_date_idx` — which only earn their keep if the filtering
  * reaches the database.
+ *
+ * The filtered read goes through `list_tasks` rather than a filter chain, for
+ * the reasons recorded in `20260913060000_filtered_list_functions.sql`. Every
+ * other statement here is a single-row lookup or a write, and stays an
+ * ordinary PostgREST call: there is nothing about `where id = …` that a
+ * function would express better.
  *
  * The translation must agree with `matchesTaskQuery`, the in-memory
  * evaluation both other providers use. `WorkTrackerService` re-applies the
@@ -32,10 +39,10 @@ import { TASK_COLUMNS, taskRowSchema, toAssignedTask, toTaskInsert, toTaskUpdate
  * An empty list in the query means "nothing matches".
  *
  * `matchesTaskQuery` reaches that answer naturally, since `[].includes(x)` is
- * false. Sending it to PostgREST as `in.()` would rely on how the server
- * treats an empty set, so the answer is given here instead — and it saves a
- * request. This is a real case, not a defensive one: a mentor with no
- * assigned developers has exactly this scope.
+ * false. Asking the database instead would rely on the difference between an
+ * empty list and no list surviving the round trip, so the answer is given
+ * here — and it saves a request. This is a real case, not a defensive one: a
+ * mentor with no assigned developers has exactly this scope.
  */
 function matchesNothing(query: AssignedTaskQuery): boolean {
   return (
@@ -53,26 +60,18 @@ export async function selectTasks(
 ): Promise<AssignedTask[]> {
   if (query !== undefined && matchesNothing(query)) return []
 
-  // Each filter method returns the same builder, so the query is assembled
-  // by reassignment rather than by casting between shapes.
-  let builder = client.from('tasks').select(TASK_COLUMNS)
-
-  if (query?.developerIds !== undefined) {
-    builder = builder.in('developer_id', [...query.developerIds])
-  }
-
-  // A task with no mentor matches no list of mentor ids, which `IN` gives
-  // for free: null never satisfies it.
-  if (query?.mentorIds !== undefined) builder = builder.in('mentor_id', [...query.mentorIds])
-  if (query?.projectIds !== undefined) builder = builder.in('project_id', [...query.projectIds])
-  if (query?.statuses !== undefined) builder = builder.in('status', [...query.statuses])
-  if (query?.priorities !== undefined) builder = builder.in('priority', [...query.priorities])
-
-  // Likewise, a task with no due date can never be overdue, and `<=` excludes
-  // nulls rather than treating them as due immediately.
-  if (query?.dueOnOrBefore !== undefined) builder = builder.lte('due_date', query.dueOnOrBefore)
-
-  const { data, error } = await builder
+  // A task with no mentor matches no list of mentor ids, and one with no due
+  // date is never past one. Both fall out of how the function compares them —
+  // null satisfies neither `= any (…)` nor `<=` — rather than needing a case
+  // here, which is the same thing the filter chain relied on.
+  const { data, error } = await client.rpc('list_tasks', {
+    p_developer_ids: filterList(query?.developerIds),
+    p_mentor_ids: filterList(query?.mentorIds),
+    p_project_ids: filterList(query?.projectIds),
+    p_statuses: filterList(query?.statuses),
+    p_priorities: filterList(query?.priorities),
+    p_due_on_or_before: query?.dueOnOrBefore ?? null,
+  })
 
   if (error !== null) throw mapPostgrestError(error, { table: 'Tasks', operation: 'read' })
 

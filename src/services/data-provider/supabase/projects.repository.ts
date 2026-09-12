@@ -23,7 +23,10 @@ import { mapPostgrestError, parseRows } from './supabase-errors'
  *
  * Membership is read with an embedded select and written as a difference
  * against the current rows, which is what makes re-saving an unchanged set a
- * no-op rather than a delete and reinsert.
+ * no-op rather than a delete and reinsert. The difference itself is applied by
+ * `set_project_members`, in one transaction, so a failure between removing the
+ * old members and adding the new ones can no longer leave a project with a
+ * team that is neither.
  */
 
 export async function selectProjects(client: AppSupabaseClient): Promise<Project[]> {
@@ -70,7 +73,13 @@ export async function insertProject(
 
   const id = (data as { id: string }).id
 
-  await addMembers(client, id, request.assignedDeveloperIds)
+  // Skipped for an empty team, unlike on update. A project created without
+  // members has nothing to remove and nothing to add, so the call would be a
+  // round trip to do nothing — whereas an empty list on update is an
+  // instruction to clear the team, and has to be sent.
+  if (request.assignedDeveloperIds.length > 0) {
+    await setMembers(client, id, request.assignedDeveloperIds)
+  }
 
   return requireProject(client, id)
 }
@@ -80,7 +89,11 @@ export async function updateProjectRow(
   id: string,
   request: UpdateProjectRequest,
 ): Promise<Project> {
-  const existing = await requireProject(client, id)
+  // Read before anything is written, so a mistyped id is reported as the
+  // missing project it is rather than after a partial save. The membership
+  // difference no longer needs the current list — `set_project_members` works
+  // that out for itself — but this check does.
+  await requireProject(client, id)
 
   await assertProjectReferences(client, request)
 
@@ -105,7 +118,7 @@ export async function updateProjectRow(
   // changes a project's status must not empty its team as a side effect,
   // which is what reading an absent list as "assign nobody" would do.
   if (request.assignedDeveloperIds !== undefined) {
-    await replaceMembers(client, id, existing.assignedDeveloperIds, request.assignedDeveloperIds)
+    await setMembers(client, id, request.assignedDeveloperIds)
   }
 
   return requireProject(client, id)
@@ -151,62 +164,31 @@ export async function requireProject(client: AppSupabaseClient, id: string): Pro
   return parseRows('Projects', projectRowSchema, [data], toProject)[0]!
 }
 
-async function addMembers(
+/**
+ * Brings the membership rows in line with the requested set.
+ *
+ * Still a difference rather than a delete-and-reinsert, so that saving an
+ * unchanged list writes nothing and `created_at` on a row that was already
+ * there is not restamped by somebody opening the dialog and pressing save.
+ * What changed is where the difference is worked out: `set_project_members`
+ * does it in one transaction, where a duplicate id is a redundant instruction
+ * rather than a conflict, and where a failure cannot leave the old members
+ * removed and the new ones unadded.
+ *
+ * Reported as an update, because that is what it is from the caller's side
+ * even when the statements underneath are a delete and an insert.
+ */
+async function setMembers(
   client: AppSupabaseClient,
   projectId: string,
   developerIds: readonly string[],
 ): Promise<void> {
-  // De-duplicated because the primary key is the pair: the same developer
-  // twice in one request is a redundant instruction, not a conflict to
-  // report.
-  const unique = [...new Set(developerIds)]
-  if (unique.length === 0) return
-
-  const { error } = await client
-    .from('project_developers')
-    .insert(unique.map((developerId) => ({ project_id: projectId, developer_id: developerId })))
+  const { error } = await client.rpc('set_project_members', {
+    p_project_id: projectId,
+    p_developer_ids: [...developerIds],
+  })
 
   if (error !== null) {
-    throw mapPostgrestError(error, { table: 'Projects', operation: 'insert', recordId: projectId })
+    throw mapPostgrestError(error, { table: 'Projects', operation: 'update', recordId: projectId })
   }
-}
-
-/**
- * Brings the membership rows in line with the requested set.
- *
- * Written as a difference so that saving an unchanged list issues no
- * statements at all, and so `created_at` on a row that was already there is
- * not restamped by somebody opening the dialog and pressing save.
- */
-async function replaceMembers(
-  client: AppSupabaseClient,
-  projectId: string,
-  current: readonly string[],
-  requested: readonly string[],
-): Promise<void> {
-  const target = new Set(requested)
-  const removed = current.filter((developerId) => !target.has(developerId))
-
-  if (removed.length > 0) {
-    const { error } = await client
-      .from('project_developers')
-      .delete()
-      .eq('project_id', projectId)
-      .in('developer_id', removed)
-
-    if (error !== null) {
-      throw mapPostgrestError(error, {
-        table: 'Projects',
-        operation: 'delete',
-        recordId: projectId,
-      })
-    }
-  }
-
-  const existing = new Set(current)
-  await addMembers(
-    client,
-    projectId,
-    [...target].filter((developerId) => !existing.has(developerId)),
-  )
 }

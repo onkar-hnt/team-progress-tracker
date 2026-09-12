@@ -15,6 +15,7 @@ import {
   toMentorComment,
 } from './feedback.mappers'
 import { assertDeveloperExists, assertMentorExists, assertProjectExists, assertTaskExists } from './references'
+import { filterList } from './rpc-params'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
 /**
@@ -27,20 +28,22 @@ import { mapPostgrestError, parseRows } from './supabase-errors'
  *
  * Filters at source like tasks and daily updates, over
  * `feedback_developer_date_idx`, `feedback_mentor_id_idx` and
- * `feedback_project_id_idx`. The translation must agree with
- * `matchesCommentQuery`, the in-memory evaluation the other providers share:
- * `WorkTrackerService` re-applies the developer predicate over whatever comes
- * back, so a mistake here could not widen a result past the caller's scope,
- * but it could still narrow one wrongly.
+ * `feedback_project_id_idx`, and through `list_feedback` for the same reasons
+ * as those two — see `20260913060000_filtered_list_functions.sql`. The
+ * translation must agree with `matchesCommentQuery`, the in-memory evaluation
+ * the other providers share: `WorkTrackerService` re-applies the developer
+ * predicate over whatever comes back, so a mistake here could not widen a
+ * result past the caller's scope, but it could still narrow one wrongly.
  */
 
 /**
  * An empty list in the query means "nothing matches".
  *
  * `matchesCommentQuery` reaches that answer naturally, since `[].includes(x)`
- * is false. Sending it to PostgREST as `in.()` would rely on how the server
- * treats an empty set, so the answer is given here instead — and it saves a
- * request. A mentor with no assigned developers has exactly this scope.
+ * is false. Asking the database instead would rely on the difference between
+ * an empty list and no list surviving the round trip, so the answer is given
+ * here — and it saves a request. A mentor with no assigned developers has
+ * exactly this scope.
  */
 function matchesNothing(query: MentorCommentQuery): boolean {
   return (
@@ -56,26 +59,18 @@ export async function selectComments(
 ): Promise<MentorComment[]> {
   if (query !== undefined && matchesNothing(query)) return []
 
-  // Each filter method returns the same builder, so the query is assembled
-  // by reassignment rather than by casting between shapes.
-  let builder = client.from('feedback').select(FEEDBACK_COLUMNS)
-
-  // Inclusive bounds, matching the `<`/`>` rejections in the in-memory
-  // version.
-  if (query?.dateFrom !== undefined) builder = builder.gte('feedback_date', query.dateFrom)
-  if (query?.dateTo !== undefined) builder = builder.lte('feedback_date', query.dateTo)
-
-  if (query?.developerIds !== undefined) {
-    builder = builder.in('developer_id', [...query.developerIds])
-  }
-  if (query?.mentorIds !== undefined) builder = builder.in('mentor_id', [...query.mentorIds])
-
-  // General feedback carries no project, and `IN` excludes nulls for free —
-  // which is what `matchesCommentQuery` does explicitly when it rejects an
-  // undefined `projectId` against a requested list.
-  if (query?.projectIds !== undefined) builder = builder.in('project_id', [...query.projectIds])
-
-  const { data, error } = await builder
+  // Bounds are inclusive, matching the `<`/`>` rejections in the in-memory
+  // version. General feedback carries no project and is excluded by a project
+  // filter without a case for it, because null satisfies no list — which is
+  // what `matchesCommentQuery` does explicitly when it rejects an undefined
+  // `projectId` against a requested list.
+  const { data, error } = await client.rpc('list_feedback', {
+    p_date_from: query?.dateFrom ?? null,
+    p_date_to: query?.dateTo ?? null,
+    p_developer_ids: filterList(query?.developerIds),
+    p_mentor_ids: filterList(query?.mentorIds),
+    p_project_ids: filterList(query?.projectIds),
+  })
 
   if (error !== null) throw mapPostgrestError(error, { table: 'Comments', operation: 'read' })
 
