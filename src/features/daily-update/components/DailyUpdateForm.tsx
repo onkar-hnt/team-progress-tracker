@@ -78,9 +78,15 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
   // One with none — or one whose task list failed to load — still has to be
   // able to log the day, and names the work themselves instead.
   const canPickTask = tasks.length > 0
+
+  // Entries logged before updates were task-linked are the exception. Their
+  // work may have no matching task at all, and requiring one would force the
+  // developer to file the day against something unrelated just to correct a
+  // typo. Offered there, required everywhere else.
+  const requireTask = canPickTask && (entry === undefined || entry.taskId !== undefined)
   const resolver = useMemo(
-    () => zodResolver(createDailyUpdateFormSchema({ requireTask: canPickTask })),
-    [canPickTask],
+    () => zodResolver(createDailyUpdateFormSchema({ requireTask })),
+    [requireTask],
   )
 
   // Assume the picker while the list is in flight. Most developers have work
@@ -109,6 +115,16 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
 
   const selectedTaskId = useWatch({ control, name: 'taskId' })
   const selectedTask = tasks.find((candidate) => candidate.id === selectedTaskId)
+
+  // The chosen task, not the presence of a task list, is what decides whether
+  // the project and the title are derived. An entry with no task still has to
+  // ask for both.
+  const hasTask = selectedTaskId !== ''
+
+  // Offered only where it can actually be used: with a task chosen the title
+  // comes from it, and where one is required an empty box would just be a
+  // second way to answer the same question wrongly.
+  const showTitleInput = !hasTask && !requireTask
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
@@ -214,7 +230,7 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
 
         <div className="daily-update-form__field">
           <label htmlFor="update-project">Project</label>
-          {showTaskPicker ? (
+          {hasTask ? (
             <>
               {/* Shown rather than asked: the task already carries a project,
                   and a second question could only disagree with it. */}
@@ -288,7 +304,11 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
               </optgroup>
             )}
           </select>
-        ) : (
+        ) : null}
+
+        {/* Registered either way, because a chosen task fills the title and
+            the value still has to reach the request. */}
+        {showTitleInput ? (
           <input
             autoComplete="off"
             id="update-task-title"
@@ -297,25 +317,30 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
             {...register('taskTitle')}
             aria-invalid={errors.taskTitle ? 'true' : undefined}
           />
+        ) : (
+          <input type="hidden" {...register('taskTitle')} />
         )}
 
         {errors.taskId ? <p className="daily-update-form__error">{errors.taskId.message}</p> : null}
-        {errors.taskTitle ? (
+        {showTitleInput && errors.taskTitle ? (
           <p className="daily-update-form__error">{errors.taskTitle.message}</p>
         ) : null}
 
-        {tasksQuery.isPending ? null : canPickTask ? (
+        {tasksQuery.isPending ? null : !canPickTask ? (
+          <p className="daily-update-form__hint">
+            {tasksQuery.error === null
+              ? 'Nothing is assigned to you yet, so name the work yourself.'
+              : `Your tasks could not be loaded (${tasksQuery.error.message}), so name the work yourself.`}
+          </p>
+        ) : requireTask ? (
           <p className="daily-update-form__hint">
             The task and this update share one status, so finishing here marks it done on My Tasks
             too.
           </p>
-        ) : tasksQuery.error !== null ? (
-          <p className="daily-update-form__hint">
-            {`Your tasks could not be loaded (${tasksQuery.error.message}), so name the work yourself.`}
-          </p>
         ) : (
           <p className="daily-update-form__hint">
-            Nothing is assigned to you yet, so name the work yourself.
+            This update was logged before tasks were linked. Choose the task it belongs to and the
+            two will share one status from now on, or leave it as typed.
           </p>
         )}
       </div>
