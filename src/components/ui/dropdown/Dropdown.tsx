@@ -452,7 +452,18 @@ export function Dropdown({
                 data-active={index === activeIndex ? 'true' : undefined}
                 data-index={index}
                 id={optionId(index)}
-                onClick={() => commit(index)}
+                onClick={(event) => {
+                  // The list stays in the DOM where it was written, so it can
+                  // find itself inside an implicit `<label>` — `FilterField`
+                  // wraps its caption and its control in one. An `<li>` is not
+                  // interactive content, so a click on it runs that label's
+                  // activation behaviour: a second click, synthesised onto the
+                  // trigger, arriving after `commit` has closed the list and
+                  // therefore re-opening it. Cancelling the event is what stops
+                  // the label acting on it.
+                  event.preventDefault()
+                  commit(index)
+                }}
                 onPointerEnter={() => {
                   if (option.disabled !== true) setActiveIndex(index)
                 }}
