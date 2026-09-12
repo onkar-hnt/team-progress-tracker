@@ -1,13 +1,14 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
-/// A single column now that the form is the whole screen. Capped rather than
-/// stretched: the fields are short, and a date picker spanning a wide monitor
-/// reads as a layout fault.
+/// Full width, like every other screen. It was capped at 56rem to stop the
+/// fields growing absurdly wide, which left a band of empty page down the right
+/// that only got wider when the sidebar collapsed. The fields are held to a
+/// sensible width by the form's own column count instead, which is the thing
+/// that was actually wanted.
 .daily-update-page {
-  display: grid;
-  gap: $space-6;
+  @include page-stack;
   align-items: start;
-  max-width: 56rem;
 
   &__panel {
     padding: $space-6;

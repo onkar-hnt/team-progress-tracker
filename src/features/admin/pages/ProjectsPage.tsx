@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
+import { NameList } from '@components/ui/name-list/NameList'
 import { Panel } from '@components/ui/panel/Panel'
 import {
   useCreateProject,
@@ -98,7 +99,7 @@ export function ProjectsPage() {
         ) : projectsQuery.isPending ? (
           <Skeleton label="Loading projects…" rows={4} />
         ) : (
-          <div className="table-scroll">
+          <div className="data-table__scroll">
             <table className="data-table">
               <thead>
                 <tr>
@@ -122,9 +123,10 @@ export function ProjectsPage() {
                       {project.endDate === undefined ? '' : ` – ${formatShortDate(project.endDate)}`}
                     </td>
                     <td>
-                      {project.assignedDeveloperIds.length === 0
-                        ? 'None'
-                        : project.assignedDeveloperIds.map(developerName).join(', ')}
+                      <NameList
+                        names={project.assignedDeveloperIds.map(developerName)}
+                        title={`Developers on ${project.name}`}
+                      />
                     </td>
                     <td>
                       <div className="row-actions">

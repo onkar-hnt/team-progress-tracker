@@ -1,8 +1,8 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
 .team-activity {
-  display: grid;
-  gap: $space-6;
+  @include page-stack;
 
   &__stats {
     margin-top: $space-5;

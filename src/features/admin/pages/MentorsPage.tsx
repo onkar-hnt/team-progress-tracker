@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useAuth } from '@app/providers/auth-context'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
+import { NameList } from '@components/ui/name-list/NameList'
 import { Panel } from '@components/ui/panel/Panel'
 import { useMentorAssignments } from '@hooks/use-access-scope'
 import {
@@ -169,7 +170,7 @@ export function MentorsPage() {
         ) : mentorsQuery.data?.length === 0 ? (
           <EmptyState message="No mentors added yet." />
         ) : (
-          <div className="table-scroll">
+          <div className="data-table__scroll">
             <table className="data-table">
               <thead>
                 <tr>
@@ -192,9 +193,10 @@ export function MentorsPage() {
                       <td>{mentor.email}</td>
                       <td>{mentor.active ? 'Active' : 'Inactive'}</td>
                       <td>
-                        {assigned.length === 0
-                          ? 'None'
-                          : assigned.map(developerName).join(', ')}
+                        <NameList
+                          names={assigned.map(developerName)}
+                          title={`Developers assigned to ${mentor.name}`}
+                        />
                       </td>
                       {/* Linked means an account exists and is attached.
                           Whether the password has been changed is not

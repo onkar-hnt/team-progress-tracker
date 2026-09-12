@@ -2,8 +2,7 @@
 @use '@styles/mixins' as *;
 
 .developers {
-  display: grid;
-  gap: $space-6;
+  @include page-stack;
 
   &__period {
     display: flex;

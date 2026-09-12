@@ -181,6 +181,14 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
       : developersQuery.data?.find((developer) => developer.id === lockedDeveloperId)?.name) ??
     'Unknown'
 
+  // Telling somebody their own name is not information, and a field that can
+  // only ever say one thing is one more thing to read past on the way to the
+  // question that matters. So it is shown when it identifies somebody else —
+  // an admin logging or correcting work on a developer's behalf — and left out
+  // when it would only repeat who is signed in. The value is submitted either
+  // way; what changes is whether it is on screen.
+  const showsDeveloper = canChooseDeveloper || lockedDeveloperId !== ownDeveloperId
+
   if (optionsError !== null) {
     return (
       <div className="daily-update-form__load-error" role="alert">
@@ -205,47 +213,49 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
           {errors.date ? <p className="daily-update-form__error">{errors.date.message}</p> : null}
         </div>
 
-        <div className="daily-update-form__field">
-          <label htmlFor="update-developer">Developer</label>
-          {canChooseDeveloper ? (
-            <Controller
-              control={control}
-              name="developerId"
-              render={({ field }) => (
-                <Dropdown
-                  disabled={isLoadingOptions}
-                  id="update-developer"
-                  isInvalid={errors.developerId !== undefined}
-                  onBlur={field.onBlur}
-                  onChange={(next) => {
-                    field.onChange(next)
-                    setSelectedDeveloperId(next)
+        {/* Rendered whether or not the field below it is, so the value is still
+            submitted when the question is never asked. A hidden input takes no
+            column in the grid. */}
+        {canChooseDeveloper ? null : <input type="hidden" {...register('developerId')} />}
 
-                    // The task list is about to change, and a task belonging
-                    // to the previous person is refused by the database guard.
-                    // The description is left alone: it is what the admin came
-                    // to log, and correcting who it belongs to should not
-                    // retype it.
-                    setValue('taskId', '')
-                    setValue('projectId', '')
-                  }}
-                  options={developerOptions}
-                  value={field.value}
-                />
-              )}
-            />
-          ) : (
-            <>
-              {/* Shown as static text and submitted via a hidden field, so the
-                  value cannot be swapped using the browser's dev tools UI. */}
+        {!showsDeveloper ? null : (
+          <div className="daily-update-form__field">
+            <label htmlFor="update-developer">Developer</label>
+            {canChooseDeveloper ? (
+              <Controller
+                control={control}
+                name="developerId"
+                render={({ field }) => (
+                  <Dropdown
+                    disabled={isLoadingOptions}
+                    id="update-developer"
+                    isInvalid={errors.developerId !== undefined}
+                    onBlur={field.onBlur}
+                    onChange={(next) => {
+                      field.onChange(next)
+                      setSelectedDeveloperId(next)
+
+                      // The task list is about to change, and a task belonging
+                      // to the previous person is refused by the database
+                      // guard. The description is left alone: it is what the
+                      // admin came to log, and correcting who it belongs to
+                      // should not retype it.
+                      setValue('taskId', '')
+                      setValue('projectId', '')
+                    }}
+                    options={developerOptions}
+                    value={field.value}
+                  />
+                )}
+              />
+            ) : (
               <p className="daily-update-form__static-value">{lockedDeveloperName}</p>
-              <input type="hidden" {...register('developerId')} />
-            </>
-          )}
-          {errors.developerId ? (
-            <p className="daily-update-form__error">{errors.developerId.message}</p>
-          ) : null}
-        </div>
+            )}
+            {errors.developerId ? (
+              <p className="daily-update-form__error">{errors.developerId.message}</p>
+            ) : null}
+          </div>
+        )}
 
         <div className="daily-update-form__field">
           <label htmlFor="update-project">Project</label>
@@ -279,76 +289,70 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
             <p className="daily-update-form__error">{errors.projectId.message}</p>
           ) : null}
         </div>
-      </div>
 
-      <div className="daily-update-form__field">
-        <label htmlFor="update-task-title">What did you work on?</label>
-        <input
-          autoComplete="off"
-          id="update-task-title"
-          placeholder="e.g. Connector configuration screen"
-          type="text"
-          {...register('taskTitle')}
-          aria-invalid={errors.taskTitle ? 'true' : undefined}
-        />
-        {errors.taskTitle ? (
-          <p className="daily-update-form__error">{errors.taskTitle.message}</p>
-        ) : null}
-      </div>
-
-      {showTaskPicker ? (
-        <div className="daily-update-form__field">
-          <label htmlFor="update-task">Related task (optional)</label>
-          <Controller
-            control={control}
-            name="taskId"
-            render={({ field }) => (
-              <Dropdown
-                disabled={tasksQuery.isPending}
-                id="update-task"
-                isInvalid={errors.taskId !== undefined}
-                onBlur={field.onBlur}
-                onChange={(next) => {
-                  field.onChange(next)
-
-                  const picked = tasks.find((candidate) => candidate.id === next)
-
-                  // The task carries a project, and a second answer could only
-                  // disagree with it. Cleared along with the task so the field
-                  // comes back rather than keeping a value nobody chose.
-                  setValue('projectId', picked?.projectId ?? '')
-
-                  // Offered as a starting point, never as a correction:
-                  // somebody who has already described their day keeps what
-                  // they wrote.
-                  if (picked !== undefined && getValues('taskTitle').trim() === '') {
-                    setValue('taskTitle', picked.name)
-                  }
-                }}
-                options={taskOptions}
-                value={field.value}
-              />
-            )}
+        <div className="daily-update-form__field daily-update-form__field--wide">
+          <label htmlFor="update-task-title">What did you work on?</label>
+          <input
+            autoComplete="off"
+            id="update-task-title"
+            placeholder="e.g. Connector configuration screen"
+            type="text"
+            {...register('taskTitle')}
+            aria-invalid={errors.taskTitle ? 'true' : undefined}
           />
-
-          {errors.taskId ? (
-            <p className="daily-update-form__error">{errors.taskId.message}</p>
+          {errors.taskTitle ? (
+            <p className="daily-update-form__error">{errors.taskTitle.message}</p>
           ) : null}
-
-          <p className="daily-update-form__hint">
-            {hasTask
-              ? 'This task and this update share one status, so finishing here marks it done on My Tasks too.'
-              : 'Link a task and the two share one status. Leave it unlinked for work no task covers.'}
-          </p>
         </div>
-      ) : tasksQuery.error === null ? null : (
-        <p className="daily-update-form__hint">
-          Your tasks could not be loaded ({tasksQuery.error.message}), so this update cannot be
-          linked to one.
-        </p>
-      )}
 
-      <div className="daily-update-form__grid">
+        {!showTaskPicker ? null : (
+          <div className="daily-update-form__field daily-update-form__field--wide">
+            <label htmlFor="update-task">Related task (optional)</label>
+            <Controller
+              control={control}
+              name="taskId"
+              render={({ field }) => (
+                <Dropdown
+                  disabled={tasksQuery.isPending}
+                  id="update-task"
+                  isInvalid={errors.taskId !== undefined}
+                  onBlur={field.onBlur}
+                  onChange={(next) => {
+                    field.onChange(next)
+
+                    const picked = tasks.find((candidate) => candidate.id === next)
+
+                    // The task carries a project, and a second answer could
+                    // only disagree with it. Cleared along with the task so the
+                    // field comes back rather than keeping a value nobody
+                    // chose.
+                    setValue('projectId', picked?.projectId ?? '')
+
+                    // Offered as a starting point, never as a correction:
+                    // somebody who has already described their day keeps what
+                    // they wrote.
+                    if (picked !== undefined && getValues('taskTitle').trim() === '') {
+                      setValue('taskTitle', picked.name)
+                    }
+                  }}
+                  options={taskOptions}
+                  value={field.value}
+                />
+              )}
+            />
+
+            {errors.taskId ? (
+              <p className="daily-update-form__error">{errors.taskId.message}</p>
+            ) : null}
+
+            <p className="daily-update-form__hint">
+              {hasTask
+                ? 'This task and this update share one status, so finishing here marks it done on My Tasks too.'
+                : 'Link a task and the two share one status. Leave it unlinked for work no task covers.'}
+            </p>
+          </div>
+        )}
+
         <div className="daily-update-form__field">
           <label htmlFor="update-status">Status</label>
           <Controller
@@ -394,6 +398,15 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
           ) : null}
         </div>
       </div>
+
+      {/* Outside the grid: it explains why a field is missing, so it belongs
+          under the fields rather than in a column of its own. */}
+      {showTaskPicker || tasksQuery.error === null ? null : (
+        <p className="daily-update-form__hint">
+          Your tasks could not be loaded ({tasksQuery.error.message}), so this update cannot be
+          linked to one.
+        </p>
+      )}
 
       <div aria-live="polite" role="status">
         {savedTitle === null ? null : (

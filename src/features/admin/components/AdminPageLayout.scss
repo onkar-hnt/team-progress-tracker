@@ -2,8 +2,7 @@
 @use '@styles/mixins' as *;
 
 .admin-page {
-  display: grid;
-  gap: $space-6;
+  @include page-stack;
 
   &__note {
     margin: 0;

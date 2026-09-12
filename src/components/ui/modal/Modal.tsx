@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import type { PropsWithChildren } from 'react'
 
 import './Modal.scss'
@@ -26,6 +26,11 @@ interface ModalProps {
 export function Modal({ children, isOpen, onClose, title }: PropsWithChildren<ModalProps>) {
   const dialogRef = useRef<HTMLDialogElement>(null)
 
+  // Generated rather than fixed. A screen has several of these, and a shared id
+  // meant `aria-labelledby` resolved to whichever heading came first in the
+  // document — so an open dialog could be announced with another one's title.
+  const titleId = useId()
+
   useEffect(() => {
     const dialog = dialogRef.current
     if (dialog === null) return
@@ -36,7 +41,7 @@ export function Modal({ children, isOpen, onClose, title }: PropsWithChildren<Mo
 
   return (
     <dialog
-      aria-labelledby="modal-title"
+      aria-labelledby={titleId}
       className="modal"
       onCancel={(event) => {
         // Prevent the default close so React state stays the single source of
@@ -53,11 +58,11 @@ export function Modal({ children, isOpen, onClose, title }: PropsWithChildren<Mo
     >
       <div className="modal__panel">
         <header className="modal__header">
-          <h2 className="modal__title" id="modal-title">
+          <h2 className="modal__title" id={titleId}>
             {title}
           </h2>
           <button aria-label="Close" className="modal__close" onClick={onClose} type="button">
-            ×
+            X
           </button>
         </header>
         <div className="modal__body">{isOpen ? children : null}</div>

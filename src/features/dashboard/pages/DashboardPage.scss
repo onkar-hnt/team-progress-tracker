@@ -2,8 +2,7 @@
 @use '@styles/mixins' as *;
 
 .dashboard {
-  display: grid;
-  gap: $space-6;
+  @include page-stack;
 
   &__row {
     display: grid;

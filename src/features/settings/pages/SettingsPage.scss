@@ -1,8 +1,8 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
 .settings {
-  display: grid;
-  gap: $space-6;
+  @include page-stack;
 
   &__facts {
     display: grid;

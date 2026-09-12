@@ -5,9 +5,14 @@
 /// address bar is counted by `vh` but not shown, so a dialog sized in `vh`
 /// puts its pinned footer just below the fold — which is the one place it
 /// must never be.
+/// The height is settled rather than left to whatever is inside. Allowed to
+/// grow to the whole screen, a dialog was a different size every time it opened
+/// and a long form turned into a full-page takeover with a scrollbar down the
+/// side. 36rem is enough for the forms here; anything longer scrolls in the
+/// body, which is what the body is for.
 .modal {
   width: min(46rem, calc(100vw - #{$space-8}));
-  max-height: calc(100dvh - #{$space-8});
+  max-height: min(36rem, calc(100dvh - #{$space-8}));
   padding: 0;
   border: 1px solid $color-border;
   border-radius: $radius-lg;
@@ -18,10 +23,13 @@
     background: rgb(15 23 42 / 45%);
   }
 
+  /// The same cap as the dialog. The panel is the flex column that decides
+  /// which part scrolls, so it has to know the limit too rather than inherit an
+  /// `auto` height and let the body grow past it.
   &__panel {
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - #{$space-8});
+    max-height: min(36rem, calc(100dvh - #{$space-8}));
   }
 
   &__header {

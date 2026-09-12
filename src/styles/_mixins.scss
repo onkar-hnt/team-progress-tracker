@@ -1,6 +1,23 @@
+@use 'variables' as *;
+
 @mixin focus-ring {
     outline: 3px solid rgb(49 85 166 / 35%);
     outline-offset: 2px;
+}
+
+/// The single column a screen's sections stack in.
+///
+/// The column is stated rather than left implicit. An implicit `auto` track is
+/// floored at the width of the widest thing in it, so one table with more
+/// columns than the window could hold used to stretch the track — and with it
+/// every panel above the table, which is why filters and stat cards ran off the
+/// right of the screen on a table-heavy page. `minmax(0, 1fr)` holds the column
+/// to the space available and leaves the table to scroll inside its own panel,
+/// which is what `.data-table__scroll` is for.
+@mixin page-stack {
+    display: grid;
+    gap: $space-6;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 @mixin respond-to-tablet {

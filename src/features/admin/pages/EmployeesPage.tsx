@@ -180,7 +180,7 @@ export function EmployeesPage() {
         ) : developersQuery.isPending ? (
           <Skeleton label="Loading employees…" rows={5} />
         ) : (
-          <div className="table-scroll">
+          <div className="data-table__scroll">
             <table className="data-table">
               <thead>
                 <tr>
