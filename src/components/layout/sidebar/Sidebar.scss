@@ -32,8 +32,12 @@
     list-style: none;
   }
 
+  /// `flex: 1` so the link still fills its row: each one is wrapped in a
+  /// `Tooltip`, which is a flex box, and a link left at its content width would
+  /// only highlight as far as its own text.
   &__link {
     display: flex;
+    flex: 1;
     align-items: center;
     gap: $space-3;
     padding: $space-3 $space-4;
@@ -61,32 +65,6 @@
 
   &__label {
     overflow: hidden;
-  }
-
-  /// The name of a link on the collapsed rail, shown on hover or focus.
-  ///
-  /// `fixed`, and placed from script, for the same reason the dropdown list is:
-  /// the rail scrolls its own overflow, so anything positioned inside it is cut
-  /// off at the edge — and a label wider than a 4.5rem rail always would be.
-  ///
-  /// `translateY(-50%)` against the middle of the link, so it reads as
-  /// belonging to that row and not the one above or below it.
-  &__tooltip {
-    position: fixed;
-    left: calc(#{$sidebar-width-collapsed} + #{$space-1});
-    z-index: 25;
-    padding: $space-2 $space-3;
-    border-radius: $radius-md;
-    color: $color-white;
-    font-size: $font-size-xs;
-    font-weight: 600;
-    white-space: nowrap;
-    background: $color-brand-dark;
-    box-shadow: 0 8px 24px rgb(15 23 42 / 22%);
-    transform: translateY(-50%);
-
-    /// Never in the way of the pointer: it appears where the cursor is heading.
-    pointer-events: none;
   }
 
   /// Collapsed rail: icons only, centred, labels removed from the layout so
@@ -154,10 +132,12 @@
       }
     }
 
-    /// The drawer shows its labels, so there is nothing left to explain. It also
-    /// slides in on a transform, which would make a fixed tooltip position
-    /// itself against the drawer instead of the window.
-    &__tooltip {
+    /// The drawer shows its labels even when the desktop preference is
+    /// collapsed, so there is nothing left to explain. It also slides in on a
+    /// transform, which makes it the containing block for anything fixed inside
+    /// it — so a bubble here would be placed against the drawer rather than the
+    /// window, and land in the wrong place.
+    .tooltip__bubble {
       display: none;
     }
 

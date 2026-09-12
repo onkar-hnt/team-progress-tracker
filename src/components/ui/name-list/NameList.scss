@@ -54,16 +54,13 @@
       grid-template-columns: minmax(0, 1fr);
     }
 
-    /// Clipped rather than wrapped, so every row is the same height and the
-    /// two columns stay level. The full name is on the element's `title` for
-    /// the rare one that does not fit.
+    /// Every row the same height, so the two columns stay level. The clipping
+    /// itself belongs to the `Tooltip` inside, which shows the whole name on
+    /// hover for the rare one too long to fit.
     li {
       padding: $space-2 $space-3;
       border: 1px solid $color-border;
       border-radius: $radius-sm;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
       background: $color-surface-subtle;
     }
   }

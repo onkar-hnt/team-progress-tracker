@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Modal } from '@components/ui/modal/Modal'
+import { Tooltip } from '@components/ui/tooltip/Tooltip'
 
 import './NameList.scss'
 
@@ -64,8 +65,10 @@ export function NameList({ emptyLabel = 'None', names, title, visible = 2 }: Nam
               is read-only for as long as it is open. */}
           <ul className="name-list__all">
             {names.map((name, index) => (
-              <li key={index} title={name}>
-                {name}
+              <li key={index}>
+                <Tooltip clips label={name}>
+                  {name}
+                </Tooltip>
               </li>
             ))}
           </ul>

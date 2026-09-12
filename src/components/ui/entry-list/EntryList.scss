@@ -26,7 +26,6 @@
     color: $color-text;
     font-size: $font-size-sm;
     font-weight: 600;
-    overflow-wrap: anywhere;
   }
 
   &__meta {
@@ -53,7 +52,6 @@
     margin: $space-2 0 0;
     color: #912018;
     font-size: $font-size-xs;
-    overflow-wrap: anywhere;
   }
 
   &__footer {

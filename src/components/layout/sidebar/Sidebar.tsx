@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
 import { Icon } from '@components/ui/icons/Icon'
 import type { IconName } from '@components/ui/icons/Icon'
+import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import type { AppUser } from '@models/user.model'
 import {
   canManageTeam,
@@ -95,18 +95,8 @@ interface SidebarProps {
   onNavigate: () => void
 }
 
-/** The label showing beside the rail, and which row it belongs to. */
-interface RailTooltip {
-  label: string
-
-  /** The middle of the link, in viewport coordinates. */
-  top: number
-}
-
 export function Sidebar({ isCollapsed, isDrawerOpen, onNavigate }: SidebarProps) {
   const { user } = useAuth()
-
-  const [tooltip, setTooltip] = useState<RailTooltip | null>(null)
 
   // Hiding a link is presentation only; the route guards do the real blocking.
   // Groups left with no visible items are dropped rather than rendered as a
@@ -117,17 +107,6 @@ export function Sidebar({ isCollapsed, isDrawerOpen, onNavigate }: SidebarProps)
       items: group.items.filter((item) => item.isVisible?.(user) ?? true),
     }))
     .filter((group) => group.items.length > 0)
-
-  // Measured on the way in rather than placed by stylesheet. The rail scrolls
-  // its own overflow, so a tooltip positioned inside it would be cut off at the
-  // edge — it has to be `fixed`, and a fixed box needs to be told where the
-  // link it belongs to ended up.
-  const openTooltip = (element: HTMLElement, label: string) => {
-    if (!isCollapsed) return
-
-    const rect = element.getBoundingClientRect()
-    setTooltip({ label, top: rect.top + rect.height / 2 })
-  }
 
   return (
     <aside
@@ -148,45 +127,32 @@ export function Sidebar({ isCollapsed, isDrawerOpen, onNavigate }: SidebarProps)
             <ul className="sidebar__list">
               {group.items.map(({ icon, label, path }) => (
                 <li key={path}>
-                  <NavLink
-                    className={({ isActive }) =>
-                      `sidebar__link${isActive ? ' sidebar__link--active' : ''}`
-                    }
-                    onBlur={() => setTooltip(null)}
-                    onClick={onNavigate}
-                    onFocus={(event) => openTooltip(event.currentTarget, label)}
-                    onPointerEnter={(event) => openTooltip(event.currentTarget, label)}
-                    onPointerLeave={() => setTooltip(null)}
-                    to={path}
-                    // When collapsed the label is visually hidden, so the link
-                    // needs its name from an attribute instead. No `title`: the
-                    // browser's own tooltip cannot be styled, appears after a
-                    // delay it decides, and sits wherever the cursor happens to
-                    // be. `sidebar__tooltip` does that job.
-                    {...(isCollapsed ? { 'aria-label': label } : {})}
-                  >
-                    <span className="sidebar__icon">
-                      <Icon name={icon} />
-                    </span>
-                    <span className="sidebar__label">{label}</span>
-                  </NavLink>
+                  {/* Named beside the rail only while it is a rail. With the
+                      labels showing there is nothing left to explain, and an
+                      empty label is how `Tooltip` is asked to stay out of it. */}
+                  <Tooltip label={isCollapsed ? label : ''} side="right">
+                    <NavLink
+                      className={({ isActive }) =>
+                        `sidebar__link${isActive ? ' sidebar__link--active' : ''}`
+                      }
+                      onClick={onNavigate}
+                      to={path}
+                      // When collapsed the label is visually hidden, so the link
+                      // needs its name from an attribute instead.
+                      {...(isCollapsed ? { 'aria-label': label } : {})}
+                    >
+                      <span className="sidebar__icon">
+                        <Icon name={icon} />
+                      </span>
+                      <span className="sidebar__label">{label}</span>
+                    </NavLink>
+                  </Tooltip>
                 </li>
               ))}
             </ul>
           </div>
         ))}
       </nav>
-
-      {/* One tooltip, moved to whichever link is under the cursor, rather than
-          one per link that is hidden until wanted.
-
-          `aria-hidden`, because it repeats the name the link already carries in
-          `aria-label`. A screen reader announcing both would say it twice. */}
-      {!isCollapsed || tooltip === null ? null : (
-        <span aria-hidden="true" className="sidebar__tooltip" style={{ top: tooltip.top }}>
-          {tooltip.label}
-        </span>
-      )}
     </aside>
   )
 }

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
+import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import type { AssignedTaskView } from '@services/work-tracker.service'
 import { formatShortDate } from '@utils/date.utils'
 
@@ -52,10 +53,21 @@ export function TaskTable({
         <tbody>
           {tasks.map((task) => (
             <tr key={task.id}>
+              {/* A line each, cut off rather than wrapped, so every row is the
+                  same height however much somebody typed. The whole text is a
+                  hover away. */}
               <td>
-                <span className="task-table__name">{task.name}</span>
+                <span className="task-table__name">
+                  <Tooltip clips label={task.name}>
+                    {task.name}
+                  </Tooltip>
+                </span>
                 {task.description === undefined ? null : (
-                  <span className="task-table__description">{task.description}</span>
+                  <span className="task-table__description">
+                    <Tooltip clips label={task.description}>
+                      {task.description}
+                    </Tooltip>
+                  </span>
                 )}
               </td>
               {showDeveloper ? <td>{task.developerName}</td> : null}

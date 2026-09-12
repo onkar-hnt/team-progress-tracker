@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
 import { Icon } from '@components/ui/icons/Icon'
+import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { appConfig } from '@config/app.config'
 import { APP_EYEBROW, APP_NAME } from '@constants/app.constants'
 import { useRefreshWorkTracker } from '@hooks/use-work-tracker'
@@ -73,22 +74,25 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
             It re-reads whatever the current screen is showing because it
             invalidates the root, so it needs no knowledge of the route. */}
         {user === null ? null : (
-          <button
-            className="header__refresh"
-            disabled={refresh.isPending}
-            onClick={() => refresh.mutate()}
-            title={
+          <Tooltip
+            label={
               refresh.error === null
                 ? 'Re-read the latest data'
                 : `Refresh failed: ${refresh.error.message}`
             }
-            type="button"
           >
-            <Icon name="refresh" size={18} />
-            <span className="header__refresh-label">
-              {refresh.isPending ? 'Refreshing…' : 'Refresh'}
-            </span>
-          </button>
+            <button
+              className="header__refresh"
+              disabled={refresh.isPending}
+              onClick={() => refresh.mutate()}
+              type="button"
+            >
+              <Icon name="refresh" size={18} />
+              <span className="header__refresh-label">
+                {refresh.isPending ? 'Refreshing…' : 'Refresh'}
+              </span>
+            </button>
+          </Tooltip>
         )}
 
         {/* Opening the master file is a maintenance action for the people who

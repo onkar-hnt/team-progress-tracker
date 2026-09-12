@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { EmptyState } from '@components/ui/feedback/Feedback'
+import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import type { DailyWorkEntryView } from '@services/work-tracker.service'
 import { formatShortDate } from '@utils/date.utils'
 
@@ -54,7 +55,14 @@ export function EntryList({
         {visible.map((entry) => (
           <li className="entry-list__item" key={entry.id}>
             <div className="entry-list__main">
-              <p className="entry-list__title">{entry.taskTitle}</p>
+              {/* One line, cut off rather than wrapped. These panels are often a
+                  narrow column, and a long update wrapped to four lines pushed
+                  the badges and controls below the fold of the card. */}
+              <p className="entry-list__title">
+                <Tooltip clips label={entry.taskTitle}>
+                  {entry.taskTitle}
+                </Tooltip>
+              </p>
               <p className="entry-list__meta">
                 {showDeveloper ? (
                   <Link className="entry-list__link" to={`/developers/${entry.developerId}`}>
@@ -68,7 +76,11 @@ export function EntryList({
                 {entry.hoursSpent === undefined ? '' : ` · ${String(entry.hoursSpent)}h`}
               </p>
               {entry.blockerDescription === undefined ? null : (
-                <p className="entry-list__blocker">{entry.blockerDescription}</p>
+                <p className="entry-list__blocker">
+                  <Tooltip clips label={entry.blockerDescription}>
+                    {entry.blockerDescription}
+                  </Tooltip>
+                </p>
               )}
             </div>
 

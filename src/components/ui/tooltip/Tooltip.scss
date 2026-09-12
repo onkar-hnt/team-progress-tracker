@@ -1,0 +1,51 @@
+@use '@styles/variables' as *;
+
+.tooltip {
+  /// A block-level flex box, so wrapping something in a tooltip does not change
+  /// its width. `min-width: 0` so it can still be squeezed by whatever holds
+  /// it, which is the situation that makes text truncate in the first place.
+  display: flex;
+  min-width: 0;
+
+  /// One line, clipped with an ellipsis. This is also the box the component
+  /// measures to decide whether there is anything worth showing.
+  &--clips {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /// Above the dropdown list, which is the one floating thing it can appear
+  /// over. Placed from script; everything here is what it looks like.
+  ///
+  /// `white-space: normal` because the clipped variant sets `nowrap` on the
+  /// wrapper, and a long name would otherwise run off the side as one line.
+  &__bubble {
+    position: fixed;
+    z-index: 40;
+    max-width: 20rem;
+    padding: $space-2 $space-3;
+    border-radius: $radius-md;
+    color: $color-white;
+    font-size: $font-size-xs;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: normal;
+    background: $color-brand-dark;
+    box-shadow: 0 8px 24px rgb(15 23 42 / 22%);
+
+    /// Never in the way of the pointer: it appears where the cursor is heading.
+    pointer-events: none;
+
+    /// Centred on the row it belongs to.
+    &--right {
+      transform: translateY(-50%);
+    }
+
+    /// Centred over what it describes, sitting above it.
+    &--top {
+      transform: translate(-50%, -100%);
+    }
+  }
+}

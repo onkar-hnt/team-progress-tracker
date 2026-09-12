@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
+import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import type { AppUser } from '@models/user.model'
 import { canDeleteEntry, canEditEntry } from '@services/auth/index'
 import type { DailyWorkEntryView } from '@services/work-tracker.service'
@@ -160,16 +161,37 @@ export function ActivityTable({
                 <td className="data-table__numeric">
                   {entry.hoursSpent === undefined ? '—' : entry.hoursSpent}
                 </td>
+                {/* A line each, cut off rather than wrapped. Somebody who
+                    pasted four sentences into one update used to make their row
+                    six times the height of every other, and a table whose rows
+                    are all different heights cannot be scanned down a column.
+                    The whole text is a hover away. */}
                 <td className="activity-table__task">
-                  <p className="activity-table__title">{entry.taskTitle}</p>
+                  <p className="activity-table__title">
+                    <Tooltip clips label={entry.taskTitle}>
+                      {entry.taskTitle}
+                    </Tooltip>
+                  </p>
                   {entry.description === undefined ? null : (
-                    <p className="activity-table__description">{entry.description}</p>
+                    <p className="activity-table__description">
+                      <Tooltip clips label={entry.description}>
+                        {entry.description}
+                      </Tooltip>
+                    </p>
                   )}
                   {entry.blockerDescription === undefined ? null : (
-                    <p className="activity-table__blocker">Blocker: {entry.blockerDescription}</p>
+                    <p className="activity-table__blocker">
+                      <Tooltip clips label={`Blocker: ${entry.blockerDescription}`}>
+                        Blocker: {entry.blockerDescription}
+                      </Tooltip>
+                    </p>
                   )}
                   {entry.remarks === undefined ? null : (
-                    <p className="activity-table__description">{entry.remarks}</p>
+                    <p className="activity-table__description">
+                      <Tooltip clips label={entry.remarks}>
+                        {entry.remarks}
+                      </Tooltip>
+                    </p>
                   )}
                 </td>
                 <td className="activity-table__actions">
