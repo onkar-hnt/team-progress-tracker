@@ -18,8 +18,8 @@ import { todayIsoDate } from '@utils/date.utils'
 import { describeTask, groupTasksByCompletion, progressForStatus } from '@utils/task.utils'
 
 import {
-  createDailyUpdateFormSchema,
   createEmptyFormValues,
+  dailyUpdateFormSchema,
   toCreateDailyWorkEntryRequest,
   toFormValues,
 } from '../schemas/daily-update.schema'
@@ -56,9 +56,8 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
   const canChooseDeveloper = isAdmin(user) && !isEditing
   const ownDeveloperId = user?.developerId ?? ''
 
-  // Tracked outside the form because the task list has to be loaded before
-  // `useForm` is called: which tasks exist decides whether naming one is
-  // required, and that rule goes into the resolver.
+  // Tracked outside the form because the task list is filtered by it, and an
+  // admin logging on someone else's behalf changes it mid-form.
   const [selectedDeveloperId, setSelectedDeveloperId] = useState(
     entry?.developerId ?? ownDeveloperId,
   )
@@ -74,35 +73,22 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
   const { completed, open } = useMemo(() => groupTasksByCompletion(tasks), [tasks])
 
-  // A developer with assigned work must say which task the day belonged to.
-  // One with none — or one whose task list failed to load — still has to be
-  // able to log the day, and names the work themselves instead.
-  const canPickTask = tasks.length > 0
-
-  // Entries logged before updates were task-linked are the exception. Their
-  // work may have no matching task at all, and requiring one would force the
-  // developer to file the day against something unrelated just to correct a
-  // typo. Offered there, required everywhere else.
-  const requireTask = canPickTask && (entry === undefined || entry.taskId !== undefined)
-  const resolver = useMemo(
-    () => zodResolver(createDailyUpdateFormSchema({ requireTask })),
-    [requireTask],
-  )
-
-  // Assume the picker while the list is in flight. Most developers have work
-  // assigned, so showing the free-text fallback first would make the form
-  // rearrange itself under them a moment after it opened.
-  const showTaskPicker = canPickTask || tasksQuery.isPending
+  // The picker is an addition to the description, not a replacement for it, so
+  // it is simply absent when there is nothing to choose. Shown while the list
+  // is still loading because most developers have work assigned, and appearing
+  // a moment late would shift the fields under whoever is already typing.
+  const showTaskPicker = tasks.length > 0 || tasksQuery.isPending
 
   const {
     control,
     formState: { errors, isSubmitting },
+    getValues,
     handleSubmit,
     register,
     reset,
     setValue,
   } = useForm<DailyUpdateFormValues>({
-    resolver,
+    resolver: zodResolver(dailyUpdateFormSchema),
     defaultValues:
       entry === undefined
         ? createEmptyFormValues({ date, developerId: ownDeveloperId })
@@ -116,15 +102,10 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
   const selectedTaskId = useWatch({ control, name: 'taskId' })
   const selectedTask = tasks.find((candidate) => candidate.id === selectedTaskId)
 
-  // The chosen task, not the presence of a task list, is what decides whether
-  // the project and the title are derived. An entry with no task still has to
-  // ask for both.
+  // A chosen task settles the project, so the project is shown rather than
+  // asked. The description is not derived the same way: it is the developer's
+  // own account of the day, and a task name is not that.
   const hasTask = selectedTaskId !== ''
-
-  // Offered only where it can actually be used: with a task chosen the title
-  // comes from it, and where one is required an empty box would just be a
-  // second way to answer the same question wrongly.
-  const showTitleInput = !hasTask && !requireTask
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
@@ -201,9 +182,10 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
                 setSelectedDeveloperId(event.target.value)
 
                 // The task list is about to change, and a task belonging to
-                // the previous person is refused by the database guard.
+                // the previous person is refused by the database guard. The
+                // description is left alone: it is what the admin came to log,
+                // and correcting who it belongs to should not retype it.
                 setValue('taskId', '')
-                setValue('taskTitle', '')
                 setValue('projectId', '')
               }}
               aria-invalid={errors.developerId ? 'true' : undefined}
@@ -262,11 +244,23 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
       </div>
 
       <div className="daily-update-form__field">
-        <label htmlFor={showTaskPicker ? 'update-task' : 'update-task-title'}>
-          What did you work on?
-        </label>
+        <label htmlFor="update-task-title">What did you work on?</label>
+        <input
+          autoComplete="off"
+          id="update-task-title"
+          placeholder="e.g. Connector configuration screen"
+          type="text"
+          {...register('taskTitle')}
+          aria-invalid={errors.taskTitle ? 'true' : undefined}
+        />
+        {errors.taskTitle ? (
+          <p className="daily-update-form__error">{errors.taskTitle.message}</p>
+        ) : null}
+      </div>
 
-        {showTaskPicker ? (
+      {showTaskPicker ? (
+        <div className="daily-update-form__field">
+          <label htmlFor="update-task">Related task (optional)</label>
           <select
             disabled={tasksQuery.isPending}
             id="update-task"
@@ -274,15 +268,24 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
             onChange={(event) => {
               void taskField.onChange(event)
 
-              // The task settles both the project and the title, so neither
-              // can be filled in to contradict it.
               const picked = tasks.find((candidate) => candidate.id === event.target.value)
+
+              // The task carries a project, and a second answer could only
+              // disagree with it. Cleared along with the task so the field
+              // comes back rather than keeping a value nobody chose.
               setValue('projectId', picked?.projectId ?? '')
-              setValue('taskTitle', picked?.name ?? '')
+
+              // Offered as a starting point, never as a correction: somebody
+              // who has already described their day keeps what they wrote.
+              if (picked !== undefined && getValues('taskTitle').trim() === '') {
+                setValue('taskTitle', picked.name)
+              }
             }}
             aria-invalid={errors.taskId ? 'true' : undefined}
           >
-            <option value="">{tasksQuery.isPending ? 'Loading your tasks…' : 'Select a task'}</option>
+            <option value="">
+              {tasksQuery.isPending ? 'Loading your tasks…' : 'Not linked to a task'}
+            </option>
 
             {open.length === 0 ? null : (
               <optgroup label="Open">
@@ -304,46 +307,23 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
               </optgroup>
             )}
           </select>
-        ) : null}
 
-        {/* Registered either way, because a chosen task fills the title and
-            the value still has to reach the request. */}
-        {showTitleInput ? (
-          <input
-            autoComplete="off"
-            id="update-task-title"
-            placeholder="e.g. Connector configuration screen"
-            type="text"
-            {...register('taskTitle')}
-            aria-invalid={errors.taskTitle ? 'true' : undefined}
-          />
-        ) : (
-          <input type="hidden" {...register('taskTitle')} />
-        )}
+          {errors.taskId ? (
+            <p className="daily-update-form__error">{errors.taskId.message}</p>
+          ) : null}
 
-        {errors.taskId ? <p className="daily-update-form__error">{errors.taskId.message}</p> : null}
-        {showTitleInput && errors.taskTitle ? (
-          <p className="daily-update-form__error">{errors.taskTitle.message}</p>
-        ) : null}
-
-        {tasksQuery.isPending ? null : !canPickTask ? (
           <p className="daily-update-form__hint">
-            {tasksQuery.error === null
-              ? 'Nothing is assigned to you yet, so name the work yourself.'
-              : `Your tasks could not be loaded (${tasksQuery.error.message}), so name the work yourself.`}
+            {hasTask
+              ? 'This task and this update share one status, so finishing here marks it done on My Tasks too.'
+              : 'Link a task and the two share one status. Leave it unlinked for work no task covers.'}
           </p>
-        ) : requireTask ? (
-          <p className="daily-update-form__hint">
-            The task and this update share one status, so finishing here marks it done on My Tasks
-            too.
-          </p>
-        ) : (
-          <p className="daily-update-form__hint">
-            This update was logged before tasks were linked. Choose the task it belongs to and the
-            two will share one status from now on, or leave it as typed.
-          </p>
-        )}
-      </div>
+        </div>
+      ) : tasksQuery.error === null ? null : (
+        <p className="daily-update-form__hint">
+          Your tasks could not be loaded ({tasksQuery.error.message}), so this update cannot be
+          linked to one.
+        </p>
+      )}
 
       <div className="daily-update-form__grid">
         <div className="daily-update-form__field">
