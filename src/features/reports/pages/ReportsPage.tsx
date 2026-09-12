@@ -9,6 +9,7 @@ import {
 } from '@components/charts/WorkCharts'
 import { DeveloperSummaryTable, ProjectSummaryTable } from '@components/summaries/SummaryTables'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import { FilterField } from '@components/ui/field/Field'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { EntryList } from '@components/ui/entry-list/EntryList'
 import { Panel } from '@components/ui/panel/Panel'
@@ -90,20 +91,18 @@ export function ReportsPage() {
 
   const periodPicker = (
     <div className="reports__controls">
-      <label className="reports__field">
-        <span>Period</span>
+      <FilterField label="Period">
         <Dropdown
           ariaLabel="Period"
           onChange={(next) => setPeriodKey(next as PeriodKey)}
           options={PERIOD_OPTIONS}
           value={periodKey}
         />
-      </label>
+      </FilterField>
 
       {periodKey === 'custom' ? (
         <>
-          <label className="reports__field">
-            <span>From</span>
+          <FilterField label="From">
             <input
               max={customRange.to}
               onChange={(event) =>
@@ -112,10 +111,9 @@ export function ReportsPage() {
               type="date"
               value={customRange.from}
             />
-          </label>
+          </FilterField>
 
-          <label className="reports__field">
-            <span>To</span>
+          <FilterField label="To">
             <input
               min={customRange.from}
               onChange={(event) =>
@@ -124,7 +122,7 @@ export function ReportsPage() {
               type="date"
               value={customRange.to}
             />
-          </label>
+          </FilterField>
         </>
       ) : null}
     </div>

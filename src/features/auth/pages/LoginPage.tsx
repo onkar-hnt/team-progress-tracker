@@ -5,6 +5,8 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Button } from '@components/ui/button/Button'
+import { TextField } from '@components/ui/field/Field'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { APP_NAME } from '@constants/app.constants'
 import { AuthError } from '@services/auth/index'
@@ -91,15 +93,16 @@ export function LoginPage() {
           <PasswordForm onError={reportError} onSignedIn={() => void navigate(redirectTo, { replace: true })} />
         ) : (
           <div className="login__form">
-            <button
-              className="login__submit login__submit--microsoft"
+            {/* Microsoft's brand guidance requires their mark in full colour on
+                a neutral surface, which is what `secondary` is. */}
+            <Button
               disabled={isSigningIn}
               onClick={() => void signInWithMicrosoft()}
-              type="button"
+              variant="secondary"
             >
               <MicrosoftLogo />
               {isSigningIn ? 'Opening Microsoft sign-in…' : 'Sign in with Microsoft'}
-            </button>
+            </Button>
 
             <p className="login__hint">
               A sign-in window will open. Your access is based on your entry in the team workbook.
@@ -109,7 +112,7 @@ export function LoginPage() {
 
         {/* Assertive so a screen reader announces a rejected sign-in immediately. */}
         <div aria-live="assertive" role="status">
-          {signInError === null ? null : <p className="login__alert">{signInError}</p>}
+          {signInError === null ? null : <p className="form__alert">{signInError}</p>}
         </div>
 
         {/*
@@ -164,44 +167,28 @@ function PasswordForm({
 
   return (
     <form className="login__form" noValidate onSubmit={onSubmit}>
-      <div className="login__field">
-        <label htmlFor="login-email">Email</label>
-        <input
-          autoComplete="username"
-          id="login-email"
-          placeholder="you@company.com"
-          type="email"
-          {...register('email')}
-          aria-describedby={errors.email ? 'login-email-error' : undefined}
-          aria-invalid={errors.email ? 'true' : undefined}
-        />
-        {errors.email ? (
-          <p className="login__error" id="login-email-error">
-            {errors.email.message}
-          </p>
-        ) : null}
-      </div>
+      <TextField
+        autoComplete="username"
+        error={errors.email?.message}
+        id="login-email"
+        label="Email"
+        placeholder="you@company.com"
+        type="email"
+        {...register('email')}
+      />
 
-      <div className="login__field">
-        <label htmlFor="login-password">Password</label>
-        <input
-          autoComplete="current-password"
-          id="login-password"
-          type="password"
-          {...register('password')}
-          aria-describedby={errors.password ? 'login-password-error' : undefined}
-          aria-invalid={errors.password ? 'true' : undefined}
-        />
-        {errors.password ? (
-          <p className="login__error" id="login-password-error">
-            {errors.password.message}
-          </p>
-        ) : null}
-      </div>
+      <TextField
+        autoComplete="current-password"
+        error={errors.password?.message}
+        id="login-password"
+        label="Password"
+        type="password"
+        {...register('password')}
+      />
 
-      <button className="login__submit" disabled={isSubmitting} type="submit">
+      <Button disabled={isSubmitting} type="submit" variant="primary">
         {isSubmitting ? 'Signing in…' : 'Sign in'}
-      </button>
+      </Button>
     </form>
   )
 }

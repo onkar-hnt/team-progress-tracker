@@ -19,36 +19,15 @@
     justify-content: space-between;
     gap: $space-4;
     padding: $space-4;
-    border: 1px solid #fda29b;
+    border: 1px solid $color-danger-border;
     border-radius: $radius-md;
-    color: #912018;
-    background: #fef3f2;
+    color: $color-danger-dark;
+    background: $color-danger-surface;
     flex-wrap: wrap;
   }
 
   &__message {
     margin: 0;
-  }
-
-  &__retry {
-    padding: $space-2 $space-3;
-    border: 1px solid #912018;
-    border-radius: $radius-md;
-    color: #912018;
-    font: inherit;
-    font-size: $font-size-xs;
-    font-weight: 600;
-    background: transparent;
-    cursor: pointer;
-
-    &:hover {
-      color: $color-white;
-      background: #912018;
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-    }
   }
 
   &--full-page {
@@ -77,7 +56,7 @@
   &__skeleton-row {
     height: 1.25rem;
     border-radius: $radius-md;
-    background: linear-gradient(90deg, $color-surface-subtle 25%, #e9edf3 50%, $color-surface-subtle 75%);
+    background: linear-gradient(90deg, $color-surface-subtle 25%, $color-border 50%, $color-surface-subtle 75%);
     background-size: 200% 100%;
     animation: feedback-shimmer 1.4s ease-in-out infinite;
   }

@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Button } from '@components/ui/button/Button'
+import { CheckboxField, ChecklistField, TextField } from '@components/ui/field/Field'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { NameList } from '@components/ui/name-list/NameList'
@@ -213,48 +215,48 @@ export function MentorsPage() {
                           {CAN_PROVISION_LOGINS &&
                           mentor.profileId === undefined &&
                           describeUnprovisionable(mentor) === null ? (
-                            <button
-                              className="button button--ghost button--small"
+                            <Button
                               disabled={provisionLogin.isPending}
                               onClick={() => void requestLogin(mentor)}
-                              type="button"
+                              size="small"
+                              variant="ghost"
                             >
                               {provisionLogin.isPending ? 'Working…' : 'Create login'}
-                            </button>
+                            </Button>
                           ) : null}
                           {canManageMentorAssignments(user, mentor.id) ? (
-                            <button
-                              className="button button--ghost button--small"
+                            <Button
                               onClick={() => {
                                 writes.clear()
                                 setAssigning(mentor)
                               }}
-                              type="button"
+                              size="small"
+                              variant="ghost"
                             >
                               Assign
-                            </button>
+                            </Button>
                           ) : null}
-                          <button
-                            className="button button--ghost button--small"
+                          <Button
                             onClick={() => {
                               writes.clear()
                               setEditing(mentor)
                             }}
-                            type="button"
+                            size="small"
+                            variant="ghost"
                           >
                             Edit
-                          </button>
-                          <button
-                            className="button button--danger button--small"
+                          </Button>
+                          <Button
                             onClick={() => {
                               if (window.confirm(`Delete ${mentor.name}?`)) {
                                 deleteMentor.mutate(mentor.id)
                               }
                             }}
-                            type="button"
+                            size="small"
+                            variant="danger"
                           >
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -335,38 +337,36 @@ function MentorForm({
 
   return (
     <form className="form" noValidate onSubmit={handleSubmit(onSubmit)}>
-      <div className="form__field">
-        <label htmlFor="mentor-name">Name</label>
-        <input id="mentor-name" {...register('name')} aria-invalid={errors.name ? 'true' : undefined} />
-        {errors.name ? <p className="form__error">{errors.name.message}</p> : null}
-      </div>
+      <TextField
+        error={errors.name?.message}
+        id="mentor-name"
+        label="Name"
+        {...register('name')}
+      />
 
-      <div className="form__field">
-        <label htmlFor="mentor-email">Work email</label>
-        <input id="mentor-email" type="email" {...register('email')} aria-invalid={errors.email ? 'true' : undefined} />
-        {errors.email ? <p className="form__error">{errors.email.message}</p> : null}
-        <p className="form__hint">This is the address they sign in with.</p>
-      </div>
+      <TextField
+        error={errors.email?.message}
+        hint="This is the address they sign in with."
+        id="mentor-email"
+        label="Work email"
+        type="email"
+        {...register('email')}
+      />
 
-      <div className="form__field">
-        <label className="form__checkbox" htmlFor="mentor-active">
-          <input id="mentor-active" type="checkbox" {...register('active')} />
-          Active
-        </label>
-        <p className="form__hint">
-          Inactive mentors keep their history and are not given logins. Unticking this does not
-          revoke a login somebody already has: signing in is governed by the account itself, so an
-          existing login has to be disabled separately.
-        </p>
-      </div>
+      <CheckboxField
+        hint="Inactive mentors keep their history and are not given logins. Unticking this does not revoke a login somebody already has: signing in is governed by the account itself, so an existing login has to be disabled separately."
+        id="mentor-active"
+        label="Active"
+        {...register('active')}
+      />
 
       <div className="form__actions">
-        <button className="button button--secondary" onClick={onCancel} type="button">
+        <Button onClick={onCancel} variant="secondary">
           Cancel
-        </button>
-        <button className="button button--primary" disabled={isSubmitting} type="submit">
+        </Button>
+        <Button disabled={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : 'Save mentor'}
-        </button>
+        </Button>
       </div>
     </form>
   )
@@ -407,42 +407,28 @@ function AssignmentForm({
         setAssignments.mutate({ mentorId, developerIds: selected }, { onSuccess: onDone })
       }}
     >
-      <div className="form__field">
-        <span>Developers</span>
-        <div className="form__checklist">
-          {developers.map((developer) => (
-            <label className="form__checkbox" key={developer.id}>
-              <input
-                checked={selected.includes(developer.id)}
-                onChange={() => toggle(developer.id)}
-                type="checkbox"
-              />
-              {developer.name}
-              {developer.active ? '' : ' (inactive)'}
-            </label>
-          ))}
-        </div>
-        <p className="form__hint">
-          A mentor can see the tasks, progress and feedback of everybody ticked here, and nobody
-          else.
-        </p>
-      </div>
+      <ChecklistField
+        hint="A mentor can see the tasks, progress and feedback of everybody ticked here, and nobody else."
+        label="Developers"
+        onToggle={toggle}
+        options={developers.map((developer) => ({
+          id: developer.id,
+          name: developer.active ? developer.name : `${developer.name} (inactive)`,
+        }))}
+        selected={selected}
+      />
 
       {setAssignments.error === null ? null : (
         <p className="form__alert">{setAssignments.error.message}</p>
       )}
 
       <div className="form__actions">
-        <button className="button button--secondary" onClick={onDone} type="button">
+        <Button onClick={onDone} variant="secondary">
           Cancel
-        </button>
-        <button
-          className="button button--primary"
-          disabled={setAssignments.isPending}
-          type="submit"
-        >
+        </Button>
+        <Button disabled={setAssignments.isPending} type="submit" variant="primary">
           {setAssignments.isPending ? 'Saving…' : 'Save assignments'}
-        </button>
+        </Button>
       </div>
     </form>
   )

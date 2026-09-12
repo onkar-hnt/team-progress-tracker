@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 
+import { Button } from '@components/ui/button/Button'
+import { TextField } from '@components/ui/field/Field'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { APP_NAME } from '@constants/app.constants'
 import { useAuth } from '@app/providers/auth-context'
@@ -196,16 +198,13 @@ export function SetPasswordPage() {
               Invitation links work once and expire. Ask your administrator to send a new one, or
               sign in if you have already set a password.
             </p>
-            {stage.reason === null ? null : (
-              <p className="login__error">{stage.reason}</p>
-            )}
-            <button
-              className="login__submit"
+            {stage.reason === null ? null : <p className="form__error">{stage.reason}</p>}
+            <Button
               onClick={() => void navigate('/login', { replace: true })}
-              type="button"
+              variant="primary"
             >
               Go to sign in
-            </button>
+            </Button>
           </div>
         ) : (
           <PasswordForm
@@ -223,7 +222,7 @@ export function SetPasswordPage() {
         )}
 
         <div aria-live="assertive" role="status">
-          {saveError === null ? null : <p className="login__alert">{saveError}</p>}
+          {saveError === null ? null : <p className="form__alert">{saveError}</p>}
         </div>
       </section>
     </main>
@@ -312,52 +311,36 @@ function PasswordForm({
           Your new password is saved and is the one to sign in with. Finishing the setup did not
           go through, so this screen will keep appearing until it does.
         </p>
-        <button className="login__submit" onClick={() => void finish()} type="button">
+        <Button onClick={() => void finish()} variant="primary">
           Finish setting up
-        </button>
+        </Button>
       </div>
     )
   }
 
   return (
     <form className="login__form" noValidate onSubmit={onSubmit}>
-      <div className="login__field">
-        <label htmlFor="new-password">New password</label>
-        <input
-          autoComplete="new-password"
-          id="new-password"
-          type="password"
-          {...register('password')}
-          aria-describedby={errors.password ? 'new-password-error' : undefined}
-          aria-invalid={errors.password ? 'true' : undefined}
-        />
-        {errors.password ? (
-          <p className="login__error" id="new-password-error">
-            {errors.password.message}
-          </p>
-        ) : null}
-      </div>
+      <TextField
+        autoComplete="new-password"
+        error={errors.password?.message}
+        id="new-password"
+        label="New password"
+        type="password"
+        {...register('password')}
+      />
 
-      <div className="login__field">
-        <label htmlFor="confirm-password">Confirm password</label>
-        <input
-          autoComplete="new-password"
-          id="confirm-password"
-          type="password"
-          {...register('confirmation')}
-          aria-describedby={errors.confirmation ? 'confirm-password-error' : undefined}
-          aria-invalid={errors.confirmation ? 'true' : undefined}
-        />
-        {errors.confirmation ? (
-          <p className="login__error" id="confirm-password-error">
-            {errors.confirmation.message}
-          </p>
-        ) : null}
-      </div>
+      <TextField
+        autoComplete="new-password"
+        error={errors.confirmation?.message}
+        id="confirm-password"
+        label="Confirm password"
+        type="password"
+        {...register('confirmation')}
+      />
 
-      <button className="login__submit" disabled={isSubmitting} type="submit">
+      <Button disabled={isSubmitting} type="submit" variant="primary">
         {isSubmitting ? 'Saving…' : 'Set password and continue'}
-      </button>
+      </Button>
     </form>
   )
 }

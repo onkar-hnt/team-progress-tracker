@@ -1,11 +1,12 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-/// Shared form and button styling.
+/// Shared form styling.
 ///
 /// Every form in the application — daily updates, admin records, feedback —
-/// uses these classes so that fields line up and controls behave the same way
-/// regardless of which module rendered them.
+/// uses these classes so that fields line up and behave the same way regardless
+/// of which module rendered them. Buttons used to live here too and now live
+/// with the component that renders them, in `ui/button/Button.scss`.
 
 .form {
   display: grid;
@@ -45,7 +46,7 @@
       }
 
       &[aria-invalid='true'] {
-        border-color: #b42318;
+        border-color: $color-danger;
       }
 
       &:disabled {
@@ -74,18 +75,33 @@
 
   &__error {
     margin: 0;
-    color: #b42318;
+    color: $color-danger;
     font-size: $font-size-xs;
   }
 
   &__alert {
     margin: 0;
     padding: $space-3;
-    border: 1px solid #fda29b;
+    border: 1px solid $color-danger-border;
     border-radius: $radius-md;
-    color: #912018;
+    color: $color-danger-dark;
     font-size: $font-size-sm;
-    background: #fef3f2;
+    background: $color-danger-surface;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  /// The counterpart of `__alert`, for a save that went through.
+  &__success {
+    margin: 0;
+    padding: $space-3;
+    border: 1px solid $color-success-border;
+    border-radius: $radius-md;
+    color: $color-success;
+    font-size: $font-size-sm;
+    background: $color-success-surface;
   }
 
   &__actions {
@@ -121,72 +137,64 @@
   }
 }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/// A filter control, with its caption above it as a small heading.
+///
+/// Deliberately not a variant of `.form__field`: a filter narrows what is shown
+/// and cannot be wrong, so it has no error, no hint and no required mark, and it
+/// is drawn smaller because a row of them sits above the content rather than
+/// being the content. It is one class rather than the two identical copies —
+/// `.activity-filters__field` and `.reports__field` — that used to exist.
+.filter-field {
+  display: grid;
   gap: $space-2;
-  padding: $space-2 $space-4;
-  border: 1px solid transparent;
-  border-radius: $radius-md;
-  color: $color-text;
-  font: inherit;
-  font-size: $font-size-sm;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  background: transparent;
-  cursor: pointer;
+  font-size: $font-size-xs;
 
-  &:focus-visible {
-    @include focus-ring;
+  >span {
+    color: $color-text-muted;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  &--primary {
-    color: $color-white;
-    background: $color-brand;
-
-    &:hover:not(:disabled) {
-      background: $color-brand-dark;
-    }
-  }
-
-  &--secondary {
-    border-color: $color-border;
+  input,
+  select {
+    padding: $space-2 $space-3;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    color: $color-text;
+    font: inherit;
+    font-size: $font-size-sm;
     background: $color-white;
 
-    &:hover:not(:disabled) {
-      background: $color-surface-subtle;
+    &:focus-visible {
+      @include focus-ring;
+      border-color: $color-brand;
     }
   }
 
-  &--ghost {
-    color: $color-brand;
+  /// Two columns of whatever grid holds it, for the one filter that is typed
+  /// rather than picked and needs the room.
+  &--wide {
+    grid-column: span 2;
 
-    &:hover:not(:disabled) {
-      background: $color-brand-light;
+    @include respond-to-mobile {
+      grid-column: span 1;
     }
   }
 
-  /// Destructive actions are muted until hovered, so a delete control does not
-  /// draw the eye more than the primary action next to it.
-  &--danger {
-    color: #b42318;
+  /// Caption beside the control rather than above it, for a lone filter sitting
+  /// next to a heading rather than in a grid of them.
+  &--inline {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-sm;
 
-    &:hover:not(:disabled) {
-      color: $color-white;
-      background: #b42318;
+    >span {
+      color: $color-text-muted;
+      letter-spacing: normal;
+      text-transform: none;
     }
-  }
-
-  &--small {
-    padding: $space-1 $space-3;
-    font-size: $font-size-xs;
   }
 }
 

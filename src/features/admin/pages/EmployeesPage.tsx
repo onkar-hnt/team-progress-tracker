@@ -3,7 +3,9 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import { CheckboxField, Field, TextField } from '@components/ui/field/Field'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
@@ -222,36 +224,36 @@ export function EmployeesPage() {
                         {CAN_PROVISION_LOGINS &&
                         developer.profileId === undefined &&
                         isProvisionable(developer) ? (
-                          <button
-                            className="button button--ghost button--small"
+                          <Button
                             disabled={provisionLogin.isPending}
                             onClick={() => void requestLogin(developer)}
-                            type="button"
+                            size="small"
+                            variant="ghost"
                           >
                             {provisionLogin.isPending ? 'Working…' : 'Create login'}
-                          </button>
+                          </Button>
                         ) : null}
-                        <button
-                          className="button button--ghost button--small"
+                        <Button
                           onClick={() => {
                             writes.clear()
                             setEditing(developer)
                           }}
-                          type="button"
+                          size="small"
+                          variant="ghost"
                         >
                           Edit
-                        </button>
-                        <button
-                          className="button button--danger button--small"
+                        </Button>
+                        <Button
                           onClick={() => {
                             if (window.confirm(`Delete ${developer.name}?`)) {
                               deleteDeveloper.mutate(developer.id)
                             }
                           }}
-                          type="button"
+                          size="small"
+                          variant="danger"
                         >
                           Delete
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -333,30 +335,35 @@ function EmployeeForm({
   return (
     <form className="form" noValidate onSubmit={handleSubmit(onSubmit)}>
       <div className="form__grid">
-        <div className="form__field">
-          <label htmlFor="employee-name">Name</label>
-          <input id="employee-name" {...register('name')} aria-invalid={errors.name ? 'true' : undefined} />
-          {errors.name ? <p className="form__error">{errors.name.message}</p> : null}
-        </div>
+        <TextField
+          error={errors.name?.message}
+          id="employee-name"
+          label="Name"
+          {...register('name')}
+        />
 
-        <div className="form__field">
-          <label htmlFor="employee-email">Work email</label>
-          <input id="employee-email" type="email" {...register('email')} aria-invalid={errors.email ? 'true' : undefined} />
-          {errors.email ? <p className="form__error">{errors.email.message}</p> : null}
-        </div>
+        <TextField
+          error={errors.email?.message}
+          id="employee-email"
+          label="Work email"
+          type="email"
+          {...register('email')}
+        />
 
-        <div className="form__field">
-          <label htmlFor="employee-role">Job title</label>
-          <input id="employee-role" placeholder="Frontend Developer" {...register('role')} />
-        </div>
+        <TextField
+          id="employee-role"
+          label="Job title"
+          placeholder="Frontend Developer"
+          {...register('role')}
+        />
 
-        <div className="form__field">
-          <label htmlFor="employee-location">Location</label>
-          <input id="employee-location" {...register('location')} />
-        </div>
+        <TextField id="employee-location" label="Location" {...register('location')} />
 
-        <div className="form__field">
-          <label htmlFor="employee-access">Access role</label>
+        <Field
+          hint="Developers see only their own records. Mentors see the developers assigned to them. Administrators see everything."
+          htmlFor="employee-access"
+          label="Access role"
+        >
           <Controller
             control={control}
             name="accessRole"
@@ -370,32 +377,23 @@ function EmployeeForm({
               />
             )}
           />
-          <p className="form__hint">
-            Developers see only their own records. Mentors see the developers assigned to them.
-            Administrators see everything.
-          </p>
-        </div>
+        </Field>
       </div>
 
-      <div className="form__field">
-        <label className="form__checkbox" htmlFor="employee-active">
-          <input id="employee-active" type="checkbox" {...register('active')} />
-          Active
-        </label>
-        <p className="form__hint">
-          Inactive employees keep their history, are not given logins and are not expected to post
-          daily updates. Unticking this does not revoke a login somebody already has: signing in is
-          governed by the account itself, so an existing login has to be disabled separately.
-        </p>
-      </div>
+      <CheckboxField
+        hint="Inactive employees keep their history, are not given logins and are not expected to post daily updates. Unticking this does not revoke a login somebody already has: signing in is governed by the account itself, so an existing login has to be disabled separately."
+        id="employee-active"
+        label="Active"
+        {...register('active')}
+      />
 
       <div className="form__actions">
-        <button className="button button--secondary" onClick={onCancel} type="button">
+        <Button onClick={onCancel} variant="secondary">
           Cancel
-        </button>
-        <button className="button button--primary" disabled={isSubmitting} type="submit">
+        </Button>
+        <Button disabled={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : 'Save employee'}
-        </button>
+        </Button>
       </div>
     </form>
   )

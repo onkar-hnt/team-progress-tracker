@@ -17,10 +17,10 @@
   border: 1px solid $color-border;
   border-radius: $radius-lg;
   background: $color-white;
-  box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+  box-shadow: $shadow-lg;
 
   &::backdrop {
-    background: rgb(15 23 42 / 45%);
+    background: $color-overlay;
   }
 
   /// The same cap as the dialog. The panel is the flex column that decides

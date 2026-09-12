@@ -13,54 +13,57 @@
   white-space: nowrap;
 }
 
+/// Both scales run the same five palettes, so a "blocked" status and a
+/// "critical" priority are the same red rather than two reds that happen to
+/// look alike.
 .status-badge {
   &--not-started {
-    border-color: #d6dae1;
-    color: #48505c;
-    background: #f1f3f6;
+    border-color: $color-neutral-border;
+    color: $color-neutral-text;
+    background: $color-neutral-surface;
   }
 
   &--in-progress {
-    border-color: #b3d1f5;
-    color: #14508c;
-    background: #e8f1fd;
+    border-color: $color-info-border;
+    color: $color-info;
+    background: $color-info-surface;
   }
 
   &--completed {
-    border-color: #a8ddb9;
-    color: #14603a;
-    background: #e6f6ec;
+    border-color: $color-success-border;
+    color: $color-success;
+    background: $color-success-surface;
   }
 
   &--blocked {
-    border-color: #fda29b;
-    color: #912018;
-    background: #fef3f2;
+    border-color: $color-danger-border;
+    color: $color-danger-dark;
+    background: $color-danger-surface;
   }
 }
 
 .priority-badge {
   &--low {
-    border-color: #d6dae1;
-    color: #48505c;
-    background: #f1f3f6;
+    border-color: $color-neutral-border;
+    color: $color-neutral-text;
+    background: $color-neutral-surface;
   }
 
   &--medium {
-    border-color: #c7d2fe;
-    color: #2d3f82;
-    background: #eef2ff;
+    border-color: $color-brand-muted;
+    color: $color-brand;
+    background: $color-brand-light;
   }
 
   &--high {
-    border-color: #fcd9a6;
-    color: #8a4b09;
-    background: #fef5e7;
+    border-color: $color-warning-border;
+    color: $color-warning;
+    background: $color-warning-surface;
   }
 
   &--critical {
-    border-color: #fda29b;
-    color: #912018;
-    background: #fef3f2;
+    border-color: $color-danger-border;
+    color: $color-danger-dark;
+    background: $color-danger-surface;
   }
 }

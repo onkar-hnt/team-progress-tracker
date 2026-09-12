@@ -9,7 +9,9 @@ import {
   WeeklyTrendChart,
 } from '@components/charts/WorkCharts'
 import { DeveloperSummaryTable } from '@components/summaries/SummaryTables'
+import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import { FilterField } from '@components/ui/field/Field'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { EntryList } from '@components/ui/entry-list/EntryList'
 import { Modal } from '@components/ui/modal/Modal'
@@ -117,28 +119,23 @@ export function DashboardPage() {
           }}
         />
 
-        <button
-          className="button button--ghost button--small"
-          onClick={() => setEditing(entry)}
-          type="button"
-        >
+        <Button onClick={() => setEditing(entry)} size="small" variant="ghost">
           Edit
-        </button>
+        </Button>
       </>
     ) : null
 
   const entryActions = isTeamView ? undefined : renderEntryActions
 
   const datePicker = (
-    <label className="dashboard__date">
-      <span>Date</span>
+    <FilterField isInline label="Date">
       <input
         max={todayIsoDate()}
         onChange={(event) => setSelectedDate(event.target.value)}
         type="date"
         value={selectedDate}
       />
-    </label>
+    </FilterField>
   )
 
   if (error !== null) {

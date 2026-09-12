@@ -1,3 +1,5 @@
+import { Button } from '@components/ui/button/Button'
+
 import './Feedback.scss'
 
 interface EmptyStateProps {
@@ -19,9 +21,9 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
     <div className="feedback feedback--error" role="alert">
       <p className="feedback__message">{message}</p>
       {onRetry === undefined ? null : (
-        <button className="feedback__retry" onClick={onRetry} type="button">
+        <Button onClick={onRetry} size="small" variant="danger">
           Try again
-        </button>
+        </Button>
       )}
     </div>
   )

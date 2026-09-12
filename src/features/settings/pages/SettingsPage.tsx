@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from 'react'
 
+import { Button } from '@components/ui/button/Button'
 import { ErrorState } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import { DATA_SOURCE_LABELS, appConfig } from '@config/app.config'
@@ -105,20 +106,16 @@ export function SettingsPage() {
 
         {isLocalWorkbook ? (
           <div className="settings__actions">
-            <button
-              className="button button--primary"
-              disabled={isBusy}
-              onClick={() => void run(chooseWorkbook)}
-            >
+            <Button disabled={isBusy} onClick={() => void run(chooseWorkbook)} variant="primary">
               Change workbook
-            </button>
-            <button
-              className="button"
+            </Button>
+            <Button
               disabled={isBusy || connection.status !== 'connected'}
               onClick={() => void run(disconnectWorkbook)}
+              variant="secondary"
             >
               Disconnect
-            </button>
+            </Button>
           </div>
         ) : null}
 
@@ -186,14 +183,13 @@ function WorkbookStructureCheck() {
   return (
     <>
       <div className="settings__actions">
-        <button
-          className="button"
+        <Button
           disabled={isChecking || status.data?.hasWorkbook !== true}
           onClick={() => ensure.mutate()}
-          type="button"
+          variant="secondary"
         >
           {isChecking ? 'Checking the workbook…' : 'Check workbook structure'}
-        </button>
+        </Button>
       </div>
 
       <div aria-live="polite" role="status">

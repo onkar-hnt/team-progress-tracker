@@ -2,7 +2,9 @@ import { useEffect, useMemo } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
+import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import { Field, TextAreaField, TextField } from '@components/ui/field/Field'
 import { useActiveDevelopers, useTasks } from '@hooks/use-work-tracker'
 import type { MentorComment } from '@models/index'
 import { describeTask, groupTasksByCompletion } from '@utils/task.utils'
@@ -135,11 +137,31 @@ export function FeedbackForm({
     tasksQuery.error === null &&
     tasks.length === 0
 
+  const taskLoadError =
+    tasksQuery.error === null
+      ? undefined
+      : `Tasks could not be loaded: ${tasksQuery.error.message}`
+
+  // What sits under the task picker: why there is nothing to pick, what the
+  // field is for, or — once a task is chosen — the project it already carries,
+  // shown rather than asked because a second question could only disagree.
+  const taskHint =
+    taskLoadError !== undefined
+      ? undefined
+      : hasNoTasks
+        ? 'This developer has no assigned tasks yet, so there is nothing to record feedback against. Assign work first.'
+        : selectedTask === undefined
+          ? 'Feedback is recorded against the work it is about.'
+          : `Project: ${selectedTask.projectName}`
+
   return (
     <form className="feedback-form form" noValidate onSubmit={submit}>
       <div className="form__grid">
-        <div className="form__field">
-          <label htmlFor="feedback-developer">Developer</label>
+        <Field
+          error={errors.developerId?.message}
+          htmlFor="feedback-developer"
+          label="Developer"
+        >
           <Controller
             control={control}
             name="developerId"
@@ -162,20 +184,24 @@ export function FeedbackForm({
               />
             )}
           />
-          {errors.developerId ? (
-            <p className="form__error">{errors.developerId.message}</p>
-          ) : null}
-        </div>
+        </Field>
 
-        <div className="form__field">
-          <label htmlFor="feedback-date">Date</label>
-          <input id="feedback-date" type="date" {...register('date')} />
-          {errors.date ? <p className="form__error">{errors.date.message}</p> : null}
-        </div>
+        <TextField
+          error={errors.date?.message}
+          id="feedback-date"
+          label="Date"
+          type="date"
+          {...register('date')}
+        />
       </div>
 
-      <div className="form__field form__field--wide">
-        <label htmlFor="feedback-task">Task</label>
+      <Field
+        error={errors.taskId?.message ?? taskLoadError}
+        hint={taskHint}
+        htmlFor="feedback-task"
+        isWide
+        label="Task"
+      >
         <Controller
           control={control}
           name="taskId"
@@ -191,55 +217,42 @@ export function FeedbackForm({
             />
           )}
         />
+      </Field>
 
-        {errors.taskId ? <p className="form__error">{errors.taskId.message}</p> : null}
-
-        {tasksQuery.error !== null ? (
-          <p className="form__error">{`Tasks could not be loaded: ${tasksQuery.error.message}`}</p>
-        ) : hasNoTasks ? (
-          <p className="form__hint">
-            This developer has no assigned tasks yet, so there is nothing to record feedback
-            against. Assign work first.
-          </p>
-        ) : selectedTask === undefined ? (
-          <p className="form__hint">Feedback is recorded against the work it is about.</p>
-        ) : (
-          // The project is shown rather than asked: the task already carries
-          // one, and a second question could only disagree with it.
-          <p className="form__hint">{`Project: ${selectedTask.projectName}`}</p>
-        )}
-      </div>
-
-      <div className="form__field form__field--wide">
-        <label htmlFor="feedback-comment">Feedback</label>
-        <textarea
-          id="feedback-comment"
-          placeholder="What went well, what needs attention"
-          rows={4}
-          {...register('comment')}
-          aria-invalid={errors.comment ? 'true' : undefined}
-        />
-        {errors.comment ? <p className="form__error">{errors.comment.message}</p> : null}
-      </div>
+      <TextAreaField
+        error={errors.comment?.message}
+        id="feedback-comment"
+        isWide
+        label="Feedback"
+        placeholder="What went well, what needs attention"
+        rows={4}
+        {...register('comment')}
+      />
 
       <div className="feedback-form__optional">
         <p className="feedback-form__optional-label">Optional detail</p>
 
         <div className="form__grid">
-          <div className="form__field">
-            <label htmlFor="feedback-progress">Progress update</label>
-            <textarea id="feedback-progress" rows={3} {...register('progressUpdate')} />
-          </div>
+          <TextAreaField
+            id="feedback-progress"
+            label="Progress update"
+            rows={3}
+            {...register('progressUpdate')}
+          />
 
-          <div className="form__field">
-            <label htmlFor="feedback-blockers">Blockers</label>
-            <textarea id="feedback-blockers" rows={3} {...register('blockers')} />
-          </div>
+          <TextAreaField
+            id="feedback-blockers"
+            label="Blockers"
+            rows={3}
+            {...register('blockers')}
+          />
 
-          <div className="form__field">
-            <label htmlFor="feedback-recommendations">Recommendations</label>
-            <textarea id="feedback-recommendations" rows={3} {...register('recommendations')} />
-          </div>
+          <TextAreaField
+            id="feedback-recommendations"
+            label="Recommendations"
+            rows={3}
+            {...register('recommendations')}
+          />
         </div>
       </div>
 
@@ -247,13 +260,13 @@ export function FeedbackForm({
 
       <div className="form__actions">
         {onCancel === undefined ? null : (
-          <button className="button button--secondary" onClick={onCancel} type="button">
+          <Button onClick={onCancel} variant="secondary">
             Cancel
-          </button>
+          </Button>
         )}
-        <button className="button button--primary" disabled={isSubmitting} type="submit">
+        <Button disabled={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : comment === undefined ? 'Save feedback' : 'Update feedback'}
-        </button>
+        </Button>
       </div>
     </form>
   )

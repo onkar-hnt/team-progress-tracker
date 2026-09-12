@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react'
 
+import { Button } from '@components/ui/button/Button'
 import { Panel } from '@components/ui/panel/Panel'
 
 import './AdminPageLayout.scss'
@@ -28,9 +29,9 @@ export function AdminPageLayout({
     <div className="admin-page">
       <Panel
         action={
-          <button className="button button--primary" onClick={onCreate} type="button">
+          <Button onClick={onCreate} variant="primary">
             {createLabel}
-          </button>
+          </Button>
         }
         description={description}
         isPageHeading

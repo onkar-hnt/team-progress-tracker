@@ -3,11 +3,11 @@
 .data-source-notice {
   margin: 0 0 $space-5;
   padding: $space-3 $space-4;
-  border: 1px solid #f5c518;
+  border: 1px solid $color-warning-border;
   border-radius: $radius-md;
-  color: #6b4e00;
+  color: $color-warning;
   font-size: $font-size-sm;
-  background: #fffaeb;
+  background: $color-warning-surface;
 
   strong {
     font-weight: 700;
@@ -17,12 +17,15 @@
     padding: 0 $space-1;
     border-radius: $radius-sm;
     font-size: $font-size-xs;
-    background: rgb(0 0 0 / 6%);
+    background: $color-surface-sunken;
   }
 
+  /// The same three tokens `.form__alert` uses, rather than the same three hex
+  /// values written again — these two are the application's only two ways of
+  /// saying "this went wrong" and they should not drift apart.
   &--error {
-    border-color: #fda29b;
-    color: #912018;
-    background: #fef3f2;
+    border-color: $color-danger-border;
+    color: $color-danger-dark;
+    background: $color-danger-surface;
   }
 }

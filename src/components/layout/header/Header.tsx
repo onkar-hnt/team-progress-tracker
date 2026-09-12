@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
-import { Icon } from '@components/ui/icons/Icon'
+import { Button, ButtonLink } from '@components/ui/button/Button'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { appConfig } from '@config/app.config'
 import { APP_EYEBROW, APP_NAME } from '@constants/app.constants'
@@ -38,25 +38,28 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
       <div className="header__brand">
         {/* Two controls for two behaviours: a rail collapse on desktop and a
             drawer on small screens. Each is hidden where it does not apply,
-            so neither has an ambiguous meaning. */}
-        <button
-          aria-label="Open navigation menu"
-          className="header__icon-button header__icon-button--drawer"
-          onClick={onToggleDrawer}
-          type="button"
-        >
-          <Icon name="menu" size={22} />
-        </button>
+            so neither has an ambiguous meaning.
 
-        <button
-          aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-pressed={isSidebarCollapsed}
-          className="header__icon-button header__icon-button--rail"
-          onClick={onToggleSidebar}
-          type="button"
-        >
-          <Icon name={isSidebarCollapsed ? 'chevron-right' : 'chevron-left'} size={22} />
-        </button>
+            The label is the accessible name rather than an `aria-label`, which
+            is what `isIconOnly` means: it is rendered and hidden, so it cannot
+            be forgotten. */}
+        <span className="header__drawer-toggle">
+          <Button icon="menu" isIconOnly onClick={onToggleDrawer} variant="inverse">
+            Open navigation menu
+          </Button>
+        </span>
+
+        <span className="header__rail-toggle">
+          <Button
+            aria-pressed={isSidebarCollapsed}
+            icon={isSidebarCollapsed ? 'chevron-right' : 'chevron-left'}
+            isIconOnly
+            onClick={onToggleSidebar}
+            variant="inverse"
+          >
+            {isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          </Button>
+        </span>
 
         <div>
           <span className="header__eyebrow">{APP_EYEBROW}</span>
@@ -81,17 +84,15 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
                 : `Refresh failed: ${refresh.error.message}`
             }
           >
-            <button
-              className="header__refresh"
+            <Button
+              collapsesLabel
               disabled={refresh.isPending}
+              icon="refresh"
               onClick={() => refresh.mutate()}
-              type="button"
+              variant="inverse"
             >
-              <Icon name="refresh" size={18} />
-              <span className="header__refresh-label">
-                {refresh.isPending ? 'Refreshing…' : 'Refresh'}
-              </span>
-            </button>
+              {refresh.isPending ? 'Refreshing…' : 'Refresh'}
+            </Button>
           </Tooltip>
         )}
 
@@ -100,15 +101,16 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
             the navigation. `noreferrer` keeps the app's URL out of the
             referrer sent to SharePoint. */}
         {canOpenWorkbook(user) && workbookUrl !== '' ? (
-          <a
-            className="header__workbook"
+          <ButtonLink
+            collapsesLabel
             href={workbookUrl}
+            icon="table"
             rel="noreferrer noopener"
             target="_blank"
+            variant="inverse"
           >
-            <Icon name="table" size={18} />
-            <span className="header__workbook-label">Open Excel Sheet</span>
-          </a>
+            Open Excel Sheet
+          </ButtonLink>
         ) : null}
 
         <div className="header__identity">
@@ -117,9 +119,9 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
         </div>
 
         {user === null ? null : (
-          <button className="header__sign-out" onClick={handleSignOut} type="button">
+          <Button onClick={handleSignOut} variant="inverse">
             Sign out
-          </button>
+          </Button>
         )}
       </div>
     </header>

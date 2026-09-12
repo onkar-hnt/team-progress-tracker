@@ -3,7 +3,9 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import { Field, TextAreaField, TextField } from '@components/ui/field/Field'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
@@ -118,25 +120,25 @@ export function TasksPage() {
             emptyMessage="No tasks match this filter."
             renderActions={(task) => (
               <div className="row-actions">
-                <button
-                  className="button button--ghost button--small"
+                <Button
                   onClick={() => {
                     writes.clear()
                     setEditing(task)
                   }}
-                  type="button"
+                  size="small"
+                  variant="ghost"
                 >
                   Edit
-                </button>
-                <button
-                  className="button button--danger button--small"
+                </Button>
+                <Button
                   onClick={() => {
                     if (window.confirm(`Delete "${task.name}"?`)) deleteTask.mutate(task.id)
                   }}
-                  type="button"
+                  size="small"
+                  variant="danger"
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             )}
             tasks={tasksQuery.data ?? []}
@@ -229,20 +231,21 @@ function TaskForm({
 
   return (
     <form className="form" noValidate onSubmit={handleSubmit(onSubmit)}>
-      <div className="form__field form__field--wide">
-        <label htmlFor="task-name">Task</label>
-        <input
-          id="task-name"
-          placeholder="Build the invoice export"
-          {...register('name')}
-          aria-invalid={errors.name ? 'true' : undefined}
-        />
-        {errors.name ? <p className="form__error">{errors.name.message}</p> : null}
-      </div>
+      <TextField
+        error={errors.name?.message}
+        id="task-name"
+        isWide
+        label="Task"
+        placeholder="Build the invoice export"
+        {...register('name')}
+      />
 
       <div className="form__grid">
-        <div className="form__field">
-          <label htmlFor="task-developer">Developer</label>
+        <Field
+          error={errors.developerId?.message}
+          htmlFor="task-developer"
+          label="Developer"
+        >
           <Controller
             control={control}
             name="developerId"
@@ -263,11 +266,9 @@ function TaskForm({
               />
             )}
           />
-          {errors.developerId ? <p className="form__error">{errors.developerId.message}</p> : null}
-        </div>
+        </Field>
 
-        <div className="form__field">
-          <label htmlFor="task-project">Project</label>
+        <Field error={errors.projectId?.message} htmlFor="task-project" label="Project">
           <Controller
             control={control}
             name="projectId"
@@ -285,11 +286,9 @@ function TaskForm({
               />
             )}
           />
-          {errors.projectId ? <p className="form__error">{errors.projectId.message}</p> : null}
-        </div>
+        </Field>
 
-        <div className="form__field">
-          <label htmlFor="task-mentor">Mentor</label>
+        <Field htmlFor="task-mentor" label="Mentor">
           <Controller
             control={control}
             name="mentorId"
@@ -306,10 +305,9 @@ function TaskForm({
               />
             )}
           />
-        </div>
+        </Field>
 
-        <div className="form__field">
-          <label htmlFor="task-priority">Priority</label>
+        <Field htmlFor="task-priority" label="Priority">
           <Controller
             control={control}
             name="priority"
@@ -323,10 +321,9 @@ function TaskForm({
               />
             )}
           />
-        </div>
+        </Field>
 
-        <div className="form__field">
-          <label htmlFor="task-status">Status</label>
+        <Field htmlFor="task-status" label="Status">
           <Controller
             control={control}
             name="status"
@@ -340,37 +337,33 @@ function TaskForm({
               />
             )}
           />
-        </div>
+        </Field>
 
-        <div className="form__field">
-          <label htmlFor="task-created">Start date</label>
-          <input id="task-created" type="date" {...register('createdDate')} />
-        </div>
+        <TextField
+          id="task-created"
+          label="Start date"
+          type="date"
+          {...register('createdDate')}
+        />
 
-        <div className="form__field">
-          <label htmlFor="task-due">Due date</label>
-          <input
-            id="task-due"
-            type="date"
-            {...register('dueDate')}
-            aria-invalid={errors.dueDate ? 'true' : undefined}
-          />
-          {errors.dueDate ? <p className="form__error">{errors.dueDate.message}</p> : null}
-        </div>
+        <TextField
+          error={errors.dueDate?.message}
+          id="task-due"
+          label="Due date"
+          type="date"
+          {...register('dueDate')}
+        />
       </div>
 
-      <div className="form__field form__field--wide">
-        <label htmlFor="task-description">Description</label>
-        <textarea id="task-description" {...register('description')} />
-      </div>
+      <TextAreaField id="task-description" isWide label="Description" {...register('description')} />
 
       <div className="form__actions">
-        <button className="button button--secondary" onClick={onCancel} type="button">
+        <Button onClick={onCancel} variant="secondary">
           Cancel
-        </button>
-        <button className="button button--primary" disabled={isSubmitting} type="submit">
+        </Button>
+        <Button disabled={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : 'Save task'}
-        </button>
+        </Button>
       </div>
     </form>
   )

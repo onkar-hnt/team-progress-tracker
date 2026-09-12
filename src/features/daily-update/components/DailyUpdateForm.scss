@@ -1,6 +1,13 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
+/// The daily update form.
+///
+/// It used to restate the shared form styles in full — its own `__field`,
+/// `__error`, `__hint`, `__alert` and submit button, all a little different from
+/// the originals. The fields are `Field` and `TextField` now and the button is
+/// `Button`, so what is left here is the one thing genuinely particular to this
+/// screen: its four-column grid.
 .daily-update-form {
   display: grid;
   gap: $space-5;
@@ -25,61 +32,28 @@
     @include respond-to-mobile {
       grid-template-columns: minmax(0, 1fr);
     }
-  }
 
-  /// Twice the width of a field, for the two that are written out. Reset to one
-  /// column on a phone, where the grid has only one to give and a field asking
-  /// for two would add a second and push the form off the side.
-  &__field--wide {
-    grid-column: span 2;
-
-    @include respond-to-mobile {
-      grid-column: span 1;
-    }
-  }
-
-  &__field {
-    display: grid;
-    align-content: start;
-    gap: $space-2;
-
-    label {
-      color: $color-text;
-      font-size: $font-size-sm;
-      font-weight: 600;
+    /// Fields differ in height — one carries a hint, another an error — and
+    /// without this the shorter ones stretch their controls to match the tallest
+    /// in the row.
+    .form__field {
+      align-content: start;
     }
 
-    input,
-    select,
-    textarea {
-      width: 100%;
-      padding: $space-3;
-      border: 1px solid $color-border;
-      border-radius: $radius-md;
-      color: $color-text;
-      font: inherit;
-      background: $color-white;
+    /// Here a wide field means two of these four columns rather than the whole
+    /// row. Reset to one on a phone, where the grid has only one to give and a
+    /// field asking for two would add a second and push the form off the side.
+    .form__field--wide {
+      grid-column: span 2;
 
-      &:focus-visible {
-        @include focus-ring;
-        border-color: $color-brand;
+      @include respond-to-mobile {
+        grid-column: span 1;
       }
-
-      &[aria-invalid='true'] {
-        border-color: #b42318;
-      }
-
-      &:disabled {
-        color: $color-text-muted;
-        background: $color-surface-subtle;
-      }
-    }
-
-    textarea {
-      resize: vertical;
     }
   }
 
+  /// A value shown rather than asked for, dressed as the input it replaces so
+  /// the row of fields still reads as a row.
   &__static-value {
     margin: 0;
     padding: $space-3;
@@ -88,44 +62,6 @@
     color: $color-text;
     font-weight: 600;
     background: $color-surface-subtle;
-  }
-
-  &__error {
-    margin: 0;
-    color: #b42318;
-    font-size: $font-size-xs;
-  }
-
-  &__success {
-    margin: 0;
-    padding: $space-3;
-    border: 1px solid #a8ddb9;
-    border-radius: $radius-md;
-    color: #14603a;
-    font-size: $font-size-sm;
-    background: #e6f6ec;
-  }
-
-  &__alert {
-    margin: 0;
-    padding: $space-3;
-    border: 1px solid #fda29b;
-    border-radius: $radius-md;
-    color: #912018;
-    font-size: $font-size-sm;
-    background: #fef3f2;
-  }
-
-  &__load-error {
-    padding: $space-4;
-    border: 1px solid #fda29b;
-    border-radius: $radius-md;
-    color: #912018;
-    background: #fef3f2;
-
-    p {
-      margin: 0;
-    }
   }
 
   &__load-error-detail {
@@ -139,35 +75,4 @@
     gap: $space-4;
     flex-wrap: wrap;
   }
-
-  &__submit {
-    padding: $space-3 $space-6;
-    border: 0;
-    border-radius: $radius-md;
-    color: $color-white;
-    font: inherit;
-    font-weight: 600;
-    background: $color-brand;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      background: $color-brand-dark;
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-    }
-
-    &:disabled {
-      opacity: 0.65;
-      cursor: progress;
-    }
-  }
-
-  &__hint {
-    margin: 0;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
-  }
-
 }

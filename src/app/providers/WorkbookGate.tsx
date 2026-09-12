@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { PropsWithChildren } from 'react'
 
+import { Button } from '@components/ui/button/Button'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { appConfig } from '@config/app.config'
 import {
@@ -115,12 +116,12 @@ function ConnectActions({
           again after a restart.
         </p>
         <div className="workbook-gate__actions">
-          <button className="button button--primary" disabled={isBusy} onClick={onReconnect}>
+          <Button disabled={isBusy} onClick={onReconnect} variant="primary">
             Reconnect workbook
-          </button>
-          <button className="button" disabled={isBusy} onClick={onChoose}>
+          </Button>
+          <Button disabled={isBusy} onClick={onChoose} variant="secondary">
             Choose a different file
-          </button>
+          </Button>
         </div>
       </>
     )
@@ -133,12 +134,12 @@ function ConnectActions({
         your OneDrive folder and your edits sync back to SharePoint automatically.
       </p>
       <div className="workbook-gate__actions">
-        <button className="button button--primary" disabled={isBusy} onClick={onChoose}>
+        <Button disabled={isBusy} onClick={onChoose} variant="primary">
           Choose workbook
-        </button>
-        <button className="button" disabled={isBusy} onClick={onCreate}>
+        </Button>
+        <Button disabled={isBusy} onClick={onCreate} variant="secondary">
           Create a new one
-        </button>
+        </Button>
       </div>
       <p className="workbook-gate__hint">
         Look for <code>{WORKBOOK_FILE_NAME}</code> inside your synced OneDrive folder. If there

@@ -30,7 +30,7 @@
   &__blocker {
     max-width: 26rem;
     margin: $space-2 0 0;
-    color: #912018;
+    color: $color-danger-dark;
     font-size: $font-size-xs;
   }
 
@@ -38,47 +38,4 @@
     white-space: nowrap;
   }
 
-  &__confirm {
-    display: inline-flex;
-    gap: $space-2;
-  }
-
-  &__action {
-    padding: $space-2 $space-3;
-    border: 1px solid $color-border;
-    border-radius: $radius-md;
-    color: $color-text;
-    font: inherit;
-    font-size: $font-size-xs;
-    font-weight: 600;
-    background: $color-white;
-    cursor: pointer;
-
-    +.activity-table__action {
-      margin-left: $space-2;
-    }
-
-    &:hover:not(:disabled) {
-      background: $color-surface-subtle;
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-    }
-
-    &--danger {
-      border-color: #fda29b;
-      color: #912018;
-
-      &:hover:not(:disabled) {
-        color: $color-white;
-        background: #912018;
-      }
-    }
-  }
 }

@@ -20,7 +20,7 @@
   }
 
   &__due--overdue {
-    color: #b42318;
+    color: $color-danger;
     font-weight: 600;
   }
 }

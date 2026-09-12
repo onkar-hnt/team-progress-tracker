@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
@@ -174,18 +175,17 @@ function FeedbackWorkspace() {
             renderActions={(comment) =>
               canEditComment(user, comment) ? (
                 <div className="row-actions">
-                  <button
-                    className="button button--ghost button--small"
+                  <Button
                     onClick={() => {
                       updateComment.reset()
                       setEditing(comment)
                     }}
-                    type="button"
+                    size="small"
+                    variant="ghost"
                   >
                     Edit
-                  </button>
-                  <button
-                    className="button button--danger button--small"
+                  </Button>
+                  <Button
                     onClick={() => {
                       // Deleting feedback removes part of somebody's record,
                       // so it is confirmed rather than immediate.
@@ -193,10 +193,11 @@ function FeedbackWorkspace() {
                         deleteComment.mutate(comment.id)
                       }
                     }}
-                    type="button"
+                    size="small"
+                    variant="danger"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               ) : null
             }

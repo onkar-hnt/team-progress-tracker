@@ -3,7 +3,9 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import { Field, TextField } from '@components/ui/field/Field'
 import type { DropdownOption } from '@components/ui/dropdown/Dropdown'
 import { PROGRESS_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import type { DailyWorkEntry, TaskStatus } from '@models/index'
@@ -191,7 +193,7 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
 
   if (optionsError !== null) {
     return (
-      <div className="daily-update-form__load-error" role="alert">
+      <div className="form__alert" role="alert">
         <p>Developers and projects could not be loaded, so work cannot be logged right now.</p>
         <p className="daily-update-form__load-error-detail">{optionsError.message}</p>
       </div>
@@ -201,17 +203,14 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
   return (
     <form className="daily-update-form" noValidate onSubmit={onSubmit}>
       <div className="daily-update-form__grid">
-        <div className="daily-update-form__field">
-          <label htmlFor="update-date">Date</label>
-          <input
-            id="update-date"
-            max={todayIsoDate()}
-            type="date"
-            {...register('date')}
-            aria-invalid={errors.date ? 'true' : undefined}
-          />
-          {errors.date ? <p className="daily-update-form__error">{errors.date.message}</p> : null}
-        </div>
+        <TextField
+          error={errors.date?.message}
+          id="update-date"
+          label="Date"
+          max={todayIsoDate()}
+          type="date"
+          {...register('date')}
+        />
 
         {/* Rendered whether or not the field below it is, so the value is still
             submitted when the question is never asked. A hidden input takes no
@@ -219,8 +218,11 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
         {canChooseDeveloper ? null : <input type="hidden" {...register('developerId')} />}
 
         {!showsDeveloper ? null : (
-          <div className="daily-update-form__field">
-            <label htmlFor="update-developer">Developer</label>
+          <Field
+            error={errors.developerId?.message}
+            htmlFor="update-developer"
+            label="Developer"
+          >
             {canChooseDeveloper ? (
               <Controller
                 control={control}
@@ -251,14 +253,10 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
             ) : (
               <p className="daily-update-form__static-value">{lockedDeveloperName}</p>
             )}
-            {errors.developerId ? (
-              <p className="daily-update-form__error">{errors.developerId.message}</p>
-            ) : null}
-          </div>
+          </Field>
         )}
 
-        <div className="daily-update-form__field">
-          <label htmlFor="update-project">Project</label>
+        <Field error={errors.projectId?.message} htmlFor="update-project" label="Project">
           {hasTask ? (
             <>
               {/* Shown rather than asked: the task already carries a project,
@@ -285,29 +283,31 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
               )}
             />
           )}
-          {errors.projectId ? (
-            <p className="daily-update-form__error">{errors.projectId.message}</p>
-          ) : null}
-        </div>
+        </Field>
 
-        <div className="daily-update-form__field daily-update-form__field--wide">
-          <label htmlFor="update-task-title">What did you work on?</label>
-          <input
-            autoComplete="off"
-            id="update-task-title"
-            placeholder="e.g. Connector configuration screen"
-            type="text"
-            {...register('taskTitle')}
-            aria-invalid={errors.taskTitle ? 'true' : undefined}
-          />
-          {errors.taskTitle ? (
-            <p className="daily-update-form__error">{errors.taskTitle.message}</p>
-          ) : null}
-        </div>
+        <TextField
+          autoComplete="off"
+          error={errors.taskTitle?.message}
+          id="update-task-title"
+          isWide
+          label="What did you work on?"
+          placeholder="e.g. Connector configuration screen"
+          type="text"
+          {...register('taskTitle')}
+        />
 
         {!showTaskPicker ? null : (
-          <div className="daily-update-form__field daily-update-form__field--wide">
-            <label htmlFor="update-task">Related task (optional)</label>
+          <Field
+            error={errors.taskId?.message}
+            hint={
+              hasTask
+                ? 'This task and this update share one status, so finishing here marks it done on My Tasks too.'
+                : 'Link a task and the two share one status. Leave it unlinked for work no task covers.'
+            }
+            htmlFor="update-task"
+            isWide
+            label="Related task (optional)"
+          >
             <Controller
               control={control}
               name="taskId"
@@ -340,21 +340,10 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
                 />
               )}
             />
-
-            {errors.taskId ? (
-              <p className="daily-update-form__error">{errors.taskId.message}</p>
-            ) : null}
-
-            <p className="daily-update-form__hint">
-              {hasTask
-                ? 'This task and this update share one status, so finishing here marks it done on My Tasks too.'
-                : 'Link a task and the two share one status. Leave it unlinked for work no task covers.'}
-            </p>
-          </div>
+          </Field>
         )}
 
-        <div className="daily-update-form__field">
-          <label htmlFor="update-status">Status</label>
+        <Field htmlFor="update-status" label="Status">
           <Controller
             control={control}
             name="status"
@@ -375,10 +364,9 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
               />
             )}
           />
-        </div>
+        </Field>
 
-        <div className="daily-update-form__field">
-          <label htmlFor="update-progress">Progress</label>
+        <Field error={errors.progress?.message} htmlFor="update-progress" label="Progress">
           <Controller
             control={control}
             name="progress"
@@ -393,38 +381,29 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
               />
             )}
           />
-          {errors.progress ? (
-            <p className="daily-update-form__error">{errors.progress.message}</p>
-          ) : null}
-        </div>
+        </Field>
       </div>
 
       {/* Outside the grid: it explains why a field is missing, so it belongs
           under the fields rather than in a column of its own. */}
       {showTaskPicker || tasksQuery.error === null ? null : (
-        <p className="daily-update-form__hint">
+        <p className="form__hint">
           Your tasks could not be loaded ({tasksQuery.error.message}), so this update cannot be
           linked to one.
         </p>
       )}
 
       <div aria-live="polite" role="status">
-        {savedTitle === null ? null : (
-          <p className="daily-update-form__success">Saved “{savedTitle}”.</p>
-        )}
-        {submitError === null ? null : (
-          <p className="daily-update-form__alert">{submitError}</p>
-        )}
+        {savedTitle === null ? null : <p className="form__success">Saved “{savedTitle}”.</p>}
+        {submitError === null ? null : <p className="form__alert">{submitError}</p>}
       </div>
 
       <div className="daily-update-form__actions">
-        <button className="daily-update-form__submit" disabled={isSubmitting} type="submit">
+        <Button disabled={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : isEditing ? 'Save changes' : 'Save update'}
-        </button>
+        </Button>
         {isEditing ? null : (
-          <p className="daily-update-form__hint">
-            Log one entry per task. You can add several for the same day.
-          </p>
+          <p className="form__hint">Log one entry per task. You can add several for the same day.</p>
         )}
       </div>
     </form>

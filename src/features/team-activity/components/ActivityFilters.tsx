@@ -1,4 +1,5 @@
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import { FilterField } from '@components/ui/field/Field'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import type { Developer, Project, TaskPriority, TaskStatus } from '@models/index'
 
@@ -39,20 +40,18 @@ export function ActivityFilters({
   return (
     <div className="activity-filters">
       <div className="activity-filters__grid">
-        <label className="activity-filters__field">
-          <span>Period</span>
+        <FilterField label="Period">
           <Dropdown
             ariaLabel="Period"
             onChange={(next) => update({ preset: next as ActivityFilterState['preset'] })}
             options={PRESET_OPTIONS}
             value={filters.preset}
           />
-        </label>
+        </FilterField>
 
         {filters.preset === 'custom' ? (
           <>
-            <label className="activity-filters__field">
-              <span>From</span>
+            <FilterField label="From">
               <input
                 max={filters.customRange.to}
                 onChange={(event) =>
@@ -61,10 +60,9 @@ export function ActivityFilters({
                 type="date"
                 value={filters.customRange.from}
               />
-            </label>
+            </FilterField>
 
-            <label className="activity-filters__field">
-              <span>To</span>
+            <FilterField label="To">
               <input
                 min={filters.customRange.from}
                 onChange={(event) =>
@@ -73,12 +71,11 @@ export function ActivityFilters({
                 type="date"
                 value={filters.customRange.to}
               />
-            </label>
+            </FilterField>
           </>
         ) : null}
 
-        <label className="activity-filters__field">
-          <span>Developer</span>
+        <FilterField label="Developer">
           <Dropdown
             ariaLabel="Developer"
             onChange={(next) => update({ developerId: next })}
@@ -88,10 +85,9 @@ export function ActivityFilters({
             ]}
             value={filters.developerId}
           />
-        </label>
+        </FilterField>
 
-        <label className="activity-filters__field">
-          <span>Project</span>
+        <FilterField label="Project">
           <Dropdown
             ariaLabel="Project"
             onChange={(next) => update({ projectId: next })}
@@ -101,37 +97,34 @@ export function ActivityFilters({
             ]}
             value={filters.projectId}
           />
-        </label>
+        </FilterField>
 
-        <label className="activity-filters__field">
-          <span>Status</span>
+        <FilterField label="Status">
           <Dropdown
             ariaLabel="Status"
             onChange={(next) => update({ status: next as TaskStatus | '' })}
             options={STATUS_OPTIONS}
             value={filters.status}
           />
-        </label>
+        </FilterField>
 
-        <label className="activity-filters__field">
-          <span>Priority</span>
+        <FilterField label="Priority">
           <Dropdown
             ariaLabel="Priority"
             onChange={(next) => update({ priority: next as TaskPriority | '' })}
             options={PRIORITY_OPTIONS}
             value={filters.priority}
           />
-        </label>
+        </FilterField>
 
-        <label className="activity-filters__field activity-filters__field--wide">
-          <span>Search</span>
+        <FilterField isWide label="Search">
           <input
             onChange={(event) => update({ search: event.target.value })}
             placeholder="Task, description or remarks"
             type="search"
             value={filters.search}
           />
-        </label>
+        </FilterField>
       </div>
 
       <div className="activity-filters__footer">

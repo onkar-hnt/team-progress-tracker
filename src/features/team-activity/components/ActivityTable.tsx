@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { Button } from '@components/ui/button/Button'
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
@@ -195,51 +196,49 @@ export function ActivityTable({
                   )}
                 </td>
                 <td className="activity-table__actions">
-                  {canEditEntry(user, entry) ? (
-                    <button
-                      className="activity-table__action"
-                      onClick={() => onEdit(entry)}
-                      type="button"
-                    >
-                      Edit
-                    </button>
-                  ) : null}
+                  <div className="row-actions">
+                    {canEditEntry(user, entry) ? (
+                      <Button onClick={() => onEdit(entry)} size="small" variant="secondary">
+                        Edit
+                      </Button>
+                    ) : null}
 
-                  {canDeleteEntry(user, entry) ? (
-                    // Deleting takes two clicks rather than a modal: the
-                    // confirmation is right where the pointer already is, and
-                    // there is no undo behind it.
-                    isConfirming ? (
-                      <span className="activity-table__confirm">
-                        <button
-                          className="activity-table__action activity-table__action--danger"
-                          disabled={isDeleting}
-                          onClick={() => {
-                            setConfirmingId(null)
-                            onDelete(entry)
-                          }}
-                          type="button"
+                    {canDeleteEntry(user, entry) ? (
+                      // Deleting takes two clicks rather than a modal: the
+                      // confirmation is right where the pointer already is, and
+                      // there is no undo behind it.
+                      isConfirming ? (
+                        <>
+                          <Button
+                            disabled={isDeleting}
+                            onClick={() => {
+                              setConfirmingId(null)
+                              onDelete(entry)
+                            }}
+                            size="small"
+                            variant="danger"
+                          >
+                            {isDeleting ? 'Deleting…' : 'Confirm'}
+                          </Button>
+                          <Button
+                            onClick={() => setConfirmingId(null)}
+                            size="small"
+                            variant="secondary"
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          onClick={() => setConfirmingId(entry.id)}
+                          size="small"
+                          variant="danger"
                         >
-                          {isDeleting ? 'Deleting…' : 'Confirm'}
-                        </button>
-                        <button
-                          className="activity-table__action"
-                          onClick={() => setConfirmingId(null)}
-                          type="button"
-                        >
-                          Cancel
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        className="activity-table__action activity-table__action--danger"
-                        onClick={() => setConfirmingId(entry.id)}
-                        type="button"
-                      >
-                        Delete
-                      </button>
-                    )
-                  ) : null}
+                          Delete
+                        </Button>
+                      )
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             )

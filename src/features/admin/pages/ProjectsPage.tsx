@@ -3,7 +3,15 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import {
+  CheckboxField,
+  ChecklistField,
+  Field,
+  TextAreaField,
+  TextField,
+} from '@components/ui/field/Field'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { NameList } from '@components/ui/name-list/NameList'
@@ -130,27 +138,27 @@ export function ProjectsPage() {
                     </td>
                     <td>
                       <div className="row-actions">
-                        <button
-                          className="button button--ghost button--small"
+                        <Button
                           onClick={() => {
                             writes.clear()
                             setEditing(project)
                           }}
-                          type="button"
+                          size="small"
+                          variant="ghost"
                         >
                           Edit
-                        </button>
-                        <button
-                          className="button button--danger button--small"
+                        </Button>
+                        <Button
                           onClick={() => {
                             if (window.confirm(`Delete ${project.name}?`)) {
                               deleteProject.mutate(project.id)
                             }
                           }}
-                          type="button"
+                          size="small"
+                          variant="danger"
                         >
                           Delete
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -258,20 +266,21 @@ function ProjectForm({
   return (
     <form className="form" noValidate onSubmit={handleSubmit(onSubmit)}>
       <div className="form__grid">
-        <div className="form__field">
-          <label htmlFor="project-name">Project name</label>
-          <input id="project-name" {...register('name')} aria-invalid={errors.name ? 'true' : undefined} />
-          {errors.name ? <p className="form__error">{errors.name.message}</p> : null}
-        </div>
+        <TextField
+          error={errors.name?.message}
+          id="project-name"
+          label="Project name"
+          {...register('name')}
+        />
 
-        <div className="form__field">
-          <label htmlFor="project-client">Client</label>
-          <input id="project-client" {...register('client')} aria-invalid={errors.client ? 'true' : undefined} />
-          {errors.client ? <p className="form__error">{errors.client.message}</p> : null}
-        </div>
+        <TextField
+          error={errors.client?.message}
+          id="project-client"
+          label="Client"
+          {...register('client')}
+        />
 
-        <div className="form__field">
-          <label htmlFor="project-status">Status</label>
+        <Field htmlFor="project-status" label="Status">
           <Controller
             control={control}
             name="status"
@@ -285,10 +294,9 @@ function ProjectForm({
               />
             )}
           />
-        </div>
+        </Field>
 
-        <div className="form__field">
-          <label htmlFor="project-mentor">Mentor</label>
+        <Field htmlFor="project-mentor" label="Mentor">
           <Controller
             control={control}
             name="mentorId"
@@ -305,61 +313,47 @@ function ProjectForm({
               />
             )}
           />
-        </div>
+        </Field>
 
-        <div className="form__field">
-          <label htmlFor="project-start">Start date</label>
-          <input id="project-start" type="date" {...register('startDate')} />
-        </div>
+        <TextField id="project-start" label="Start date" type="date" {...register('startDate')} />
 
-        <div className="form__field">
-          <label htmlFor="project-end">End date</label>
-          <input
-            id="project-end"
-            type="date"
-            {...register('endDate')}
-            aria-invalid={errors.endDate ? 'true' : undefined}
-          />
-          {errors.endDate ? <p className="form__error">{errors.endDate.message}</p> : null}
-        </div>
+        <TextField
+          error={errors.endDate?.message}
+          id="project-end"
+          label="End date"
+          type="date"
+          {...register('endDate')}
+        />
       </div>
 
-      <div className="form__field form__field--wide">
-        <label htmlFor="project-description">Description</label>
-        <textarea id="project-description" {...register('description')} />
-      </div>
+      <TextAreaField
+        id="project-description"
+        isWide
+        label="Description"
+        {...register('description')}
+      />
 
-      <div className="form__field">
-        <span>Assigned developers</span>
-        <div className="form__checklist">
-          {developers.map((developer) => (
-            <label className="form__checkbox" key={developer.id}>
-              <input
-                checked={assigned.includes(developer.id)}
-                onChange={() => toggleDeveloper(developer.id)}
-                type="checkbox"
-              />
-              {developer.name}
-            </label>
-          ))}
-        </div>
-      </div>
+      <ChecklistField
+        label="Assigned developers"
+        onToggle={toggleDeveloper}
+        options={developers}
+        selected={assigned}
+      />
 
-      <div className="form__field">
-        <label className="form__checkbox" htmlFor="project-active">
-          <input id="project-active" type="checkbox" {...register('active')} />
-          Active
-        </label>
-        <p className="form__hint">Inactive projects stay in reports but are hidden from pickers.</p>
-      </div>
+      <CheckboxField
+        hint="Inactive projects stay in reports but are hidden from pickers."
+        id="project-active"
+        label="Active"
+        {...register('active')}
+      />
 
       <div className="form__actions">
-        <button className="button button--secondary" onClick={onCancel} type="button">
+        <Button onClick={onCancel} variant="secondary">
           Cancel
-        </button>
-        <button className="button button--primary" disabled={isSubmitting} type="submit">
+        </Button>
+        <Button disabled={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : 'Save project'}
-        </button>
+        </Button>
       </div>
     </form>
   )

@@ -40,11 +40,11 @@
   }
 
   &--positive {
-    border-left-color: #2f9e5f;
+    border-left-color: $color-success;
   }
 
   &--attention {
-    border-left-color: #b42318;
+    border-left-color: $color-danger;
   }
 }
 

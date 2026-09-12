@@ -1,7 +1,11 @@
+@use 'sass:color';
 @use 'variables' as *;
 
+/// Derived from the brand colour rather than written out as `rgb(49 85 166 …)`,
+/// which is what this was: the same colour in decimal, in a second file, where
+/// changing the brand would have left it behind.
 @mixin focus-ring {
-    outline: 3px solid rgb(49 85 166 / 35%);
+    outline: 3px solid color.change($color-brand, $alpha: 0.35);
     outline-offset: 2px;
 }
 

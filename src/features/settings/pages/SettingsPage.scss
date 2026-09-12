@@ -32,11 +32,11 @@
   }
 
   &__value--positive {
-    color: #067647;
+    color: $color-success;
   }
 
   &__value--attention {
-    color: #b54708;
+    color: $color-warning;
   }
 
   &__steps {
@@ -103,7 +103,7 @@
     padding: 0 $space-1;
     border-radius: $radius-sm;
     font-size: $font-size-xs;
-    background: rgb(15 23 42 / 7%);
+    background: $color-surface-sunken;
   }
 
   &__note {

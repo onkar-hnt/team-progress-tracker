@@ -52,7 +52,7 @@
       position: fixed;
       inset: $header-height 0 0;
       z-index: 15;
-      background: rgb(15 23 42 / 40%);
+      background: $color-overlay;
     }
   }
 

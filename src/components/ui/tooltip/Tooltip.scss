@@ -33,7 +33,7 @@
     line-height: 1.35;
     white-space: normal;
     background: $color-brand-dark;
-    box-shadow: 0 8px 24px rgb(15 23 42 / 22%);
+    box-shadow: $shadow-md;
 
     /// Never in the way of the pointer: it appears where the cursor is heading.
     pointer-events: none;

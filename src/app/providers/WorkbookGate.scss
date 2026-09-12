@@ -48,8 +48,8 @@
   &__error {
     padding: $space-2 $space-3;
     border-radius: $radius-md;
-    background: #fef3f2;
-    color: #b42318;
+    background: $color-danger-surface;
+    color: $color-danger;
     font-size: $font-size-sm;
   }
 

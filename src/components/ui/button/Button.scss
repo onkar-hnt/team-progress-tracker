@@ -1,0 +1,117 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+/// Every button in the application.
+///
+/// Moved here from `_form.scss`, which is about fields: buttons appear on
+/// screens that have no form at all — a table row's actions, the workbook gate,
+/// the error boundary — and a stylesheet named for one of its callers is how a
+/// second copy eventually gets written somewhere else.
+///
+/// The variants are the whole vocabulary. Anything that needs to look different
+/// from all five belongs here as a sixth, not as a bespoke rule beside its own
+/// component, which is what the header's four near-identical controls were
+/// before `--inverse` existed.
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  color: $color-text;
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  background: transparent;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    color: $color-white;
+    background: $color-brand;
+
+    &:hover:not(:disabled) {
+      background: $color-brand-dark;
+    }
+  }
+
+  &--secondary {
+    border-color: $color-border;
+    background: $color-white;
+
+    &:hover:not(:disabled) {
+      background: $color-surface-subtle;
+    }
+  }
+
+  &--ghost {
+    color: $color-brand;
+
+    &:hover:not(:disabled) {
+      background: $color-brand-light;
+    }
+  }
+
+  /// Destructive actions are muted until hovered, so a delete control does not
+  /// draw the eye more than the primary action next to it.
+  &--danger {
+    color: $color-danger;
+
+    &:hover:not(:disabled) {
+      color: $color-white;
+      background: $color-danger;
+    }
+  }
+
+  /// For the dark header bar, where none of the above has any contrast to
+  /// offer. The one variant whose colours come from the inverse tokens.
+  &--inverse {
+    border-color: $color-inverse-border;
+    color: $color-white;
+
+    &:hover:not(:disabled) {
+      background: $color-inverse-hover;
+    }
+  }
+
+  &--small {
+    padding: $space-1 $space-3;
+    font-size: $font-size-xs;
+  }
+
+  /// A square control holding an icon and nothing else. Sized to the icon plus
+  /// its focus ring rather than to text, since there is no text to size to.
+  &--icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  /// The label is always rendered, and hidden visually where it should not be
+  /// read — so an icon-only control still has an accessible name, rather than
+  /// depending on whoever wrote the call site remembering `aria-label`.
+  &__label {
+    &--hidden {
+      @include visually-hidden;
+    }
+
+    &--collapses {
+      @include respond-to-tablet {
+        @include visually-hidden;
+      }
+    }
+  }
+}

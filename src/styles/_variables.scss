@@ -7,6 +7,54 @@ $color-text-muted: #5f6b7a;
 $color-border: #dfe3ea;
 $color-surface-subtle: #f5f7fa;
 $color-white: #ffffff;
+
+/// Status palettes.
+///
+/// Five states — neutral, informational, good, worth attention, wrong — each a
+/// border, a text colour and a surface, because that is the shape every badge,
+/// alert and notice in the application already had. They were written out as
+/// literals in fifteen files, sixty-three times, and had drifted: three
+/// different greens, two ambers, and a `#eef2ff` one digit away from
+/// `$color-brand-light`. Naming them is what stops the next one being a fourth.
+///
+/// The text colour of each palette is legible on white as well as on its own
+/// surface, so a badge and a line of body text can use the same one.
+$color-neutral-border: #d6dae1;
+$color-neutral-text: #48505c;
+$color-neutral-surface: #f1f3f6;
+
+$color-info-border: #b3d1f5;
+$color-info: #14508c;
+$color-info-surface: #e8f1fd;
+
+$color-success-border: #a8ddb9;
+$color-success: #14603a;
+$color-success-surface: #e6f6ec;
+
+$color-warning-border: #fcd9a6;
+$color-warning: #8a4b09;
+$color-warning-surface: #fef5e7;
+
+/// Danger carries two text tones: the darker one for a word set on its own
+/// surface, the lighter for a message or a control on the white page.
+$color-danger: #b42318;
+$color-danger-dark: #912018;
+$color-danger-border: #fda29b;
+$color-danger-surface: #fef3f2;
+
+/// Controls drawn on the dark header bar, where the palette above has no
+/// contrast to offer. One border strength rather than the two that had grown
+/// up: the icon buttons were outlined at 25% and everything beside them at 35%.
+$color-inverse-border: rgb(255 255 255 / 35%);
+$color-inverse-hover: rgb(255 255 255 / 12%);
+
+/// A tint of the text colour, for something set into the page rather than
+/// raised off it — a code sample, a read-only value.
+$color-surface-sunken: rgb(15 23 42 / 7%);
+
+/// What dims the page behind a modal or an open drawer.
+$color-overlay: rgb(15 23 42 / 45%);
+
 $space-1: 0.25rem;
 $space-2: 0.5rem;
 $space-3: 0.75rem;
@@ -22,7 +70,17 @@ $font-size-2xl: 1.75rem;
 $radius-sm: 0.25rem;
 $radius-md: 0.5rem;
 $radius-lg: 0.75rem;
+
+/// Three elevations, one shadow colour.
+///
+/// `sm` sits a card off the page, `md` floats a popover — a dropdown list, the
+/// sidebar drawer, a tooltip — and `lg` is for a modal. The middle one existed
+/// three times before this, as the same `0 8px 24px` at 12%, 14% and 22% in
+/// three separate files.
 $shadow-sm: 0 1px 3px rgb(15 23 42 / 8%);
+$shadow-md: 0 8px 24px rgb(15 23 42 / 14%);
+$shadow-lg: 0 12px 32px rgb(15 23 42 / 18%);
+
 $header-height: 4.5rem;
 $sidebar-width: 15rem;
 /// Wide enough for an icon plus its focus ring, with nothing else on the rail.

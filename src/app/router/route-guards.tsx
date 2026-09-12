@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Button } from '@components/ui/button/Button'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { useAccessScope, useMentorAssignments } from '@hooks/use-access-scope'
@@ -133,14 +134,13 @@ export function RequireScope() {
     return (
       <PagePlaceholder
         action={
-          <button
-            className="button button--primary"
+          <Button
             disabled={assignmentsQuery.isFetching}
             onClick={() => void assignmentsQuery.refetch()}
-            type="button"
+            variant="primary"
           >
             {assignmentsQuery.isFetching ? 'Retrying…' : 'Try again'}
-          </button>
+          </Button>
         }
         description="Your access could not be confirmed, so nothing is shown."
         title="Access unavailable"

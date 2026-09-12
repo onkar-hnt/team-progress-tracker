@@ -1,6 +1,13 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
+/// The header bar.
+///
+/// Four controls used to be styled here — an icon button, a sign-out button, a
+/// workbook link and a refresh button — each repeating the same white border,
+/// radius, hover tint and focus ring at a slightly different opacity. They are
+/// all `Button variant="inverse"` now, so this file describes only the bar and
+/// where things sit on it.
 .header {
   grid-column: 1 / -1;
   display: flex;
@@ -42,121 +49,27 @@
     text-align: right;
   }
 
-  &__icon-button {
+  /// Two controls for two behaviours, each hidden where it does not apply: a
+  /// rail collapse on desktop, a drawer on small screens.
+  ///
+  /// Which one is shown is the header's business rather than the button's, so it
+  /// is decided by a wrapper here instead of by a class handed to `Button` —
+  /// the variants are the button's whole vocabulary and stay that way.
+  &__drawer-toggle {
+    display: none;
+  }
+
+  &__rail-toggle {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    flex-shrink: 0;
-    padding: 0;
-    border: 1px solid rgb(255 255 255 / 25%);
-    border-radius: $radius-md;
-    color: $color-white;
-    background: transparent;
-    cursor: pointer;
-
-    &:hover {
-      background: rgb(255 255 255 / 12%);
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-    }
-
-    /// The drawer toggle only exists where the sidebar is a drawer.
-    &--drawer {
-      display: none;
-    }
-
-    @include respond-to-tablet {
-      &--drawer {
-        display: flex;
-      }
-
-      &--rail {
-        display: none;
-      }
-    }
-  }
-
-  &__sign-out {
-    padding: $space-2 $space-3;
-    border: 1px solid rgb(255 255 255 / 35%);
-    border-radius: $radius-md;
-    color: $color-white;
-    font: inherit;
-    font-size: $font-size-sm;
-    background: transparent;
-    cursor: pointer;
-
-    &:hover {
-      background: rgb(255 255 255 / 12%);
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-    }
-  }
-
-  &__workbook {
-    display: inline-flex;
-    align-items: center;
-    gap: $space-2;
-    padding: $space-2 $space-3;
-    border: 1px solid rgb(255 255 255 / 35%);
-    border-radius: $radius-md;
-    color: $color-white;
-    font-size: $font-size-sm;
-    font-weight: 600;
-    text-decoration: none;
-    white-space: nowrap;
-
-    &:hover {
-      background: rgb(255 255 255 / 12%);
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-    }
-  }
-
-  &__refresh {
-    display: inline-flex;
-    align-items: center;
-    gap: $space-2;
-    padding: $space-2 $space-3;
-    border: 1px solid rgb(255 255 255 / 35%);
-    border-radius: $radius-md;
-    color: $color-white;
-    font: inherit;
-    font-size: $font-size-sm;
-    font-weight: 600;
-    white-space: nowrap;
-    background: transparent;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      background: rgb(255 255 255 / 12%);
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: progress;
-    }
   }
 
   @include respond-to-tablet {
+    &__drawer-toggle {
+      display: flex;
+    }
 
-    /// Labels are dropped before their icons, so these actions survive on a
-    /// narrow header instead of disappearing.
-    &__workbook-label,
-    &__refresh-label {
-      @include visually-hidden;
+    &__rail-toggle {
+      display: none;
     }
   }
 
