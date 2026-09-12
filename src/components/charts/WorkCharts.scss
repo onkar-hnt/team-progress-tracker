@@ -1,7 +1,11 @@
 @use '@styles/variables' as *;
 
 .work-chart {
+
   /// Recharts' responsive container measures its parent, so the wrapper needs
   /// a definite width to measure against inside a grid track.
-  &__canvas { width: 100%; min-width: 0; }
+  &__canvas {
+    width: 100%;
+    min-width: 0;
+  }
 }

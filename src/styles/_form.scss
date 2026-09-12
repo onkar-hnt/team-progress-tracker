@@ -7,62 +7,192 @@
 /// uses these classes so that fields line up and controls behave the same way
 /// regardless of which module rendered them.
 
-.form { display: grid; gap: $space-5;
+.form {
+  display: grid;
+  gap: $space-5;
 
-  &__grid { display: grid; gap: $space-4; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+  &__grid {
+    display: grid;
+    gap: $space-4;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
 
-  &__field { display: grid; gap: $space-2;
+  &__field {
+    display: grid;
+    gap: $space-2;
 
-    label, > span { color: $color-text; font-size: $font-size-sm; font-weight: 600; }
-
-    input, select, textarea { width: 100%; padding: $space-3; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; background: $color-white;
-      &:focus-visible { @include focus-ring; border-color: $color-brand; }
-      &[aria-invalid='true'] { border-color: #b42318; }
-      &:disabled { color: $color-text-muted; background: $color-surface-subtle; cursor: not-allowed; }
+    label,
+    >span {
+      color: $color-text;
+      font-size: $font-size-sm;
+      font-weight: 600;
     }
 
-    textarea { min-height: 6rem; resize: vertical; }
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: $space-3;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      color: $color-text;
+      font: inherit;
+      background: $color-white;
+
+      &:focus-visible {
+        @include focus-ring;
+        border-color: $color-brand;
+      }
+
+      &[aria-invalid='true'] {
+        border-color: #b42318;
+      }
+
+      &:disabled {
+        color: $color-text-muted;
+        background: $color-surface-subtle;
+        cursor: not-allowed;
+      }
+    }
+
+    textarea {
+      min-height: 6rem;
+      resize: vertical;
+    }
   }
 
   /// Spans the full width of a multi-column grid, for descriptions and notes.
-  &__field--wide { grid-column: 1 / -1; }
+  &__field--wide {
+    grid-column: 1 / -1;
+  }
 
-  &__hint { margin: 0; color: $color-text-muted; font-size: $font-size-xs; }
-  &__error { margin: 0; color: #b42318; font-size: $font-size-xs; }
-  &__alert { margin: 0; padding: $space-3; border: 1px solid #fda29b; border-radius: $radius-md; color: #912018; font-size: $font-size-sm; background: #fef3f2; }
-  &__actions { display: flex; align-items: center; justify-content: flex-end; gap: $space-3; flex-wrap: wrap; }
+  &__hint {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  &__error {
+    margin: 0;
+    color: #b42318;
+    font-size: $font-size-xs;
+  }
+
+  &__alert {
+    margin: 0;
+    padding: $space-3;
+    border: 1px solid #fda29b;
+    border-radius: $radius-md;
+    color: #912018;
+    font-size: $font-size-sm;
+    background: #fef3f2;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $space-3;
+    flex-wrap: wrap;
+  }
 
   /// Checkbox lists, used for assigning developers to mentors and projects.
-  &__checklist { display: grid; gap: $space-2; max-height: 16rem; padding: $space-3; overflow-y: auto; border: 1px solid $color-border; border-radius: $radius-md; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
-  &__checkbox { display: flex; align-items: center; gap: $space-2; font-size: $font-size-sm; font-weight: 500;
-    input { width: auto; }
+  &__checklist {
+    display: grid;
+    gap: $space-2;
+    max-height: 16rem;
+    padding: $space-3;
+    overflow-y: auto;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  }
+
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    font-weight: 500;
+
+    input {
+      width: auto;
+    }
   }
 }
 
-.button { display: inline-flex; align-items: center; justify-content: center; gap: $space-2; padding: $space-2 $space-4; border: 1px solid transparent; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-sm; font-weight: 600; text-decoration: none; white-space: nowrap; background: transparent; cursor: pointer;
-  &:focus-visible { @include focus-ring; }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  color: $color-text;
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  background: transparent;
+  cursor: pointer;
 
-  &--primary { color: $color-white; background: $color-brand;
-    &:hover:not(:disabled) { background: $color-brand-dark; }
+  &:focus-visible {
+    @include focus-ring;
   }
 
-  &--secondary { border-color: $color-border; background: $color-white;
-    &:hover:not(:disabled) { background: $color-surface-subtle; }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
-  &--ghost { color: $color-brand;
-    &:hover:not(:disabled) { background: $color-brand-light; }
+  &--primary {
+    color: $color-white;
+    background: $color-brand;
+
+    &:hover:not(:disabled) {
+      background: $color-brand-dark;
+    }
+  }
+
+  &--secondary {
+    border-color: $color-border;
+    background: $color-white;
+
+    &:hover:not(:disabled) {
+      background: $color-surface-subtle;
+    }
+  }
+
+  &--ghost {
+    color: $color-brand;
+
+    &:hover:not(:disabled) {
+      background: $color-brand-light;
+    }
   }
 
   /// Destructive actions are muted until hovered, so a delete control does not
   /// draw the eye more than the primary action next to it.
-  &--danger { color: #b42318;
-    &:hover:not(:disabled) { color: $color-white; background: #b42318; }
+  &--danger {
+    color: #b42318;
+
+    &:hover:not(:disabled) {
+      color: $color-white;
+      background: #b42318;
+    }
   }
 
-  &--small { padding: $space-1 $space-3; font-size: $font-size-xs; }
+  &--small {
+    padding: $space-1 $space-3;
+    font-size: $font-size-xs;
+  }
 }
 
 /// A row of buttons inside a table cell.
-.row-actions { display: flex; gap: $space-2; flex-wrap: wrap; }
+.row-actions {
+  display: flex;
+  gap: $space-2;
+  flex-wrap: wrap;
+}

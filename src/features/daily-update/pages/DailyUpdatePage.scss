@@ -3,9 +3,33 @@
 /// A single column now that the form is the whole screen. Capped rather than
 /// stretched: the fields are short, and a date picker spanning a wide monitor
 /// reads as a layout fault.
-.daily-update-page { display: grid; gap: $space-6; align-items: start; max-width: 56rem;
-  &__panel { padding: $space-6; border: 1px solid $color-border; border-radius: $radius-lg; background: $color-white; box-shadow: $shadow-sm; }
-  &__header { margin-bottom: $space-5; }
-  &__title { margin: 0 0 $space-2; color: $color-text; font-size: $font-size-2xl; }
-  &__subtitle { margin: 0; color: $color-text-muted; font-size: $font-size-sm; }
+.daily-update-page {
+  display: grid;
+  gap: $space-6;
+  align-items: start;
+  max-width: 56rem;
+
+  &__panel {
+    padding: $space-6;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    background: $color-white;
+    box-shadow: $shadow-sm;
+  }
+
+  &__header {
+    margin-bottom: $space-5;
+  }
+
+  &__title {
+    margin: 0 0 $space-2;
+    color: $color-text;
+    font-size: $font-size-2xl;
+  }
+
+  &__subtitle {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
 }

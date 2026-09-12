@@ -27,7 +27,12 @@ import type {
 import { getDataProvider } from './data-provider/index'
 import type { DataProvider, DataProviderCapabilities } from './data-provider/index'
 import type { AccessScope } from './auth/access-scope'
-import { canViewDeveloper, filterByScope, restrictDeveloperIds } from './auth/access-scope'
+import {
+  canViewDeveloper,
+  describeScope,
+  filterByScope,
+  restrictDeveloperIds,
+} from './auth/access-scope'
 import { isAdmin } from './auth/permissions'
 import type { DateRange } from '@utils/date.utils'
 import { getWeekRange, todayIsoDate, toNearestWorkingDay } from '@utils/date.utils'
@@ -122,8 +127,48 @@ export interface RangeOverview {
 export class WorkTrackerService {
   private readonly provider: DataProvider
 
+  /**
+   * The three lookup tables, shared across one burst of view assembly.
+   *
+   * Almost every composite view resolves names against developers, projects
+   * and mentors, and each is assembled by its own query. React Query
+   * deduplicates by query key, so it cannot see that a dashboard's day
+   * overview, week overview and task list are all reading the roster: the
+   * duplication happens inside three different queries. Measured on a
+   * developer's dashboard that was four reads of developers and three of
+   * projects for one page.
+   *
+   * Deliberately not a general cache. Only these three, only for a moment,
+   * and cleared outright by `forgetLookups` after any write, so a screen
+   * refreshed by a mutation never resolves names against the state before it.
+   */
+  private readonly developerLookup: ShortLivedRead<Developer>
+  private readonly projectLookup: ShortLivedRead<Project>
+  private readonly mentorLookup: ShortLivedRead<Mentor>
+
+  /** The involvement-derived project list, which costs several reads to build. */
+  private readonly scopedProjectLookup = new ShortLivedReadByKey<Project>()
+
   constructor(provider: DataProvider) {
     this.provider = provider
+
+    this.developerLookup = new ShortLivedRead(() => provider.getDevelopers())
+    this.projectLookup = new ShortLivedRead(() => provider.getProjects())
+    this.mentorLookup = new ShortLivedRead(() => provider.getMentors())
+  }
+
+  /**
+   * Drops the lookup memos.
+   *
+   * Called from the one place that runs after every successful write, before
+   * the invalidated queries are refetched — the whole point is that those
+   * refetches see the roster as it is now.
+   */
+  forgetLookups(): void {
+    this.developerLookup.forget()
+    this.projectLookup.forget()
+    this.mentorLookup.forget()
+    this.scopedProjectLookup.forget()
   }
 
   get capabilities(): DataProviderCapabilities {
@@ -132,7 +177,7 @@ export class WorkTrackerService {
 
   /** Employees the signed-in person may see. */
   async getDevelopers(scope: AccessScope): Promise<Developer[]> {
-    const developers = await this.provider.getDevelopers()
+    const developers = await this.developerLookup.get()
     return developers.filter((developer) => canViewDeveloper(scope, developer.id))
   }
 
@@ -156,17 +201,17 @@ export class WorkTrackerService {
    */
   async getRosterDevelopers(scope: AccessScope): Promise<Developer[]> {
     if (!scope.readsRoster) return this.getDevelopers(scope)
-    return this.provider.getDevelopers()
+    return this.developerLookup.get()
   }
 
   async getRosterMentors(scope: AccessScope): Promise<Mentor[]> {
     if (!scope.readsRoster) return this.getMentors(scope)
-    return this.provider.getMentors()
+    return this.mentorLookup.get()
   }
 
   async getRosterProjects(scope: AccessScope): Promise<Project[]> {
     if (!scope.readsRoster) return this.getProjects(scope)
-    return this.provider.getProjects()
+    return this.projectLookup.get()
   }
 
   async getActiveRosterProjects(scope: AccessScope): Promise<Project[]> {
@@ -178,7 +223,7 @@ export class WorkTrackerService {
   async getDeveloperById(scope: AccessScope, id: string): Promise<Developer | null> {
     if (!canViewDeveloper(scope, id)) return null
 
-    const developers = await this.provider.getDevelopers()
+    const developers = await this.developerLookup.get()
     return developers.find((developer) => developer.id === id) ?? null
   }
 
@@ -190,13 +235,16 @@ export class WorkTrackerService {
    * else's mentor.
    */
   async getMentors(scope: AccessScope): Promise<Mentor[]> {
-    const mentors = await this.provider.getMentors()
+    const mentors = await this.mentorLookup.get()
     if (scope.visibleDeveloperIds === null) return mentors
 
     if (scope.role === 'mentor') {
       return mentors.filter((mentor) => mentor.id === scope.mentorId)
     }
 
+    // Reached only by a developer, who needs the mapping to learn which mentor
+    // is theirs. Read after the early returns rather than alongside the list,
+    // so an admin or a mentor never pays for a request their answer ignores.
     const assignments = await this.provider.getMentorAssignments()
     const mentorIds = new Set(
       assignments
@@ -236,8 +284,20 @@ export class WorkTrackerService {
    * because work often lands on a project before the column is updated, and a
    * developer must still see the project their own task belongs to.
    */
-  async getProjects(scope: AccessScope): Promise<Project[]> {
-    const projects = await this.provider.getProjects()
+  getProjects(scope: AccessScope): Promise<Project[]> {
+    // Memoised per scope because deriving involvement is the most expensive
+    // read in the service — every task and every daily update the viewer can
+    // see, with no date bound, since a project worked on last year is still
+    // one they were involved in. `getActiveProjects` is only a filter over
+    // this, and the two are separate queries to the screens above, so without
+    // this a page mounting both paid for the derivation twice.
+    return this.scopedProjectLookup.get(describeScope(scope), () =>
+      this.readInvolvedProjects(scope),
+    )
+  }
+
+  private async readInvolvedProjects(scope: AccessScope): Promise<Project[]> {
+    const projects = await this.projectLookup.get()
     if (scope.visibleDeveloperIds === null) return projects
 
     const visibleIds = scope.visibleDeveloperIds
@@ -292,9 +352,9 @@ export class WorkTrackerService {
 
     const [tasks, developers, projects, mentors] = await Promise.all([
       this.provider.getTasks({ ...query, ...withDeveloperIds(effectiveIds) }),
-      this.provider.getDevelopers(),
-      this.provider.getProjects(),
-      this.provider.getMentors(),
+      this.developerLookup.get(),
+      this.projectLookup.get(),
+      this.mentorLookup.get(),
     ])
 
     const today = todayIsoDate()
@@ -323,9 +383,9 @@ export class WorkTrackerService {
     // a note is about costs one more scoped query rather than one per comment.
     const [comments, developers, projects, mentors, tasks] = await Promise.all([
       this.provider.getComments({ ...query, ...withDeveloperIds(effectiveIds) }),
-      this.provider.getDevelopers(),
-      this.provider.getProjects(),
-      this.provider.getMentors(),
+      this.developerLookup.get(),
+      this.projectLookup.get(),
+      this.mentorLookup.get(),
       this.provider.getTasks({ ...withDeveloperIds(effectiveIds) }),
     ])
 
@@ -432,8 +492,14 @@ export class WorkTrackerService {
 
   async getDayOverview(scope: AccessScope, isoDate: string): Promise<DayOverview> {
     const entries = await this.readScopedEntries(scope, { dateFrom: isoDate, dateTo: isoDate })
-    const views = await this.decorateEntries(entries)
-    const developers = await this.getDevelopers(scope)
+
+    // Together rather than in sequence. Neither needs the other's answer, and
+    // run one after the other this method cost three round trips to build one
+    // card row.
+    const [views, developers] = await Promise.all([
+      this.decorateEntries(entries),
+      this.getDevelopers(scope),
+    ])
 
     return {
       date: isoDate,
@@ -500,8 +566,8 @@ export class WorkTrackerService {
     entries: readonly DailyWorkEntry[],
   ): Promise<DailyWorkEntryView[]> {
     const [developers, projects] = await Promise.all([
-      this.provider.getDevelopers(),
-      this.provider.getProjects(),
+      this.developerLookup.get(),
+      this.projectLookup.get(),
     ])
 
     return sortByMostRecent(entries).map((entry) => {
@@ -561,6 +627,84 @@ function resolveName(
 ): string {
   if (id === undefined) return `Unknown ${label}`
   return records.find((record) => record.id === id)?.name ?? `Unknown (${id})`
+}
+
+/**
+ * How long a lookup read is reused.
+ *
+ * Long enough to cover one page assembling its views, which is not a single
+ * instant: a day overview reads its entries before it resolves any names, so
+ * its roster read starts a round trip after the task list's. Short enough
+ * that a colleague's change is never more than a moment away, and it is
+ * dropped outright after any write regardless.
+ */
+const LOOKUP_TTL_MS = 2_000
+
+/**
+ * One in-progress or just-completed read of a whole table, reused briefly.
+ *
+ * The promise is shared, so callers arriving while a read is in flight join it
+ * rather than starting a second one. Each caller is handed its own array: the
+ * rows are shared but the list is not, so a caller that sorts what it got
+ * cannot reorder the copy another one is still reading.
+ *
+ * A failed read is forgotten immediately rather than held for the full
+ * window, so a retry actually retries.
+ */
+class ShortLivedRead<TRow> {
+  private entry: { readAt: number; rows: Promise<readonly TRow[]> } | null = null
+
+  private readonly read: () => Promise<TRow[]>
+
+  constructor(read: () => Promise<TRow[]>) {
+    this.read = read
+  }
+
+  get(): Promise<TRow[]> {
+    const now = Date.now()
+
+    if (this.entry === null || now - this.entry.readAt >= LOOKUP_TTL_MS) {
+      const rows = this.read()
+      const entry = { readAt: now, rows }
+      this.entry = entry
+
+      // Attached here rather than left to the caller, so a rejection is
+      // handled even if every caller has already given up on it.
+      void rows.catch(() => {
+        if (this.entry === entry) this.entry = null
+      })
+    }
+
+    return this.entry.rows.then((rows) => [...rows])
+  }
+
+  forget(): void {
+    this.entry = null
+  }
+}
+
+/**
+ * The same, for a read whose answer depends on who is asking.
+ *
+ * One entry per scope rather than one overall, because a mentor and an admin
+ * asking the same question must not be served each other's answer. In practice
+ * a session holds one scope, so the map holds one entry.
+ */
+class ShortLivedReadByKey<TRow> {
+  private readonly reads = new Map<string, ShortLivedRead<TRow>>()
+
+  get(key: string, read: () => Promise<TRow[]>): Promise<TRow[]> {
+    const existing = this.reads.get(key)
+    if (existing !== undefined) return existing.get()
+
+    const created = new ShortLivedRead(read)
+    this.reads.set(key, created)
+    return created.get()
+  }
+
+  forget(): void {
+    this.reads.clear()
+  }
 }
 
 let cachedService: WorkTrackerService | undefined

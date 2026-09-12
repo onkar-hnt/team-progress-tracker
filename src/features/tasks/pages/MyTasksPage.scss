@@ -1,22 +1,63 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.my-tasks { display: grid; gap: $space-6;
+.my-tasks {
+  display: grid;
+  gap: $space-6;
 
-  &__filter { display: flex; align-items: center; gap: $space-2; color: $color-text-muted; font-size: $font-size-sm; font-weight: 600;
-    select { padding: $space-2 $space-3; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-sm; background: $color-white;
-      &:focus-visible { @include focus-ring; }
+  &__filter {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    font-weight: 600;
+
+    select {
+      padding: $space-2 $space-3;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      color: $color-text;
+      font: inherit;
+      font-size: $font-size-sm;
+      background: $color-white;
+
+      &:focus-visible {
+        @include focus-ring;
+      }
     }
   }
 
-  &__status { display: inline-flex; align-items: center; gap: $space-2;
-    select { padding: $space-1 $space-2; border: 1px solid $color-border; border-radius: $radius-sm; color: $color-text; font: inherit; font-size: $font-size-xs; background: $color-white;
-      &:focus-visible { @include focus-ring; }
-      &:disabled { color: $color-text-muted; background: $color-surface-subtle; }
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+
+    select {
+      padding: $space-1 $space-2;
+      border: 1px solid $color-border;
+      border-radius: $radius-sm;
+      color: $color-text;
+      font: inherit;
+      font-size: $font-size-xs;
+      background: $color-white;
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+
+      &:disabled {
+        color: $color-text-muted;
+        background: $color-surface-subtle;
+      }
     }
   }
 
   /// Reserves no space of its own: the label is inline-flex, so the row does
   /// not reflow as the message appears and disappears.
-  &__saving { color: $color-text-muted; font-size: $font-size-xs; white-space: nowrap; }
+  &__saving {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    white-space: nowrap;
+  }
 }

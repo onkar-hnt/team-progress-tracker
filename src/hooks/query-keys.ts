@@ -54,6 +54,21 @@ export const queryKeys = {
     [ROOT, 'range-overview', scopeId, range.from, range.to] as const,
 
   /**
+   * Prefixes, for invalidating a whole family after a write.
+   *
+   * The keys above all carry a scope and often a filter, and a write has no
+   * idea which combinations happen to be mounted. These name the family
+   * instead and rely on React Query matching keys by prefix, which is also
+   * what makes `dailyWorkEntry` fall under `allDailyWork` without being
+   * listed twice.
+   */
+  allComments: () => [ROOT, 'comments'] as const,
+  allDailyWork: () => [ROOT, 'daily-work'] as const,
+  allDayOverviews: () => [ROOT, 'day-overview'] as const,
+  allRangeOverviews: () => [ROOT, 'range-overview'] as const,
+  allTasks: () => [ROOT, 'tasks'] as const,
+
+  /**
    * The Admin workbook itself, rather than the records in it.
    *
    * Under the same root so a write still refreshes it: creating a mentor is

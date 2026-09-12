@@ -1,12 +1,46 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.panel { padding: $space-6; border: 1px solid $color-border; border-radius: $radius-lg; background: $color-white; box-shadow: $shadow-sm;
-  &__header { display: flex; align-items: flex-start; justify-content: space-between; gap: $space-4; margin-bottom: $space-5; flex-wrap: wrap; }
-  &__title { margin: 0; color: $color-text; font-size: $font-size-lg;
-    &--page { font-size: $font-size-2xl; }
+.panel {
+  padding: $space-6;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  background: $color-white;
+  box-shadow: $shadow-sm;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: $space-4;
+    margin-bottom: $space-5;
+    flex-wrap: wrap;
   }
-  &__description { margin: $space-2 0 0; color: $color-text-muted; font-size: $font-size-sm; }
-  &__action { display: flex; align-items: center; gap: $space-3; flex-wrap: wrap; }
-  @include respond-to-mobile { padding: $space-4; }
+
+  &__title {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-lg;
+
+    &--page {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  &__description {
+    margin: $space-2 0 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  &__action {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    flex-wrap: wrap;
+  }
+
+  @include respond-to-mobile {
+    padding: $space-4;
+  }
 }

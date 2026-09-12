@@ -1,31 +1,109 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.feedback { margin: 0; font-size: $font-size-sm;
-  &--empty { padding: $space-5; border: 1px dashed $color-border; border-radius: $radius-md; color: $color-text-muted; text-align: center; }
-  &--error { display: flex; align-items: center; justify-content: space-between; gap: $space-4; padding: $space-4; border: 1px solid #fda29b; border-radius: $radius-md; color: #912018; background: #fef3f2; flex-wrap: wrap; }
-  &__message { margin: 0; }
-  &__retry { padding: $space-2 $space-3; border: 1px solid #912018; border-radius: $radius-md; color: #912018; font: inherit; font-size: $font-size-xs; font-weight: 600; background: transparent; cursor: pointer;
-    &:hover { color: $color-white; background: #912018; }
-    &:focus-visible { @include focus-ring; }
+.feedback {
+  margin: 0;
+  font-size: $font-size-sm;
+
+  &--empty {
+    padding: $space-5;
+    border: 1px dashed $color-border;
+    border-radius: $radius-md;
+    color: $color-text-muted;
+    text-align: center;
   }
-  &--full-page { display: grid; place-content: center; justify-items: center; gap: $space-4; min-height: 100dvh; color: $color-text-muted; }
-  &__spinner { width: 2rem; height: 2rem; border: 3px solid $color-border; border-top-color: $color-brand; border-radius: 50%; animation: feedback-spin 0.8s linear infinite; }
-  &__skeleton { display: grid; gap: $space-3; }
-  &__skeleton-row { height: 1.25rem; border-radius: $radius-md; background: linear-gradient(90deg, $color-surface-subtle 25%, #e9edf3 50%, $color-surface-subtle 75%); background-size: 200% 100%; animation: feedback-shimmer 1.4s ease-in-out infinite; }
+
+  &--error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-4;
+    padding: $space-4;
+    border: 1px solid #fda29b;
+    border-radius: $radius-md;
+    color: #912018;
+    background: #fef3f2;
+    flex-wrap: wrap;
+  }
+
+  &__message {
+    margin: 0;
+  }
+
+  &__retry {
+    padding: $space-2 $space-3;
+    border: 1px solid #912018;
+    border-radius: $radius-md;
+    color: #912018;
+    font: inherit;
+    font-size: $font-size-xs;
+    font-weight: 600;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      color: $color-white;
+      background: #912018;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  &--full-page {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: $space-4;
+    min-height: 100dvh;
+    color: $color-text-muted;
+  }
+
+  &__spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid $color-border;
+    border-top-color: $color-brand;
+    border-radius: 50%;
+    animation: feedback-spin 0.8s linear infinite;
+  }
+
+  &__skeleton {
+    display: grid;
+    gap: $space-3;
+  }
+
+  &__skeleton-row {
+    height: 1.25rem;
+    border-radius: $radius-md;
+    background: linear-gradient(90deg, $color-surface-subtle 25%, #e9edf3 50%, $color-surface-subtle 75%);
+    background-size: 200% 100%;
+    animation: feedback-shimmer 1.4s ease-in-out infinite;
+  }
 }
 
 @keyframes feedback-shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
 }
 
 @keyframes feedback-spin {
-  to { transform: rotate(1turn); }
+  to {
+    transform: rotate(1turn);
+  }
 }
 
 /// Respect a reduced-motion preference rather than animating regardless.
 @media (prefers-reduced-motion: reduce) {
+
   .feedback__skeleton-row,
-  .feedback__spinner { animation: none; }
+  .feedback__spinner {
+    animation: none;
+  }
 }

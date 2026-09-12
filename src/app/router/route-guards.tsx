@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@app/providers/auth-context'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
-import { useAccessScope } from '@hooks/use-access-scope'
+import { useAccessScope, useMentorAssignments } from '@hooks/use-access-scope'
 import type { AppUser } from '@models/index'
 import { canManageTeam, canReadFeedback, canViewTeamData } from '@services/auth/index'
 
@@ -122,12 +122,27 @@ export function RequireFeedbackAccess() {
 export function RequireScope() {
   const { error, isResolving } = useAccessScope()
 
+  // The query the scope is built from, so a failure here can be retried in
+  // place. This guard stands in front of the shell, so the refresh in the
+  // header is not on screen to be pressed.
+  const assignmentsQuery = useMentorAssignments()
+
   if (isResolving) return <FullPageLoader label="Loading your workspace…" />
 
   if (error !== null) {
     return (
       <PagePlaceholder
-        description="Your access could not be confirmed, so nothing is shown. Refresh to try again."
+        action={
+          <button
+            className="button button--primary"
+            disabled={assignmentsQuery.isFetching}
+            onClick={() => void assignmentsQuery.refetch()}
+            type="button"
+          >
+            {assignmentsQuery.isFetching ? 'Retrying…' : 'Try again'}
+          </button>
+        }
+        description="Your access could not be confirmed, so nothing is shown."
         title="Access unavailable"
       />
     )

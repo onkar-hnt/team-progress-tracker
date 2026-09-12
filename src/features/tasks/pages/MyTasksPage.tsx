@@ -29,28 +29,30 @@ export function MyTasksPage() {
   const { scope } = useAccessScope()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
 
-  const filter = useMemo(
-    () => (statusFilter === 'all' ? undefined : { statuses: [statusFilter] }),
-    [statusFilter],
-  )
-
-  // Two reads of the same table, deliberately.
+  // One read, filtered here rather than at source.
   //
-  // The list is narrowed at source, so choosing a status still goes through
-  // the repository predicate and the index built for it. The cards describe
-  // the whole workload and must not move when the filter does — counting the
-  // filtered rows made "Assigned" mean "assigned and completed" as soon as
-  // somebody picked Completed.
+  // The cards describe the whole workload and must not move when the filter
+  // does — counting the filtered rows made "Assigned" mean "assigned and
+  // completed" as soon as somebody picked Completed. So the unfiltered list is
+  // needed regardless, which made a second narrowed read of the same table
+  // pure duplication: it cost a request, and every lookup that assembling a
+  // task view needs, to return a subset of rows already in hand.
   //
-  // With no filter chosen both hooks build the same key, so React Query
-  // serves them from one request and the default view costs nothing extra.
-  const tasksQuery = useTasks(filter)
-  const allTasksQuery = useTasks()
+  // Narrowing at source would matter for a table this screen cannot hold, but
+  // the scope has already reduced it to one person's assignments.
+  const tasksQuery = useTasks()
   const updateTask = useUpdateTask()
 
-  const counts = useMemo(() => summariseTasks(allTasksQuery.data ?? []), [allTasksQuery.data])
+  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
 
-  const loadError = tasksQuery.error ?? allTasksQuery.error
+  const visibleTasks = useMemo(
+    () => (statusFilter === 'all' ? tasks : tasks.filter((task) => task.status === statusFilter)),
+    [statusFilter, tasks],
+  )
+
+  const counts = useMemo(() => summariseTasks(tasks), [tasks])
+
+  const loadError = tasksQuery.error
 
   // Only one status is ever in flight, and it is the row being saved that
   // should say so — disabling every select on the page made a single change
@@ -96,7 +98,7 @@ export function MyTasksPage() {
         isPageHeading
         title="My tasks"
       >
-        {allTasksQuery.isPending ? (
+        {tasksQuery.isPending ? (
           <Skeleton label="Loading your tasks…" rows={4} />
         ) : (
           <div className="stat-card-grid">
@@ -123,10 +125,7 @@ export function MyTasksPage() {
         {loadError !== null ? (
           <ErrorState
             message={`Tasks could not be loaded: ${loadError.message}`}
-            onRetry={() => {
-              void tasksQuery.refetch()
-              void allTasksQuery.refetch()
-            }}
+            onRetry={() => void tasksQuery.refetch()}
           />
         ) : tasksQuery.isPending ? (
           <Skeleton rows={5} />
@@ -156,7 +155,7 @@ export function MyTasksPage() {
               />
             )}
             showDeveloper={canViewTeamData(user)}
-            tasks={tasksQuery.data ?? []}
+            tasks={visibleTasks}
           />
         )}
 

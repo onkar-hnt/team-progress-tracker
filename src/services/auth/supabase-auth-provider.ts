@@ -54,22 +54,21 @@ export class SupabaseAuthProvider implements AuthProvider {
   /**
    * The identity resolution currently in progress, if any.
    *
-   * Three things ask for the same identity within a few milliseconds of a
+   * Several things ask for the same identity within a few milliseconds of a
    * page load, and each would otherwise issue its own profile, mentor and
    * developer queries:
    *
-   * 1. `restoreSession`, from the provider's restore effect.
-   * 2. `restoreSession` again, because StrictMode runs effects twice. The
-   *    existing `isCurrent` guard suppresses the duplicate *state update*,
-   *    not the duplicate request.
-   * 3. `SIGNED_IN`, which `auth-js` raises from `_recoverAndRefresh()` when
-   *    it loads a stored session during client initialisation — startup does
-   *    not arrive as `INITIAL_SESSION`, despite the name.
+   * - `restoreSession`, from the provider's restore effect, once per mount of
+   *   that provider. The existing `isCurrent` guard suppresses a duplicate
+   *   *state update*, not a duplicate request.
+   * - `SIGNED_IN`, which `auth-js` raises from `_recoverAndRefresh()` when it
+   *   loads a stored session during client initialisation — startup does not
+   *   arrive as `INITIAL_SESSION`, despite the name.
    *
-   * `lastResolvedUserId` cannot collapse these on its own: all three begin
-   * before any of them finishes, so there is nothing yet to compare against.
-   * Sharing the promise is what makes the count independent of how many
-   * callers there happen to be.
+   * `lastResolvedUserId` cannot collapse these on its own: they begin before
+   * any of them finishes, so there is nothing yet to compare against. Sharing
+   * the promise is what makes the count independent of how many callers there
+   * happen to be.
    */
   private pendingResolution: {
     readonly userId: string

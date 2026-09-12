@@ -1,31 +1,62 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.app-layout { display: grid; height: 100%; overflow: hidden; grid-template-rows: $header-height minmax(0, 1fr); grid-template-columns: $sidebar-width minmax(0, 1fr);
+.app-layout {
+  display: grid;
+  height: 100%;
+  overflow: hidden;
+  grid-template-rows: $header-height minmax(0, 1fr);
+  grid-template-columns: $sidebar-width minmax(0, 1fr);
 
   /// Animating the track width keeps the content edge attached to the rail as
   /// it collapses, instead of the two moving independently.
   transition: grid-template-columns 160ms ease;
-  &--collapsed { grid-template-columns: $sidebar-width-collapsed minmax(0, 1fr); }
+
+  &--collapsed {
+    grid-template-columns: $sidebar-width-collapsed minmax(0, 1fr);
+  }
 
   /// `minmax(0, 1fr)` above is what allows this to scroll rather than stretch
   /// the grid: without it a wide table would expand the track and hand the
   /// scrollbar back to the page.
-  &__content { padding: $space-8; overflow-y: auto; overscroll-behavior: contain; background: $color-surface-subtle;
-    @include respond-to-tablet { padding: $space-5; }
-    @include respond-to-mobile { padding: $space-4; }
+  &__content {
+    padding: $space-8;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: $color-surface-subtle;
+
+    @include respond-to-tablet {
+      padding: $space-5;
+    }
+
+    @include respond-to-mobile {
+      padding: $space-4;
+    }
   }
 
-  &__scrim { display: none; }
+  &__scrim {
+    display: none;
+  }
 
   /// Below the tablet breakpoint the rail becomes a drawer over the content,
   /// so the single column belongs entirely to the content.
   @include respond-to-tablet {
     grid-template-columns: minmax(0, 1fr);
-    &--collapsed { grid-template-columns: minmax(0, 1fr); }
 
-    &--drawer-open &__scrim { display: block; position: fixed; inset: $header-height 0 0; z-index: 15; background: rgb(15 23 42 / 40%); }
+    &--collapsed {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    &--drawer-open &__scrim {
+      display: block;
+      position: fixed;
+      inset: $header-height 0 0;
+      z-index: 15;
+      background: rgb(15 23 42 / 40%);
+    }
   }
 
-  @media (prefers-reduced-motion: reduce) { transition: none; }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }

@@ -10,6 +10,7 @@ import {
 import type { AdminWorkbookInitialisation } from '@services/admin/admin-workbook-initialisation'
 import { getAdminWorkbookService } from '@services/admin/admin-workbook.service'
 import type { AdminWorkbookStatus } from '@services/admin/admin-workbook.service'
+import { getWorkTrackerService } from '@services/work-tracker.service'
 
 import { queryKeys } from './query-keys'
 
@@ -66,10 +67,14 @@ export function useEnsureAdminWorkbook(): UseMutationResult<
   void
 > {
   const queryClient = useQueryClient()
+  const service = getWorkTrackerService()
 
   return useMutation({
     mutationFn: () => retryAdminWorkbookInitialisation(),
     onSuccess: async () => {
+      // Preparing the workbook can create the very tables the lookups read, so
+      // whatever they hold was answered before those existed.
+      service.forgetLookups()
       await queryClient.invalidateQueries({ queryKey: queryKeys.root })
     },
   })

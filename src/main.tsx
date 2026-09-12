@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { captureInviteLink } from '@services/auth/invite-link'
@@ -47,8 +46,19 @@ if (!rootElement) {
   throw new Error('Application root element was not found.')
 }
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+/**
+ * Mounted without `StrictMode`.
+ *
+ * StrictMode's second render and second effect pass are a development-only
+ * check for effects that are not safe to run twice, and everything here was
+ * written to survive it — the session subscription is idempotent, and workbook
+ * preparation is guarded so both passes share one run. What it also does is
+ * double every render and every effect in development, which made the console
+ * and the network panel read as though the application were doing twice the
+ * work it does in production.
+ *
+ * Removed for that reason, so what is observed while developing is what a
+ * signed-in person actually causes. The cost is losing an early warning about
+ * effects that are not idempotent, which now has to be noticed by reading them.
+ */
+createRoot(rootElement).render(<App />)

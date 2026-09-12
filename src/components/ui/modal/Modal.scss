@@ -5,17 +5,62 @@
 /// address bar is counted by `vh` but not shown, so a dialog sized in `vh`
 /// puts its pinned footer just below the fold — which is the one place it
 /// must never be.
-.modal { width: min(46rem, calc(100vw - #{$space-8})); max-height: calc(100dvh - #{$space-8}); padding: 0; border: 1px solid $color-border; border-radius: $radius-lg; background: $color-white; box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+.modal {
+  width: min(46rem, calc(100vw - #{$space-8}));
+  max-height: calc(100dvh - #{$space-8});
+  padding: 0;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  background: $color-white;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
 
-  &::backdrop { background: rgb(15 23 42 / 45%); }
-
-  &__panel { display: flex; flex-direction: column; max-height: calc(100dvh - #{$space-8}); }
-  &__header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: $space-4; padding: $space-5 $space-6; border-bottom: 1px solid $color-border; }
-  &__title { margin: 0; color: $color-text; font-size: $font-size-lg; }
-  &__close { width: 2rem; height: 2rem; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text-muted; font-size: $font-size-lg; line-height: 1; background: $color-white; cursor: pointer;
-    &:hover { color: $color-text; background: $color-surface-subtle; }
-    &:focus-visible { @include focus-ring; }
+  &::backdrop {
+    background: rgb(15 23 42 / 45%);
   }
+
+  &__panel {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - #{$space-8});
+  }
+
+  &__header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-4;
+    padding: $space-5 $space-6;
+    border-bottom: 1px solid $color-border;
+  }
+
+  &__title {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-lg;
+  }
+
+  &__close {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    color: $color-text-muted;
+    font-size: $font-size-lg;
+    line-height: 1;
+    background: $color-white;
+    cursor: pointer;
+
+    &:hover {
+      color: $color-text;
+      background: $color-surface-subtle;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
   /// The only part that scrolls. `min-height: 0` is what allows it to shrink
   /// below its content inside the flex column; without it a long form pushes
   /// the panel past its own max-height and the header scrolls away with it.
@@ -27,7 +72,13 @@
   ///
   /// No bottom padding: the footer owns the space under the last field, so
   /// that content scrolls right up to the bar rather than stopping short of it.
-  &__body { flex: 1 1 auto; min-height: 0; padding: $space-6 $space-6 0; overflow: hidden auto; overscroll-behavior: contain; }
+  &__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: $space-6 $space-6 0;
+    overflow: hidden auto;
+    overscroll-behavior: contain;
+  }
 
   /// The action row of whichever form is placed here becomes the footer.
   ///

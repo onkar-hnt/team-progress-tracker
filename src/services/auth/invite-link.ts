@@ -66,8 +66,8 @@ export function captureInviteLink(): void {
 /**
  * What the link carried, or nothing if this was an ordinary visit.
  *
- * Reading does not clear. React's strict mode mounts an effect twice in
- * development, and a read that consumed would leave the second attempt
+ * Reading does not clear. The screen that reads this remounts on navigation
+ * and re-reads, and a read that consumed would leave the second attempt
  * believing the link was invalid.
  */
 export function readInviteLink(): { link: InviteLink | null; rejection: string | null } {

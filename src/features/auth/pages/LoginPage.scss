@@ -3,34 +3,161 @@
 
 /// The document does not scroll, so this screen scrolls itself when a short
 /// viewport cannot fit the card.
-.login { display: flex; align-items: center; justify-content: center; height: 100%; padding: $space-6; overflow-y: auto; background: $color-surface-subtle;
-  &__card { width: 100%; max-width: 26rem; padding: $space-8; border: 1px solid $color-border; border-radius: $radius-lg; background: $color-white; box-shadow: $shadow-sm; }
-  &__header { margin-bottom: $space-6; }
-  &__eyebrow { display: block; margin-bottom: $space-2; color: $color-brand; font-size: $font-size-xs; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-  &__title { margin: 0 0 $space-2; color: $color-text; font-size: $font-size-2xl; }
-  &__subtitle { margin: 0; color: $color-text-muted; font-size: $font-size-sm; }
-  &__form { display: grid; gap: $space-5; }
-  &__field { display: grid; gap: $space-2;
-    label { color: $color-text; font-size: $font-size-sm; font-weight: 600; }
-    input { width: 100%; padding: $space-3; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; background: $color-white;
-      &:focus-visible { @include focus-ring; border-color: $color-brand; }
-      &[aria-invalid='true'] { border-color: #b42318; }
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: $space-6;
+  overflow-y: auto;
+  background: $color-surface-subtle;
+
+  &__card {
+    width: 100%;
+    max-width: 26rem;
+    padding: $space-8;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    background: $color-white;
+    box-shadow: $shadow-sm;
+  }
+
+  &__header {
+    margin-bottom: $space-6;
+  }
+
+  &__eyebrow {
+    display: block;
+    margin-bottom: $space-2;
+    color: $color-brand;
+    font-size: $font-size-xs;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__title {
+    margin: 0 0 $space-2;
+    color: $color-text;
+    font-size: $font-size-2xl;
+  }
+
+  &__subtitle {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  &__form {
+    display: grid;
+    gap: $space-5;
+  }
+
+  &__field {
+    display: grid;
+    gap: $space-2;
+
+    label {
+      color: $color-text;
+      font-size: $font-size-sm;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: $space-3;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      color: $color-text;
+      font: inherit;
+      background: $color-white;
+
+      &:focus-visible {
+        @include focus-ring;
+        border-color: $color-brand;
+      }
+
+      &[aria-invalid='true'] {
+        border-color: #b42318;
+      }
     }
   }
-  &__error { margin: 0; color: #b42318; font-size: $font-size-xs; }
-  &__alert { margin: 0; padding: $space-3; border: 1px solid #fda29b; border-radius: $radius-md; color: #912018; font-size: $font-size-sm; background: #fef3f2; }
-  &__submit { display: flex; align-items: center; justify-content: center; gap: $space-3; padding: $space-3 $space-4; border: 0; border-radius: $radius-md; color: $color-white; font: inherit; font-weight: 600; background: $color-brand; cursor: pointer;
-    &:hover:not(:disabled) { background: $color-brand-dark; }
-    &:focus-visible { @include focus-ring; }
-    &:disabled { opacity: 0.65; cursor: progress; }
+
+  &__error {
+    margin: 0;
+    color: #b42318;
+    font-size: $font-size-xs;
+  }
+
+  &__alert {
+    margin: 0;
+    padding: $space-3;
+    border: 1px solid #fda29b;
+    border-radius: $radius-md;
+    color: #912018;
+    font-size: $font-size-sm;
+    background: #fef3f2;
+  }
+
+  &__submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-3;
+    padding: $space-3 $space-4;
+    border: 0;
+    border-radius: $radius-md;
+    color: $color-white;
+    font: inherit;
+    font-weight: 600;
+    background: $color-brand;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: $color-brand-dark;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: progress;
+    }
 
     /// Microsoft's brand guidance requires their button on a neutral surface
     /// with the mark in full colour, so it cannot take the brand fill.
-    &--microsoft { border: 1px solid $color-border; color: $color-text; background: $color-white;
-      &:hover:not(:disabled) { background: $color-surface-subtle; }
+    &--microsoft {
+      border: 1px solid $color-border;
+      color: $color-text;
+      background: $color-white;
+
+      &:hover:not(:disabled) {
+        background: $color-surface-subtle;
+      }
     }
   }
-  &__hint { margin: 0; color: $color-text-muted; font-size: $font-size-xs; text-align: center; }
-  &__footer { margin-top: $space-6; color: $color-text-muted; font-size: $font-size-xs; text-align: center; }
-  @include respond-to-mobile { padding: $space-4; &__card { padding: $space-6; } }
+
+  &__hint {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    text-align: center;
+  }
+
+  &__footer {
+    margin-top: $space-6;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    text-align: center;
+  }
+
+  @include respond-to-mobile {
+    padding: $space-4;
+
+    &__card {
+      padding: $space-6;
+    }
+  }
 }

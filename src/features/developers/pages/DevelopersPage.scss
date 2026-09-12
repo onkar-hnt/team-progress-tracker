@@ -1,27 +1,106 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.developers { display: grid; gap: $space-6;
+.developers {
+  display: grid;
+  gap: $space-6;
 
-  &__period { display: flex; align-items: center; gap: $space-2; color: $color-text-muted; font-size: $font-size-sm;
-    select { padding: $space-2 $space-3; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-sm; background: $color-white;
-      &:focus-visible { @include focus-ring; border-color: $color-brand; }
+  &__period {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+
+    select {
+      padding: $space-2 $space-3;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      color: $color-text;
+      font: inherit;
+      font-size: $font-size-sm;
+      background: $color-white;
+
+      &:focus-visible {
+        @include focus-ring;
+        border-color: $color-brand;
+      }
     }
   }
 
-  &__grid { display: grid; gap: $space-4; margin: 0; padding: 0; list-style: none; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+  &__grid {
+    display: grid;
+    gap: $space-4;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  }
 }
 
-.developer-card { display: grid; gap: $space-2; padding: $space-4; border: 1px solid $color-border; border-radius: $radius-md; color: inherit; text-decoration: none; background: $color-white; transition: border-color 120ms ease, box-shadow 120ms ease;
-  &:hover { border-color: $color-brand; box-shadow: $shadow-sm; }
-  &:focus-visible { @include focus-ring; }
+.developer-card {
+  display: grid;
+  gap: $space-2;
+  padding: $space-4;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  color: inherit;
+  text-decoration: none;
+  background: $color-white;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 
-  &__header { display: flex; align-items: baseline; justify-content: space-between; gap: $space-2; }
-  &__name { color: $color-text; font-size: $font-size-md; font-weight: 600; }
-  &__inactive { padding: 0 $space-2; border-radius: $radius-sm; color: $color-text-muted; font-size: $font-size-xs; background: $color-surface-subtle; }
-  &__role { color: $color-text-muted; font-size: $font-size-xs; }
-  &__metrics { display: flex; gap: $space-3; margin-top: $space-2; color: $color-text-muted; font-size: $font-size-xs; flex-wrap: wrap;
-    strong { color: $color-text; font-variant-numeric: tabular-nums; }
+  &:hover {
+    border-color: $color-brand;
+    box-shadow: $shadow-sm;
   }
-  &__attention { color: #912018; font-size: $font-size-xs; font-weight: 600; }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: $space-2;
+  }
+
+  &__name {
+    color: $color-text;
+    font-size: $font-size-md;
+    font-weight: 600;
+  }
+
+  &__inactive {
+    padding: 0 $space-2;
+    border-radius: $radius-sm;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    background: $color-surface-subtle;
+  }
+
+  &__role {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  &__metrics {
+    display: flex;
+    gap: $space-3;
+    margin-top: $space-2;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    flex-wrap: wrap;
+
+    strong {
+      color: $color-text;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__attention {
+    color: #912018;
+    font-size: $font-size-xs;
+    font-weight: 600;
+  }
 }

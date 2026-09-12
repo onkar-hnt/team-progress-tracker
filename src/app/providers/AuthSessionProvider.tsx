@@ -59,9 +59,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
    * Providers whose accounts live in a workbook have nothing to observe and
    * omit the subscription entirely.
    *
-   * Subscribing is idempotent and the cleanup unsubscribes, so StrictMode's
-   * double effect pass leaves exactly one listener. The provider ignores the
-   * initial-session event, so this never races the restore above.
+   * Subscribing is idempotent and the cleanup unsubscribes, so a remount
+   * leaves exactly one listener. The provider ignores the initial-session
+   * event, so this never races the restore above.
    */
   useEffect(() => {
     return authProvider.onSessionChange?.((nextUser) => {
@@ -83,8 +83,8 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
    * timeout look like a rejected sign-in. Progress and failures go to the
    * data-source status instead, which the shell already displays.
    *
-   * `initialiseAdminWorkbook` is itself guarded, so StrictMode's second
-   * effect pass and any re-render of this provider share one run.
+   * `initialiseAdminWorkbook` is itself guarded, so any re-render or remount
+   * of this provider shares one run.
    */
   useEffect(() => {
     if (!isAdmin(user)) return

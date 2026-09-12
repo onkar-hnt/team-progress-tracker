@@ -1,37 +1,118 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.dashboard { display: grid; gap: $space-6;
+.dashboard {
+  display: grid;
+  gap: $space-6;
 
-  &__row { display: grid; gap: $space-6; grid-template-columns: repeat(2, minmax(0, 1fr));
+  &__row {
+    display: grid;
+    gap: $space-6;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
     /// Blockers and missing updates are the mentor's first questions, so they
     /// get more room than an even split.
-    &--priority { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
-    @media (max-width: 64rem) { grid-template-columns: 1fr; }
-  }
+    &--priority {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
 
-  &__date { display: flex; align-items: center; gap: $space-2; color: $color-text-muted; font-size: $font-size-sm;
-    input { padding: $space-2 $space-3; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-sm; background: $color-white;
-      &:focus-visible { @include focus-ring; border-color: $color-brand; }
+    @media (max-width: 64rem) {
+      grid-template-columns: 1fr;
     }
   }
 
-  &__missing { display: grid; gap: $space-2; margin: 0; padding: 0; list-style: none;
-    li { display: flex; align-items: baseline; justify-content: space-between; gap: $space-3; padding: $space-3; border: 1px solid #fda29b; border-radius: $radius-md; font-size: $font-size-sm; background: #fef3f2; }
-    a { color: #912018; font-weight: 600; text-decoration: none;
-      &:hover { text-decoration: underline; }
-      &:focus-visible { @include focus-ring; }
+  &__date {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+
+    input {
+      padding: $space-2 $space-3;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      color: $color-text;
+      font: inherit;
+      font-size: $font-size-sm;
+      background: $color-white;
+
+      &:focus-visible {
+        @include focus-ring;
+        border-color: $color-brand;
+      }
     }
   }
-  &__missing-role { color: $color-text-muted; font-size: $font-size-xs; }
+
+  &__missing {
+    display: grid;
+    gap: $space-2;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: $space-3;
+      padding: $space-3;
+      border: 1px solid #fda29b;
+      border-radius: $radius-md;
+      font-size: $font-size-sm;
+      background: #fef3f2;
+    }
+
+    a {
+      color: #912018;
+      font-weight: 600;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+  }
+
+  &__missing-role {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
 
   /// The entry panels are narrow, so the control keeps to the compact sizing
   /// the task list uses and is allowed to wrap under the badges.
-  &__entry-status { display: inline-flex; align-items: center; gap: $space-2;
-    select { padding: $space-1 $space-2; border: 1px solid $color-border; border-radius: $radius-md; color: $color-text; font: inherit; font-size: $font-size-xs; background: $color-white;
-      &:focus-visible { @include focus-ring; border-color: $color-brand; }
-      &:disabled { color: $color-text-muted; }
+  &__entry-status {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+
+    select {
+      padding: $space-1 $space-2;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      color: $color-text;
+      font: inherit;
+      font-size: $font-size-xs;
+      background: $color-white;
+
+      &:focus-visible {
+        @include focus-ring;
+        border-color: $color-brand;
+      }
+
+      &:disabled {
+        color: $color-text-muted;
+      }
     }
   }
-  &__entry-saving { color: $color-text-muted; font-size: $font-size-xs; white-space: nowrap; }
+
+  &__entry-saving {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    white-space: nowrap;
+  }
 }

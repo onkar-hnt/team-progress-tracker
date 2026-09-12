@@ -1,43 +1,179 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: $space-4; min-height: $header-height; padding: $space-3 $space-8; color: $color-white; background: $color-brand-dark;
-  &__brand { display: flex; align-items: center; gap: $space-4; min-width: 0; }
-  &__eyebrow, &__identity span { display: block; color: $color-brand-muted; font-size: $font-size-xs; }
-  &__title { display: block; font-size: $font-size-lg; }
-  &__account { display: flex; align-items: center; gap: $space-4; }
-  &__identity { font-size: $font-size-sm; text-align: right; }
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  min-height: $header-height;
+  padding: $space-3 $space-8;
+  color: $color-white;
+  background: $color-brand-dark;
 
-  &__icon-button { display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; flex-shrink: 0; padding: 0; border: 1px solid rgb(255 255 255 / 25%); border-radius: $radius-md; color: $color-white; background: transparent; cursor: pointer;
-    &:hover { background: rgb(255 255 255 / 12%); }
-    &:focus-visible { @include focus-ring; }
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: $space-4;
+    min-width: 0;
+  }
+
+  &__eyebrow,
+  &__identity span {
+    display: block;
+    color: $color-brand-muted;
+    font-size: $font-size-xs;
+  }
+
+  &__title {
+    display: block;
+    font-size: $font-size-lg;
+  }
+
+  &__account {
+    display: flex;
+    align-items: center;
+    gap: $space-4;
+  }
+
+  &__identity {
+    font-size: $font-size-sm;
+    text-align: right;
+  }
+
+  &__icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 25%);
+    border-radius: $radius-md;
+    color: $color-white;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      background: rgb(255 255 255 / 12%);
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
     /// The drawer toggle only exists where the sidebar is a drawer.
-    &--drawer { display: none; }
+    &--drawer {
+      display: none;
+    }
+
     @include respond-to-tablet {
-      &--drawer { display: flex; }
-      &--rail { display: none; }
+      &--drawer {
+        display: flex;
+      }
+
+      &--rail {
+        display: none;
+      }
     }
   }
 
-  &__sign-out { padding: $space-2 $space-3; border: 1px solid rgb(255 255 255 / 35%); border-radius: $radius-md; color: $color-white; font: inherit; font-size: $font-size-sm; background: transparent; cursor: pointer;
-    &:hover { background: rgb(255 255 255 / 12%); }
-    &:focus-visible { @include focus-ring; }
+  &__sign-out {
+    padding: $space-2 $space-3;
+    border: 1px solid rgb(255 255 255 / 35%);
+    border-radius: $radius-md;
+    color: $color-white;
+    font: inherit;
+    font-size: $font-size-sm;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      background: rgb(255 255 255 / 12%);
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
   }
 
-  &__workbook { display: inline-flex; align-items: center; gap: $space-2; padding: $space-2 $space-3; border: 1px solid rgb(255 255 255 / 35%); border-radius: $radius-md; color: $color-white; font-size: $font-size-sm; font-weight: 600; text-decoration: none; white-space: nowrap;
-    &:hover { background: rgb(255 255 255 / 12%); }
-    &:focus-visible { @include focus-ring; }
+  &__workbook {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-2 $space-3;
+    border: 1px solid rgb(255 255 255 / 35%);
+    border-radius: $radius-md;
+    color: $color-white;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+      background: rgb(255 255 255 / 12%);
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  &__refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-2 $space-3;
+    border: 1px solid rgb(255 255 255 / 35%);
+    border-radius: $radius-md;
+    color: $color-white;
+    font: inherit;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    white-space: nowrap;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: rgb(255 255 255 / 12%);
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: progress;
+    }
   }
 
   @include respond-to-tablet {
-    /// The label is dropped before the icon, so the action survives on a
+
+    /// Labels are dropped before their icons, so these actions survive on a
     /// narrow header instead of disappearing.
-    &__workbook-label { @include visually-hidden; }
+    &__workbook-label,
+    &__refresh-label {
+      @include visually-hidden;
+    }
   }
 
-  @include respond-to-mobile { padding-inline: $space-4; gap: $space-3;
-    &__eyebrow { display: none; }
-    &__identity span { display: none; }
-    &__title { font-size: $font-size-md; }
+  @include respond-to-mobile {
+    padding-inline: $space-4;
+    gap: $space-3;
+
+    &__eyebrow {
+      display: none;
+    }
+
+    &__identity span {
+      display: none;
+    }
+
+    &__title {
+      font-size: $font-size-md;
+    }
   }
 }

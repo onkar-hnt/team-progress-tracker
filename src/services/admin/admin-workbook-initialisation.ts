@@ -18,9 +18,8 @@ import { getAdminWorkbookService } from './admin-workbook.service'
  * Three properties matter, and they are why this is a small observable store
  * rather than a hook or a query:
  *
- * - It runs once per session. React mounts effects twice under StrictMode,
- *   providers re-render, and guards remount on navigation; none of that may
- *   start a second run against the workbook.
+ * - It runs once per session. Providers re-render and guards remount on
+ *   navigation; neither may start a second run against the workbook.
  * - It never blocks sign-in. Authentication has already succeeded by the time
  *   this starts, and a workbook fault is reported as a data-source problem
  *   rather than turning into a rejected sign-in or a redirect loop.

@@ -20,6 +20,7 @@ export type IconName =
   | 'menu'
   | 'mentors'
   | 'projects'
+  | 'refresh'
   | 'settings'
   | 'table'
   | 'tasks'
@@ -95,6 +96,16 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
     </>
   ),
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+
+  // Two three-quarter arcs rather than a full circle, so the arrowheads read
+  // as direction of travel instead of decoration on a ring.
+  refresh: (
+    <>
+      <path d="M20 12a8 8 0 0 1-8 8 8 8 0 0 1-6.7-3.6" />
+      <path d="M4 12a8 8 0 0 1 8-8 8 8 0 0 1 6.7 3.6" />
+      <path d="M18.7 3.5v4.4h-4.4M5.3 20.5v-4.4h4.4" />
+    </>
+  ),
   'chevron-left': <path d="M14.5 5.5 8 12l6.5 6.5" />,
   'chevron-right': <path d="M9.5 5.5 16 12l-6.5 6.5" />,
 }
