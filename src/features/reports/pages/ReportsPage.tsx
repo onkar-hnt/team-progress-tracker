@@ -8,6 +8,7 @@ import {
   WeeklyTrendChart,
 } from '@components/charts/WorkCharts'
 import { DeveloperSummaryTable, ProjectSummaryTable } from '@components/summaries/SummaryTables'
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { EntryList } from '@components/ui/entry-list/EntryList'
 import { Panel } from '@components/ui/panel/Panel'
@@ -37,6 +38,11 @@ const PERIODS = {
 } as const
 
 type PeriodKey = keyof typeof PERIODS
+
+const PERIOD_OPTIONS = Object.entries(PERIODS).map(([key, period]) => ({
+  value: key,
+  label: period.label,
+}))
 
 export function ReportsPage() {
   const [periodKey, setPeriodKey] = useState<PeriodKey>('this-week')
@@ -86,16 +92,12 @@ export function ReportsPage() {
     <div className="reports__controls">
       <label className="reports__field">
         <span>Period</span>
-        <select
-          onChange={(event) => setPeriodKey(event.target.value as PeriodKey)}
+        <Dropdown
+          ariaLabel="Period"
+          onChange={(next) => setPeriodKey(next as PeriodKey)}
+          options={PERIOD_OPTIONS}
           value={periodKey}
-        >
-          {Object.entries(PERIODS).map(([key, period]) => (
-            <option key={key} value={key}>
-              {period.label}
-            </option>
-          ))}
-        </select>
+        />
       </label>
 
       {periodKey === 'custom' ? (

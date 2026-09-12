@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
@@ -19,8 +20,7 @@ import { FeedbackForm } from '../components/FeedbackForm'
 import { toCreateCommentRequest } from '../schemas/feedback.schema'
 import type { FeedbackFormValues } from '../schemas/feedback.schema'
 
-import './FeedbackPage.scss'
-
+import './FeedbackPage.scss';
 /**
  * The feedback screen, in the form that suits the person opening it.
  *
@@ -117,17 +117,18 @@ function FeedbackWorkspace() {
   const developerPicker = (
     <label className="feedback-page__filter">
       <span>Developer</span>
-      <select
-        onChange={(event) => setDeveloperFilter(event.target.value)}
+      <Dropdown
+        ariaLabel="Developer"
+        onChange={setDeveloperFilter}
+        options={[
+          { value: '', label: 'All developers' },
+          ...(developersQuery.data ?? []).map((developer) => ({
+            value: developer.id,
+            label: developer.name,
+          })),
+        ]}
         value={developerFilter}
-      >
-        <option value="">All developers</option>
-        {(developersQuery.data ?? []).map((developer) => (
-          <option key={developer.id} value={developer.id}>
-            {developer.name}
-          </option>
-        ))}
-      </select>
+      />
     </label>
   )
 

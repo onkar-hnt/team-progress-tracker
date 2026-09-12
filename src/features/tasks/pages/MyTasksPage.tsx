@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { Panel } from '@components/ui/panel/Panel'
@@ -15,6 +16,8 @@ import type { AssignedTaskView } from '@services/work-tracker.service'
 import { TaskTable } from '../components/TaskTable'
 
 import './MyTasksPage.scss'
+
+const STATUS_FILTER_OPTIONS = [{ value: 'all', label: 'All statuses' }, ...TASK_STATUS_OPTIONS]
 
 /**
  * Assigned work for the signed-in person.
@@ -76,17 +79,12 @@ export function MyTasksPage() {
   const statusPicker = (
     <label className="my-tasks__filter">
       <span>Status</span>
-      <select
-        onChange={(event) => setStatusFilter(event.target.value as TaskStatus | 'all')}
+      <Dropdown
+        ariaLabel="Status"
+        onChange={(next) => setStatusFilter(next as TaskStatus | 'all')}
+        options={STATUS_FILTER_OPTIONS}
         value={statusFilter}
-      >
-        <option value="all">All statuses</option>
-        {TASK_STATUS_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      />
     </label>
   )
 
@@ -186,32 +184,26 @@ function StatusSelect({
   task: AssignedTaskView
 }) {
   return (
-    <label className="my-tasks__status">
-      <span className="sr-only">{`Status for ${task.name}`}</span>
-      <select
+    <div className="my-tasks__status">
+      <Dropdown
+        ariaLabel={`Status for ${task.name}`}
         disabled={isDisabled}
-        onChange={(event) => {
-          const next = event.target.value as TaskStatus
-
+        isCompact
+        onChange={(next) => {
           // Re-picking the value already showing is still a write, and one
           // that would refetch every derived view to prove nothing changed.
-          if (next !== task.status) onChange(next)
+          if (next !== task.status) onChange(next as TaskStatus)
         }}
+        options={TASK_STATUS_OPTIONS}
         value={task.status}
-      >
-        {TASK_STATUS_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      />
 
       {isSaving ? (
         <span className="my-tasks__saving" role="status">
           Saving…
         </span>
       ) : null}
-    </label>
+    </div>
   )
 }
 

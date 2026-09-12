@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
@@ -33,6 +34,11 @@ const employeeFormSchema = z.object({
   accessRole: z.enum(USER_ROLES),
   active: z.boolean(),
 })
+
+const ACCESS_ROLE_OPTIONS = USER_ROLES.map((role) => ({
+  value: role,
+  label: USER_ROLE_LABELS[role],
+}))
 
 type EmployeeFormValues = z.infer<typeof employeeFormSchema>
 
@@ -308,6 +314,7 @@ function EmployeeForm({
   onSubmit: (values: EmployeeFormValues) => Promise<void>
 }) {
   const {
+    control,
     formState: { errors, isSubmitting },
     handleSubmit,
     register,
@@ -350,13 +357,19 @@ function EmployeeForm({
 
         <div className="form__field">
           <label htmlFor="employee-access">Access role</label>
-          <select id="employee-access" {...register('accessRole')}>
-            {USER_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {USER_ROLE_LABELS[role]}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="accessRole"
+            render={({ field }) => (
+              <Dropdown
+                id="employee-access"
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={ACCESS_ROLE_OPTIONS}
+                value={field.value}
+              />
+            )}
+          />
           <p className="form__hint">
             Developers see only their own records. Mentors see the developers assigned to them.
             Administrators see everything.

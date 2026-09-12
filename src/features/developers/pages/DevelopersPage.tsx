@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { DeveloperSummaryTable } from '@components/summaries/SummaryTables'
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import { useDevelopers, useRangeOverview } from '@hooks/use-work-tracker'
@@ -17,6 +18,11 @@ const PERIODS = {
 } as const
 
 type PeriodKey = keyof typeof PERIODS
+
+const PERIOD_OPTIONS = Object.entries(PERIODS).map(([key, period]) => ({
+  value: key,
+  label: period.label,
+}))
 
 export function DevelopersPage() {
   const [periodKey, setPeriodKey] = useState<PeriodKey>('this-week')
@@ -36,13 +42,12 @@ export function DevelopersPage() {
   const periodPicker = (
     <label className="developers__period">
       <span>Period</span>
-      <select onChange={(event) => setPeriodKey(event.target.value as PeriodKey)} value={periodKey}>
-        {Object.entries(PERIODS).map(([key, period]) => (
-          <option key={key} value={key}>
-            {period.label}
-          </option>
-        ))}
-      </select>
+      <Dropdown
+        ariaLabel="Period"
+        onChange={(next) => setPeriodKey(next as PeriodKey)}
+        options={PERIOD_OPTIONS}
+        value={periodKey}
+      />
     </label>
   )
 

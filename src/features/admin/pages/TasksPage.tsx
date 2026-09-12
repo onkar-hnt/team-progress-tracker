@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
@@ -77,14 +78,18 @@ export function TasksPage() {
   const developerPicker = (
     <label className="admin-page__filter">
       <span>Developer</span>
-      <select onChange={(event) => setDeveloperFilter(event.target.value)} value={developerFilter}>
-        <option value="">All developers</option>
-        {(developersQuery.data ?? []).map((developer) => (
-          <option key={developer.id} value={developer.id}>
-            {developer.name}
-          </option>
-        ))}
-      </select>
+      <Dropdown
+        ariaLabel="Developer"
+        onChange={setDeveloperFilter}
+        options={[
+          { value: '', label: 'All developers' },
+          ...(developersQuery.data ?? []).map((developer) => ({
+            value: developer.id,
+            label: developer.name,
+          })),
+        ]}
+        value={developerFilter}
+      />
     </label>
   )
 
@@ -203,6 +208,7 @@ function TaskForm({
   task?: AssignedTask
 }) {
   const {
+    control,
     formState: { errors, isSubmitting },
     handleSubmit,
     register,
@@ -237,70 +243,103 @@ function TaskForm({
       <div className="form__grid">
         <div className="form__field">
           <label htmlFor="task-developer">Developer</label>
-          <select
-            id="task-developer"
-            {...register('developerId')}
-            aria-invalid={errors.developerId ? 'true' : undefined}
-          >
-            <option value="">Select a developer</option>
-            {developers.map((developer) => (
-              <option key={developer.id} value={developer.id}>
-                {developer.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="developerId"
+            render={({ field }) => (
+              <Dropdown
+                id="task-developer"
+                isInvalid={errors.developerId !== undefined}
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={[
+                  { value: '', label: 'Select a developer' },
+                  ...developers.map((developer) => ({
+                    value: developer.id,
+                    label: developer.name,
+                  })),
+                ]}
+                value={field.value}
+              />
+            )}
+          />
           {errors.developerId ? <p className="form__error">{errors.developerId.message}</p> : null}
         </div>
 
         <div className="form__field">
           <label htmlFor="task-project">Project</label>
-          <select
-            id="task-project"
-            {...register('projectId')}
-            aria-invalid={errors.projectId ? 'true' : undefined}
-          >
-            <option value="">Select a project</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="projectId"
+            render={({ field }) => (
+              <Dropdown
+                id="task-project"
+                isInvalid={errors.projectId !== undefined}
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={[
+                  { value: '', label: 'Select a project' },
+                  ...projects.map((project) => ({ value: project.id, label: project.name })),
+                ]}
+                value={field.value}
+              />
+            )}
+          />
           {errors.projectId ? <p className="form__error">{errors.projectId.message}</p> : null}
         </div>
 
         <div className="form__field">
           <label htmlFor="task-mentor">Mentor</label>
-          <select id="task-mentor" {...register('mentorId')}>
-            <option value="">Unassigned</option>
-            {mentors.map((mentor) => (
-              <option key={mentor.id} value={mentor.id}>
-                {mentor.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="mentorId"
+            render={({ field }) => (
+              <Dropdown
+                id="task-mentor"
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={[
+                  { value: '', label: 'Unassigned' },
+                  ...mentors.map((mentor) => ({ value: mentor.id, label: mentor.name })),
+                ]}
+                value={field.value}
+              />
+            )}
+          />
         </div>
 
         <div className="form__field">
           <label htmlFor="task-priority">Priority</label>
-          <select id="task-priority" {...register('priority')}>
-            {TASK_PRIORITY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="priority"
+            render={({ field }) => (
+              <Dropdown
+                id="task-priority"
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={TASK_PRIORITY_OPTIONS}
+                value={field.value}
+              />
+            )}
+          />
         </div>
 
         <div className="form__field">
           <label htmlFor="task-status">Status</label>
-          <select id="task-status" {...register('status')}>
-            {TASK_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <Dropdown
+                id="task-status"
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={TASK_STATUS_OPTIONS}
+                value={field.value}
+              />
+            )}
+          />
         </div>
 
         <div className="form__field">

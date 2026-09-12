@@ -1,3 +1,4 @@
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import type { Developer, Project, TaskPriority, TaskStatus } from '@models/index'
 
@@ -5,6 +6,15 @@ import { PERIOD_PRESETS, PERIOD_PRESET_LABELS } from '../activity-filters'
 import type { ActivityFilterState } from '../activity-filters'
 
 import './ActivityFilters.scss'
+
+const PRESET_OPTIONS = PERIOD_PRESETS.map((preset) => ({
+  value: preset,
+  label: PERIOD_PRESET_LABELS[preset],
+}))
+
+const STATUS_OPTIONS = [{ value: '', label: 'Any status' }, ...TASK_STATUS_OPTIONS]
+
+const PRIORITY_OPTIONS = [{ value: '', label: 'Any priority' }, ...TASK_PRIORITY_OPTIONS]
 
 interface ActivityFiltersProps {
   filters: ActivityFilterState
@@ -31,18 +41,12 @@ export function ActivityFilters({
       <div className="activity-filters__grid">
         <label className="activity-filters__field">
           <span>Period</span>
-          <select
-            onChange={(event) =>
-              update({ preset: event.target.value as ActivityFilterState['preset'] })
-            }
+          <Dropdown
+            ariaLabel="Period"
+            onChange={(next) => update({ preset: next as ActivityFilterState['preset'] })}
+            options={PRESET_OPTIONS}
             value={filters.preset}
-          >
-            {PERIOD_PRESETS.map((preset) => (
-              <option key={preset} value={preset}>
-                {PERIOD_PRESET_LABELS[preset]}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         {filters.preset === 'custom' ? (
@@ -75,62 +79,48 @@ export function ActivityFilters({
 
         <label className="activity-filters__field">
           <span>Developer</span>
-          <select
-            onChange={(event) => update({ developerId: event.target.value })}
+          <Dropdown
+            ariaLabel="Developer"
+            onChange={(next) => update({ developerId: next })}
+            options={[
+              { value: '', label: 'All developers' },
+              ...developers.map((developer) => ({ value: developer.id, label: developer.name })),
+            ]}
             value={filters.developerId}
-          >
-            <option value="">All developers</option>
-            {developers.map((developer) => (
-              <option key={developer.id} value={developer.id}>
-                {developer.name}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label className="activity-filters__field">
           <span>Project</span>
-          <select
-            onChange={(event) => update({ projectId: event.target.value })}
+          <Dropdown
+            ariaLabel="Project"
+            onChange={(next) => update({ projectId: next })}
+            options={[
+              { value: '', label: 'All projects' },
+              ...projects.map((project) => ({ value: project.id, label: project.name })),
+            ]}
             value={filters.projectId}
-          >
-            <option value="">All projects</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label className="activity-filters__field">
           <span>Status</span>
-          <select
-            onChange={(event) => update({ status: event.target.value as TaskStatus | '' })}
+          <Dropdown
+            ariaLabel="Status"
+            onChange={(next) => update({ status: next as TaskStatus | '' })}
+            options={STATUS_OPTIONS}
             value={filters.status}
-          >
-            <option value="">Any status</option>
-            {TASK_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label className="activity-filters__field">
           <span>Priority</span>
-          <select
-            onChange={(event) => update({ priority: event.target.value as TaskPriority | '' })}
+          <Dropdown
+            ariaLabel="Priority"
+            onChange={(next) => update({ priority: next as TaskPriority | '' })}
+            options={PRIORITY_OPTIONS}
             value={filters.priority}
-          >
-            <option value="">Any priority</option>
-            {TASK_PRIORITY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label className="activity-filters__field activity-filters__field--wide">

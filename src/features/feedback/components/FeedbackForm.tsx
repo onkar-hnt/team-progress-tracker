@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { useActiveDevelopers, useTasks } from '@hooks/use-work-tracker'
 import type { MentorComment } from '@models/index'
 import { describeTask, groupTasksByCompletion } from '@utils/task.utils'
@@ -86,8 +87,36 @@ export function FeedbackForm({
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
   const { completed, open } = useMemo(() => groupTasksByCompletion(tasks), [tasks])
 
-  const developerField = register('developerId')
   const isDeveloperLocked = developerId !== undefined || comment !== undefined
+
+  const developerOptions = useMemo(
+    () => [
+      { value: '', label: 'Select a developer' },
+      ...(developersQuery.data ?? []).map((developer) => ({
+        value: developer.id,
+        label: developer.name,
+      })),
+    ],
+    [developersQuery.data],
+  )
+
+  // Grouped rather than flat, so finished work is still available without
+  // crowding out what is live.
+  const taskOptions = useMemo(
+    () => [
+      {
+        value: '',
+        label: selectedDeveloperId === '' ? 'Choose a developer first' : 'Select a task',
+      },
+      ...open.map((task) => ({ value: task.id, label: describeTask(task), group: 'Open' })),
+      ...completed.map((task) => ({
+        value: task.id,
+        label: describeTask(task),
+        group: 'Completed',
+      })),
+    ],
+    [completed, open, selectedDeveloperId],
+  )
 
   const submit = handleSubmit(async (values) => {
     const task = tasks.find((candidate) => candidate.id === values.taskId)
@@ -111,26 +140,28 @@ export function FeedbackForm({
       <div className="form__grid">
         <div className="form__field">
           <label htmlFor="feedback-developer">Developer</label>
-          <select
-            disabled={isDeveloperLocked}
-            id="feedback-developer"
-            {...developerField}
-            onChange={(event) => {
-              void developerField.onChange(event)
+          <Controller
+            control={control}
+            name="developerId"
+            render={({ field }) => (
+              <Dropdown
+                disabled={isDeveloperLocked}
+                id="feedback-developer"
+                isInvalid={errors.developerId !== undefined}
+                onBlur={field.onBlur}
+                onChange={(next) => {
+                  field.onChange(next)
 
-              // The task list is about to change, and a task belonging to the
-              // previous person would be refused by `feedback_guard_task`.
-              setValue('taskId', '')
-            }}
-            aria-invalid={errors.developerId ? 'true' : undefined}
-          >
-            <option value="">Select a developer</option>
-            {(developersQuery.data ?? []).map((developer) => (
-              <option key={developer.id} value={developer.id}>
-                {developer.name}
-              </option>
-            ))}
-          </select>
+                  // The task list is about to change, and a task belonging to
+                  // the previous person would be refused by
+                  // `feedback_guard_task`.
+                  setValue('taskId', '')
+                }}
+                options={developerOptions}
+                value={field.value}
+              />
+            )}
+          />
           {errors.developerId ? (
             <p className="form__error">{errors.developerId.message}</p>
           ) : null}
@@ -145,38 +176,21 @@ export function FeedbackForm({
 
       <div className="form__field form__field--wide">
         <label htmlFor="feedback-task">Task</label>
-        <select
-          disabled={selectedDeveloperId === '' || tasksQuery.isPending || tasks.length === 0}
-          id="feedback-task"
-          {...register('taskId')}
-          aria-invalid={errors.taskId ? 'true' : undefined}
-        >
-          <option value="">
-            {selectedDeveloperId === '' ? 'Choose a developer first' : 'Select a task'}
-          </option>
-
-          {/* Grouped rather than flat, so finished work is still available
-              without crowding out what is live. */}
-          {open.length === 0 ? null : (
-            <optgroup label="Open">
-              {open.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {describeTask(task)}
-                </option>
-              ))}
-            </optgroup>
+        <Controller
+          control={control}
+          name="taskId"
+          render={({ field }) => (
+            <Dropdown
+              disabled={selectedDeveloperId === '' || tasksQuery.isPending || tasks.length === 0}
+              id="feedback-task"
+              isInvalid={errors.taskId !== undefined}
+              onBlur={field.onBlur}
+              onChange={field.onChange}
+              options={taskOptions}
+              value={field.value}
+            />
           )}
-
-          {completed.length === 0 ? null : (
-            <optgroup label="Completed">
-              {completed.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {describeTask(task)}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
+        />
 
         {errors.taskId ? <p className="form__error">{errors.taskId.message}</p> : null}
 

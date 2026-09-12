@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
@@ -27,6 +28,11 @@ const PROJECT_STATUS_LABELS: Readonly<Record<ProjectStatus, string>> = {
   'on-hold': 'On hold',
   completed: 'Completed',
 }
+
+const PROJECT_STATUS_OPTIONS = PROJECT_STATUSES.map((status) => ({
+  value: status,
+  label: PROJECT_STATUS_LABELS[status],
+}))
 
 const projectFormSchema = z
   .object({
@@ -264,25 +270,39 @@ function ProjectForm({
 
         <div className="form__field">
           <label htmlFor="project-status">Status</label>
-          <select id="project-status" {...register('status')}>
-            {PROJECT_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {PROJECT_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <Dropdown
+                id="project-status"
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={PROJECT_STATUS_OPTIONS}
+                value={field.value}
+              />
+            )}
+          />
         </div>
 
         <div className="form__field">
           <label htmlFor="project-mentor">Mentor</label>
-          <select id="project-mentor" {...register('mentorId')}>
-            <option value="">Unassigned</option>
-            {mentors.map((mentor) => (
-              <option key={mentor.id} value={mentor.id}>
-                {mentor.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="mentorId"
+            render={({ field }) => (
+              <Dropdown
+                id="project-mentor"
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={[
+                  { value: '', label: 'Unassigned' },
+                  ...mentors.map((mentor) => ({ value: mentor.id, label: mentor.name })),
+                ]}
+                value={field.value}
+              />
+            )}
+          />
         </div>
 
         <div className="form__field">

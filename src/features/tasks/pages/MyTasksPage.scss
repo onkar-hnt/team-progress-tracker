@@ -28,32 +28,14 @@
     }
   }
 
+  /// Sizing lives on the control itself, as `Dropdown`'s compact variant.
   &__status {
     display: inline-flex;
     align-items: center;
     gap: $space-2;
-
-    select {
-      padding: $space-1 $space-2;
-      border: 1px solid $color-border;
-      border-radius: $radius-sm;
-      color: $color-text;
-      font: inherit;
-      font-size: $font-size-xs;
-      background: $color-white;
-
-      &:focus-visible {
-        @include focus-ring;
-      }
-
-      &:disabled {
-        color: $color-text-muted;
-        background: $color-surface-subtle;
-      }
-    }
   }
 
-  /// Reserves no space of its own: the label is inline-flex, so the row does
+  /// Reserves no space of its own: the wrapper is inline-flex, so the row does
   /// not reflow as the message appears and disappears.
   &__saving {
     color: $color-text-muted;

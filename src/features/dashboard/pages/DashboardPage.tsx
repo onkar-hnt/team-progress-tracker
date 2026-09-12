@@ -9,6 +9,7 @@ import {
   WeeklyTrendChart,
 } from '@components/charts/WorkCharts'
 import { DeveloperSummaryTable } from '@components/summaries/SummaryTables'
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { EntryList } from '@components/ui/entry-list/EntryList'
 import { Modal } from '@components/ui/modal/Modal'
@@ -381,31 +382,25 @@ function EntryStatusSelect({
   onChange: (status: TaskStatus) => void
 }) {
   return (
-    <label className="dashboard__entry-status">
-      <span className="sr-only">{`Status for ${entry.taskTitle}`}</span>
-      <select
+    <div className="dashboard__entry-status">
+      <Dropdown
+        ariaLabel={`Status for ${entry.taskTitle}`}
         disabled={isSaving}
-        onChange={(event) => {
-          const next = event.target.value as TaskStatus
-
+        isCompact
+        onChange={(next) => {
           // Re-picking the value already showing is still a write, and one
           // that would refetch every derived view to prove nothing changed.
-          if (next !== entry.status) onChange(next)
+          if (next !== entry.status) onChange(next as TaskStatus)
         }}
+        options={TASK_STATUS_OPTIONS}
         value={entry.status}
-      >
-        {TASK_STATUS_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      />
 
       {isSaving ? (
         <span className="dashboard__entry-saving" role="status">
           Saving…
         </span>
       ) : null}
-    </label>
+    </div>
   )
 }

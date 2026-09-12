@@ -13,6 +13,7 @@ export type IconName =
   | 'activity'
   | 'calendar'
   | 'chart'
+  | 'chevron-down'
   | 'chevron-left'
   | 'chevron-right'
   | 'comments'
@@ -106,6 +107,7 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M18.7 3.5v4.4h-4.4M5.3 20.5v-4.4h4.4" />
     </>
   ),
+  'chevron-down': <path d="M5.5 9.5 12 16l6.5-6.5" />,
   'chevron-left': <path d="M14.5 5.5 8 12l6.5 6.5" />,
   'chevron-right': <path d="M9.5 5.5 16 12l-6.5 6.5" />,
 }

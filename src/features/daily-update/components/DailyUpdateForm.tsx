@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Dropdown } from '@components/ui/dropdown/Dropdown'
+import type { DropdownOption } from '@components/ui/dropdown/Dropdown'
 import { PROGRESS_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import type { DailyWorkEntry, TaskStatus } from '@models/index'
 import { DataProviderError } from '@services/data-provider/index'
@@ -95,9 +97,42 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
         : toFormValues(entry),
   })
 
-  const statusField = register('status')
-  const developerField = register('developerId')
-  const taskField = register('taskId')
+  const developerOptions = useMemo<DropdownOption[]>(
+    () => [
+      { value: '', label: 'Select a developer' },
+      ...(developersQuery.data ?? []).map((developer) => ({
+        value: developer.id,
+        label: developer.name,
+      })),
+    ],
+    [developersQuery.data],
+  )
+
+  const projectOptions = useMemo<DropdownOption[]>(
+    () => [
+      { value: '', label: 'Select a project' },
+      ...(projectsQuery.data ?? []).map((project) => ({
+        value: project.id,
+        label: project.client === undefined ? project.name : `${project.name} — ${project.client}`,
+      })),
+    ],
+    [projectsQuery.data],
+  )
+
+  // Grouped the way the native `<optgroup>` was, so open work is offered ahead
+  // of work already finished.
+  const taskOptions = useMemo<DropdownOption[]>(
+    () => [
+      { value: '', label: tasksQuery.isPending ? 'Loading your tasks…' : 'Not linked to a task' },
+      ...open.map((task) => ({ value: task.id, label: describeTask(task), group: 'Open' })),
+      ...completed.map((task) => ({
+        value: task.id,
+        label: describeTask(task),
+        group: 'Completed',
+      })),
+    ],
+    [completed, open, tasksQuery.isPending],
+  )
 
   const selectedTaskId = useWatch({ control, name: 'taskId' })
   const selectedTask = tasks.find((candidate) => candidate.id === selectedTaskId)
@@ -173,30 +208,32 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
         <div className="daily-update-form__field">
           <label htmlFor="update-developer">Developer</label>
           {canChooseDeveloper ? (
-            <select
-              disabled={isLoadingOptions}
-              id="update-developer"
-              {...developerField}
-              onChange={(event) => {
-                void developerField.onChange(event)
-                setSelectedDeveloperId(event.target.value)
+            <Controller
+              control={control}
+              name="developerId"
+              render={({ field }) => (
+                <Dropdown
+                  disabled={isLoadingOptions}
+                  id="update-developer"
+                  isInvalid={errors.developerId !== undefined}
+                  onBlur={field.onBlur}
+                  onChange={(next) => {
+                    field.onChange(next)
+                    setSelectedDeveloperId(next)
 
-                // The task list is about to change, and a task belonging to
-                // the previous person is refused by the database guard. The
-                // description is left alone: it is what the admin came to log,
-                // and correcting who it belongs to should not retype it.
-                setValue('taskId', '')
-                setValue('projectId', '')
-              }}
-              aria-invalid={errors.developerId ? 'true' : undefined}
-            >
-              <option value="">Select a developer</option>
-              {(developersQuery.data ?? []).map((developer) => (
-                <option key={developer.id} value={developer.id}>
-                  {developer.name}
-                </option>
-              ))}
-            </select>
+                    // The task list is about to change, and a task belonging
+                    // to the previous person is refused by the database guard.
+                    // The description is left alone: it is what the admin came
+                    // to log, and correcting who it belongs to should not
+                    // retype it.
+                    setValue('taskId', '')
+                    setValue('projectId', '')
+                  }}
+                  options={developerOptions}
+                  value={field.value}
+                />
+              )}
+            />
           ) : (
             <>
               {/* Shown as static text and submitted via a hidden field, so the
@@ -222,20 +259,21 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
               <input type="hidden" {...register('projectId')} />
             </>
           ) : (
-            <select
-              disabled={isLoadingOptions}
-              id="update-project"
-              {...register('projectId')}
-              aria-invalid={errors.projectId ? 'true' : undefined}
-            >
-              <option value="">Select a project</option>
-              {(projectsQuery.data ?? []).map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                  {project.client === undefined ? '' : ` — ${project.client}`}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={control}
+              name="projectId"
+              render={({ field }) => (
+                <Dropdown
+                  disabled={isLoadingOptions}
+                  id="update-project"
+                  isInvalid={errors.projectId !== undefined}
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                  options={projectOptions}
+                  value={field.value}
+                />
+              )}
+            />
           )}
           {errors.projectId ? (
             <p className="daily-update-form__error">{errors.projectId.message}</p>
@@ -261,52 +299,37 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
       {showTaskPicker ? (
         <div className="daily-update-form__field">
           <label htmlFor="update-task">Related task (optional)</label>
-          <select
-            disabled={tasksQuery.isPending}
-            id="update-task"
-            {...taskField}
-            onChange={(event) => {
-              void taskField.onChange(event)
+          <Controller
+            control={control}
+            name="taskId"
+            render={({ field }) => (
+              <Dropdown
+                disabled={tasksQuery.isPending}
+                id="update-task"
+                isInvalid={errors.taskId !== undefined}
+                onBlur={field.onBlur}
+                onChange={(next) => {
+                  field.onChange(next)
 
-              const picked = tasks.find((candidate) => candidate.id === event.target.value)
+                  const picked = tasks.find((candidate) => candidate.id === next)
 
-              // The task carries a project, and a second answer could only
-              // disagree with it. Cleared along with the task so the field
-              // comes back rather than keeping a value nobody chose.
-              setValue('projectId', picked?.projectId ?? '')
+                  // The task carries a project, and a second answer could only
+                  // disagree with it. Cleared along with the task so the field
+                  // comes back rather than keeping a value nobody chose.
+                  setValue('projectId', picked?.projectId ?? '')
 
-              // Offered as a starting point, never as a correction: somebody
-              // who has already described their day keeps what they wrote.
-              if (picked !== undefined && getValues('taskTitle').trim() === '') {
-                setValue('taskTitle', picked.name)
-              }
-            }}
-            aria-invalid={errors.taskId ? 'true' : undefined}
-          >
-            <option value="">
-              {tasksQuery.isPending ? 'Loading your tasks…' : 'Not linked to a task'}
-            </option>
-
-            {open.length === 0 ? null : (
-              <optgroup label="Open">
-                {open.map((task) => (
-                  <option key={task.id} value={task.id}>
-                    {describeTask(task)}
-                  </option>
-                ))}
-              </optgroup>
+                  // Offered as a starting point, never as a correction:
+                  // somebody who has already described their day keeps what
+                  // they wrote.
+                  if (picked !== undefined && getValues('taskTitle').trim() === '') {
+                    setValue('taskTitle', picked.name)
+                  }
+                }}
+                options={taskOptions}
+                value={field.value}
+              />
             )}
-
-            {completed.length === 0 ? null : (
-              <optgroup label="Completed">
-                {completed.map((task) => (
-                  <option key={task.id} value={task.id}>
-                    {describeTask(task)}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+          />
 
           {errors.taskId ? (
             <p className="daily-update-form__error">{errors.taskId.message}</p>
@@ -328,39 +351,44 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
       <div className="daily-update-form__grid">
         <div className="daily-update-form__field">
           <label htmlFor="update-status">Status</label>
-          <select
-            id="update-status"
-            {...statusField}
-            onChange={(event) => {
-              void statusField.onChange(event)
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <Dropdown
+                id="update-status"
+                onBlur={field.onBlur}
+                onChange={(next) => {
+                  field.onChange(next)
 
-              // Keep progress in step with status so the developer is never
-              // shown a validation error they did not cause.
-              const matching = progressForStatus(event.target.value as TaskStatus)
-              if (matching !== null) setValue('progress', String(matching))
-            }}
-          >
-            {TASK_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+                  // Keep progress in step with status so the developer is
+                  // never shown a validation error they did not cause.
+                  const matching = progressForStatus(next as TaskStatus)
+                  if (matching !== null) setValue('progress', String(matching))
+                }}
+                options={TASK_STATUS_OPTIONS}
+                value={field.value}
+              />
+            )}
+          />
         </div>
 
         <div className="daily-update-form__field">
           <label htmlFor="update-progress">Progress</label>
-          <select
-            id="update-progress"
-            {...register('progress')}
-            aria-invalid={errors.progress ? 'true' : undefined}
-          >
-            {PROGRESS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="progress"
+            render={({ field }) => (
+              <Dropdown
+                id="update-progress"
+                isInvalid={errors.progress !== undefined}
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                options={PROGRESS_OPTIONS}
+                value={field.value}
+              />
+            )}
+          />
           {errors.progress ? (
             <p className="daily-update-form__error">{errors.progress.message}</p>
           ) : null}
