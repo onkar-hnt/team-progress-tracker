@@ -189,8 +189,8 @@ export function MentorsPage() {
 
                   return (
                     <tr key={mentor.id}>
-                      <td>{mentor.name}</td>
-                      <td>{mentor.email}</td>
+                      <td className="data-table__nowrap">{mentor.name}</td>
+                      <td className="data-table__nowrap">{mentor.email}</td>
                       <td>{mentor.active ? 'Active' : 'Inactive'}</td>
                       <td>
                         <NameList

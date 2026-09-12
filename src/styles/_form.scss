@@ -191,8 +191,14 @@
 }
 
 /// A row of buttons inside a table cell.
+///
+/// One line, always. Left to wrap, the buttons stacked as soon as the column
+/// got tight — which happens on every admin table the moment the sidebar is
+/// expanded — and every row grew to a different height depending on how many
+/// actions it happened to offer. The table scrolls sideways instead, and
+/// `_table.scss` pins this column so the buttons stay reachable while it does.
 .row-actions {
   display: flex;
   gap: $space-2;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }

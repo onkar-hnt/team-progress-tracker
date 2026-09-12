@@ -87,3 +87,35 @@
     overflow-x: auto;
   }
 }
+
+/// A table with row actions keeps them against the right edge while the rest of
+/// it scrolls underneath.
+///
+/// Those buttons are the reason the row is on screen, and they sit in the last
+/// column — so on any window too narrow for every column they were the first
+/// thing to disappear, and reaching Edit meant scrolling to find it.
+///
+/// Selected by having actions rather than by a modifier class, so the five
+/// screens that render them do not each have to remember to ask.
+.data-table:has(.row-actions) {
+  th:last-child,
+  td:last-child {
+    position: sticky;
+    right: 0;
+    border-left: 1px solid $color-border;
+    background: $color-white;
+  }
+
+  /// The corner cell is stuck to both the top and the right, so it has to sit
+  /// above the header row and the pinned column it belongs to.
+  thead th:last-child {
+    z-index: 2;
+    background: $color-surface-subtle;
+  }
+
+  /// The pinned cell paints over the row, so it has to be told about the hover
+  /// as well, or the highlight stops short of the right edge.
+  tbody tr:hover td:last-child {
+    background: $color-surface-subtle;
+  }
+}

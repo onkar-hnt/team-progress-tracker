@@ -198,8 +198,8 @@ export function EmployeesPage() {
               <tbody>
                 {(developersQuery.data ?? []).map((developer) => (
                   <tr key={developer.id}>
-                    <td>{developer.name}</td>
-                    <td>{developer.email ?? '—'}</td>
+                    <td className="data-table__nowrap">{developer.name}</td>
+                    <td className="data-table__nowrap">{developer.email ?? '—'}</td>
                     <td>{developer.role ?? '—'}</td>
                     <td>{developer.location ?? '—'}</td>
                     <td>{USER_ROLE_LABELS[developer.accessRole ?? 'developer']}</td>
