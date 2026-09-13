@@ -74,17 +74,6 @@
 
   /// The count and the button that answers it, on one line. Wraps rather than
   /// squeezes: these lists are often a narrow column of a two-column row.
-  &__more {
-    @include flex($justify: space-between, $gap: $space-3, $wrap: wrap);
-
-    margin-top: $space-3;
-    padding-top: $space-3;
-    border-top: 1px solid $color-border;
-  }
-
-  &__count {
-    margin: 0;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
-  }
+  /// The footer that offers the rest of the list lives in `ShowMore` now, styles
+  /// included, because the server-paged screens show the same control.
 }

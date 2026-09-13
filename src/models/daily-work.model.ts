@@ -86,4 +86,17 @@ export interface DailyWorkQuery {
   statuses?: readonly TaskStatus[]
   priorities?: readonly TaskPriority[]
   isBlocked?: boolean
+
+  /**
+   * At most this many entries, and then necessarily the most recent ones.
+   *
+   * A limit is also an order, because a limit without one returns an arbitrary
+   * subset rather than a page. So every provider answers a limited query newest
+   * first — by `date`, tie-broken by `id` so that two entries logged on the same
+   * day do not swap places between one request and the next.
+   *
+   * Absent means every matching entry, which is what a report or a total needs: a
+   * limit belongs to a list somebody is reading, not to a sum.
+   */
+  limit?: number
 }

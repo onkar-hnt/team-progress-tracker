@@ -65,13 +65,24 @@ export async function selectComments(
   // filter without a case for it, because null satisfies no list — which is
   // what `matchesCommentQuery` does explicitly when it rejects an undefined
   // `projectId` against a requested list.
-  const { data, error } = await client.rpc('list_feedback', {
+  const request = client.rpc('list_feedback', {
     p_date_from: query?.dateFrom ?? null,
     p_date_to: query?.dateTo ?? null,
     p_developer_ids: filterList(query?.developerIds),
     p_mentor_ids: filterList(query?.mentorIds),
     p_project_ids: filterList(query?.projectIds),
   })
+
+  // Newest first, tie-broken by id, as `MentorCommentQuery.limit` promises. Added to
+  // the select over the function rather than inside it, so one definition serves the
+  // paged and unpaged reads.
+  const { data, error } =
+    query?.limit === undefined
+      ? await request
+      : await request
+          .order('feedback_date', { ascending: false })
+          .order('id', { ascending: false })
+          .limit(query.limit)
 
   if (error !== null) throw mapPostgrestError(error, { table: 'Comments', operation: 'read' })
 

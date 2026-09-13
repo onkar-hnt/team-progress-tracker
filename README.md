@@ -201,10 +201,14 @@ Kept honest rather than aspirational:
 
 - **No tests, and no test runner.** The data layer and the permission rules are the parts that
   would repay them most.
-- **Paging is in the browser, not in the query.** Long lists arrive in full and are drawn a page at
-  a time — the notification panel is the one exception, and asks the database for its pages. That is
-  the right trade for a team and the wrong one for a company: the fix is `range()` on the reads,
-  which means the query interface the three data providers share has to grow a limit.
+- **Paging is in the query where a list can be paged, and in the browser where it cannot.** The
+  three record queries now carry a `limit`, which every provider honours newest-first, and the
+  notification panel, the feedback lists and a developer's own feedback ask the database for a page
+  at a time. The remaining lists deliberately still arrive whole, because something on the screen
+  needs all of them: the totals above team activity add up every entry in the period, and the
+  sortable tables sort in the browser, so a paged read would give a stat card that is wrong and a
+  column that sorts only what happens to be loaded. **Aggregates and sorting in the database is the
+  next piece of this**, and it is the one that would let those screens page too.
 - **No audit trail.** Who changed a task's status yesterday, and what it was before, is not
   recorded anywhere. Deleting is the exception: every delete — a work entry, a task, feedback, an
   employee, a mentor or a project — sets the record aside rather than destroying it, and **Recently

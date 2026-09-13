@@ -35,7 +35,7 @@ interface FeedbackFormProps {
 }
 
 /**
- * Records mentor feedback against one of a developer's tasks.
+ * Records mentor feedback, about a task or about the person's work in general.
  *
  * Both lists come from the same scoped hooks the rest of the app uses, so a
  * mentor can only ever select somebody assigned to them and only that
@@ -95,11 +95,19 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
 
   // Grouped rather than flat, so finished work is still available without
   // crowding out what is live.
+  //
+  // The first option is the general one, and it is worded as a choice rather than as
+  // an empty value: "Select a task" reads as a prompt somebody has not answered yet,
+  // and would leave a mentor writing a note about the month wondering which task to
+  // pretend it was about.
   const taskOptions = useMemo(
     () => [
       {
         value: '',
-        label: selectedDeveloperId === '' ? 'Choose a developer first' : 'Select a task',
+        label:
+          selectedDeveloperId === ''
+            ? 'Choose a developer first'
+            : 'General — not about one task',
       },
       ...open.map((task) => ({ value: task.id, label: describeTask(task), group: 'Open' })),
       ...completed.map((task) => ({
@@ -132,8 +140,9 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
 
   const selectedTask = tasks.find((candidate) => candidate.id === selectedTaskId)
 
-  // Feedback needs a task, so a developer with none is a dead end worth
-  // naming rather than an empty dropdown to puzzle over.
+  // A developer with no assigned work is no longer a dead end — general feedback can
+  // still be recorded — but it is worth saying why the list is empty, so that an
+  // empty dropdown is not read as one that failed to load.
   const hasNoTasks =
     selectedDeveloperId !== '' &&
     !tasksQuery.isPending &&
@@ -152,9 +161,9 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
     taskLoadError !== undefined
       ? undefined
       : hasNoTasks
-        ? 'This developer has no assigned tasks yet, so there is nothing to record feedback against. Assign work first.'
+        ? 'This developer has no assigned tasks, so this can only be general feedback.'
         : selectedTask === undefined
-          ? 'Feedback is recorded against the work it is about.'
+          ? 'Name the work this is about, or leave it general.'
           : `Project: ${selectedTask.projectName}`
 
   return (
@@ -210,7 +219,10 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
           name="taskId"
           render={({ field }) => (
             <Dropdown
-              disabled={selectedDeveloperId === '' || tasksQuery.isPending || tasks.length === 0}
+              // Disabled only while there is nothing to answer with. An empty task
+              // list is now an answer — general — rather than a reason to lock the
+              // field.
+              disabled={selectedDeveloperId === '' || tasksQuery.isPending}
               id="feedback-task"
               isInvalid={errors.taskId !== undefined}
               onBlur={field.onBlur}

@@ -17,6 +17,7 @@ import {
   canWriteFeedback,
   isAdmin,
 } from '@services/auth/index'
+import { isHistoryAvailable } from '@services/history/history.service'
 import { isRecycleBinAvailable } from '@services/recycle-bin/recycle-bin.service'
 
 import './Sidebar.scss'
@@ -72,6 +73,18 @@ function canRestoreDeletedRecords(): boolean {
 }
 
 /**
+ * Whether there is a log to read.
+ *
+ * The same shape as the bin above, and the same reasoning: the log holds the history
+ * of the records the person may see, so it needs no role test, and only Supabase can
+ * keep one — a workbook has no trigger to catch a write and nobody to attribute it
+ * to. Without it the link would lead to a placeholder explaining that.
+ */
+function canReadChangeLog(): boolean {
+  return isHistoryAvailable()
+}
+
+/**
  * Navigation grouped by who it is for.
  *
  * Team-wide and administrative areas are kept in labelled groups so it is
@@ -100,6 +113,12 @@ const navigationGroups: readonly NavigationGroup[] = [
         path: '/recently-deleted',
         icon: 'trash',
         isVisible: canRestoreDeletedRecords,
+      },
+      {
+        label: 'Change Log',
+        path: '/change-log',
+        icon: 'history',
+        isVisible: canReadChangeLog,
       },
     ],
   },

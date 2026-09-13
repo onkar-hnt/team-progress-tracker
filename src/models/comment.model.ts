@@ -55,4 +55,11 @@ export interface MentorCommentQuery {
   projectIds?: readonly string[]
   dateFrom?: string
   dateTo?: string
+
+  /**
+   * At most this many comments, newest first by `date` and tie-broken by `id`. See
+   * `DailyWorkQuery.limit`, which carries the reasoning for why a limit implies an
+   * order.
+   */
+  limit?: number
 }

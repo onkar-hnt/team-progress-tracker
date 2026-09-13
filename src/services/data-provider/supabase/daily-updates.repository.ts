@@ -74,7 +74,7 @@ export async function selectDailyUpdates(
   //
   // `isBlocked` is coalesced rather than listed, because `false` is an answer:
   // `false ?? null` is false, so asking for unblocked entries still asks.
-  const { data, error } = await client.rpc('list_daily_updates', {
+  const request = client.rpc('list_daily_updates', {
     p_date_from: query?.dateFrom ?? null,
     p_date_to: query?.dateTo ?? null,
     p_developer_ids: filterList(query?.developerIds),
@@ -83,6 +83,22 @@ export async function selectDailyUpdates(
     p_priorities: filterList(query?.priorities),
     p_is_blocked: query?.isBlocked ?? null,
   })
+
+  // Applied over the function's rows rather than inside it, which is what a
+  // set-returning function lets PostgREST do: the `ORDER BY` and the `LIMIT` are
+  // added to the query that selects from it, so the database still decides which
+  // rows travel and the function keeps one definition for paged and unpaged reads.
+  //
+  // The order is part of the limit, not decoration — see `DailyWorkQuery.limit`.
+  // Tie-broken by id so a second page cannot repeat or skip an entry that shares a
+  // date with the last one on the first page.
+  const { data, error } =
+    query?.limit === undefined
+      ? await request
+      : await request
+          .order('entry_date', { ascending: false })
+          .order('id', { ascending: false })
+          .limit(query.limit)
 
   if (error !== null) throw mapPostgrestError(error, { table: 'DailyWork', operation: 'read' })
 

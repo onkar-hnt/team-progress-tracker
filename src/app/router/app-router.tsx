@@ -67,6 +67,9 @@ const ProfilePage = lazy(async () => ({
 const RecycleBinPage = lazy(async () => ({
   default: (await import('@features/recycle-bin/pages/RecycleBinPage')).RecycleBinPage,
 }))
+const ChangeLogPage = lazy(async () => ({
+  default: (await import('@features/history/pages/ChangeLogPage')).ChangeLogPage,
+}))
 const TeamActivityPage = lazy(async () => ({
   default: (await import('@features/team-activity/pages/TeamActivityPage')).TeamActivityPage,
 }))
@@ -157,6 +160,12 @@ function LazyRoutes() {
           guard here. A developer restoring their own deleted entry is the case
           this exists for, so putting it behind a role would defeat it. */}
       <Route path="recently-deleted" element={<RecycleBinPage />} />
+
+      {/* And the log, on the same argument: `record_history_select` returns the
+          history of the work the person may see, which for a developer is their
+          own. "Who moved my task to blocked" is the question it answers, and it
+          is a developer's question as much as a mentor's. */}
+      <Route path="change-log" element={<ChangeLogPage />} />
 
       <Route element={<RequireTeamAccess />}>
         <Route path="team-activity" element={<TeamActivityPage />} />

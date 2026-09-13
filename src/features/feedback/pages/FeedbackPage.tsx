@@ -8,6 +8,8 @@ import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
+import { ShowMore } from '@components/ui/show-more/ShowMore'
+import { usePaging } from '@hooks/use-paging'
 import {
   useActiveDevelopers,
   useComments,
@@ -40,6 +42,20 @@ export function FeedbackPage() {
 }
 
 /**
+ * How much feedback arrives at a time.
+ *
+ * The two lists on this screen are the ones in the application that grow without
+ * bound and are summarised nowhere: no totals are added up from them and no column
+ * is sorted client-side, so the database can be asked for the newest page and
+ * nothing on screen becomes a half-truth. A mentor with two years of notes about a
+ * team of eight now fetches twenty-five rows rather than several thousand.
+ *
+ * Larger than a screenful, so that the first page usually is the whole answer and
+ * the button is rare.
+ */
+const FEEDBACK_PAGE_SIZE = 25
+
+/**
  * What a developer sees: the feedback written about them, and nothing else.
  *
  * `useComments` needs no filter. The access scope narrows the query to the
@@ -47,7 +63,9 @@ export function FeedbackPage() {
  * database, so asking for everything returns only their own record.
  */
 function OwnFeedback() {
-  const commentsQuery = useComments()
+  const paging = usePaging(FEEDBACK_PAGE_SIZE)
+  const commentsQuery = useComments({ limit: paging.limit })
+  const page = paging.apply(commentsQuery.data)
 
   return (
     <div className="feedback-page">
@@ -64,13 +82,25 @@ function OwnFeedback() {
         ) : commentsQuery.isPending ? (
           <Skeleton label="Loading feedback…" rows={4} />
         ) : (
-          // No actions and no developer name: every entry here is about the
-          // person reading it, and none of it is theirs to edit.
-          <CommentTimeline
-            comments={commentsQuery.data ?? []}
-            emptyMessage="No feedback has been recorded about your work yet."
-            showDeveloper={false}
-          />
+          <>
+            {/* No actions and no developer name: every entry here is about the
+                person reading it, and none of it is theirs to edit. */}
+            <CommentTimeline
+              comments={page.records}
+              emptyMessage="No feedback has been recorded about your work yet."
+              showDeveloper={false}
+            />
+
+            {page.hasMore ? (
+              <ShowMore
+                isLoading={commentsQuery.isFetching}
+                noun="comments"
+                onShowMore={paging.showMore}
+                pageSize={paging.pageSize}
+                shown={page.records.length}
+              />
+            ) : null}
+          </>
         )}
       </Panel>
     </div>
@@ -92,11 +122,21 @@ function FeedbackWorkspace() {
   const [editing, setEditing] = useState<MentorComment | null>(null)
 
   const developersQuery = useActiveDevelopers()
+
+  // Keyed by the filter, so choosing a developer starts at the first page again:
+  // "twenty-five more" was said about the list that was on screen then.
+  const paging = usePaging(FEEDBACK_PAGE_SIZE, developerFilter)
+
   const query = useMemo(
-    () => (developerFilter === '' ? undefined : { developerIds: [developerFilter] }),
-    [developerFilter],
+    () => ({
+      ...(developerFilter === '' ? {} : { developerIds: [developerFilter] }),
+      limit: paging.limit,
+    }),
+    [developerFilter, paging.limit],
   )
+
   const commentsQuery = useComments(query)
+  const page = paging.apply(commentsQuery.data)
 
   const createComment = useCreateComment()
   const updateComment = useUpdateComment()
@@ -195,33 +235,45 @@ function FeedbackWorkspace() {
         ) : commentsQuery.isPending ? (
           <Skeleton label="Loading feedback…" rows={4} />
         ) : (
-          <CommentTimeline
-            comments={commentsQuery.data ?? []}
-            emptyMessage="No feedback has been recorded yet."
-            renderActions={(comment) =>
-              canEditComment(user, comment) ? (
-                <div className="row-actions">
-                  <Button
-                    onClick={() => {
-                      updateComment.reset()
-                      setEditing(comment)
-                    }}
-                    size="small"
-                    variant="ghost"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={() => void requestDelete(comment)}
-                    size="small"
-                    variant="danger"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ) : null
-            }
-          />
+          <>
+            <CommentTimeline
+              comments={page.records}
+              emptyMessage="No feedback has been recorded yet."
+              renderActions={(comment) =>
+                canEditComment(user, comment) ? (
+                  <div className="row-actions">
+                    <Button
+                      onClick={() => {
+                        updateComment.reset()
+                        setEditing(comment)
+                      }}
+                      size="small"
+                      variant="ghost"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => void requestDelete(comment)}
+                      size="small"
+                      variant="danger"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                ) : null
+              }
+            />
+
+            {page.hasMore ? (
+              <ShowMore
+                isLoading={commentsQuery.isFetching}
+                noun="comments"
+                onShowMore={paging.showMore}
+                pageSize={paging.pageSize}
+                shown={page.records.length}
+              />
+            ) : null}
+          </>
         )}
       </Panel>
 

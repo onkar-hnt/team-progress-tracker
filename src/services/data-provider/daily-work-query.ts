@@ -29,12 +29,32 @@ export function matchesDailyWorkQuery(entry: DailyWorkEntry, query: DailyWorkQue
   return true
 }
 
+/**
+ * The matching entries, and at most `query.limit` of them.
+ *
+ * The limit is applied after an explicit newest-first sort, because the interface
+ * promises the *newest* entries rather than the first ones a workbook happens to
+ * hold. Without the sort, "the latest twenty" would be whichever twenty rows were
+ * typed first, which is close to the opposite.
+ *
+ * One thing this cannot do is make the read smaller. A workbook is fetched and
+ * parsed whole, and the fixtures are already in memory, so here the limit saves
+ * rendering rather than transfer — the same answer, reached more cheaply only by
+ * the provider that can push it down to a database. That is what the interface
+ * asks for: the same result everywhere, and each backend as efficient as it can be.
+ */
 export function filterDailyWorkEntries(
   entries: readonly DailyWorkEntry[],
   query: DailyWorkQuery | undefined,
 ): DailyWorkEntry[] {
   if (query === undefined) return [...entries]
-  return entries.filter((entry) => matchesDailyWorkQuery(entry, query))
+
+  const matching = entries.filter((entry) => matchesDailyWorkQuery(entry, query))
+  if (query.limit === undefined) return matching
+
+  return matching
+    .sort((left, right) => right.date.localeCompare(left.date) || right.id.localeCompare(left.id))
+    .slice(0, query.limit)
 }
 
 /**

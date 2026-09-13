@@ -27,6 +27,7 @@ export type IconName =
   | 'eye-off'
   | 'filter'
   | 'inbox'
+  | 'history'
   | 'info'
   | 'key'
   | 'menu'
@@ -57,6 +58,16 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
     </>
   ),
   activity: <path d="M3 12h4l3 7 4-14 3 7h4" />,
+
+  /// A clock with its hands, wound anticlockwise: the arrow on the left is what
+  /// says "back through time" rather than "what time is it".
+  history: (
+    <>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 8v4l3 2" />
+    </>
+  ),
   users: (
     <>
       <circle cx="9" cy="8" r="3.5" />

@@ -11,19 +11,26 @@ import { todayIsoDate } from '@utils/date.utils'
  * all of them would produce padding, and an empty field is more honest than
  * an invented one.
  *
- * The task is required because feedback that names no work is hard to act on
- * — "the error handling needs attention" against a project running for months
- * does not tell the developer reading it which piece of work is meant. The
- * model keeps `taskId` optional, because rows written before this existed
- * genuinely have none.
+ * The task is asked for and not insisted on. It was required for a while, on the
+ * argument that feedback naming no work is hard to act on — "the error handling
+ * needs attention" against a project running for months does not say which piece
+ * of work is meant, and that argument is still right about *most* feedback.
+ *
+ * What it got wrong is that not all feedback is about a piece of work. "You have
+ * been picking up the reviews nobody else wanted" is worth recording and belongs to
+ * no task; so is a note after a conversation about how somebody's month has gone.
+ * Requiring a task did not turn those into task feedback, it turned them into
+ * feedback attached to whichever task happened to be open, which is worse than
+ * having none — it puts the note on the wrong timeline. So the picker offers
+ * "General" and the schema accepts it.
  *
  * There is no project field. A task carries its own project, so asking again
  * would let the two disagree; `toCreateCommentRequest` takes it from the
- * chosen task instead.
+ * chosen task instead, and general feedback carries neither.
  */
 export const feedbackFormSchema = z.object({
   developerId: z.string().min(1, { message: 'Choose a developer' }),
-  taskId: z.string().min(1, { message: 'Choose the task this feedback is about' }),
+  taskId: z.string(),
   date: z.string().min(1, { message: 'Choose a date' }),
   comment: z
     .string()
@@ -67,7 +74,7 @@ export function toFeedbackValues(comment: MentorComment): FeedbackFormValues {
  * `projectId` is derived from the task rather than submitted, which is what
  * keeps the stored project and the stored task from contradicting each other.
  * It is passed in because only the caller has the task list to resolve it
- * from, and it is omitted when the task has no project to give.
+ * from, and it is `undefined` when there is no task, or none with a project.
  *
  * Blank optional fields are omitted rather than written as empty strings, so
  * the record keeps genuinely empty values and a later read does not have to
@@ -81,8 +88,17 @@ export function toCreateCommentRequest(
   return {
     developerId: values.developerId,
     mentorId,
-    taskId: values.taskId,
-    ...omitBlank('projectId', projectId),
+
+    // Present as `undefined` rather than omitted, unlike the blank fields below.
+    // The update mapper reads key presence: omitting this would leave an existing
+    // task link in place, so changing a piece of feedback from a task to general
+    // would silently not change it.
+    taskId: values.taskId === '' ? undefined : values.taskId,
+
+    // Whatever the task gave, which for general feedback is nothing. Sent the same
+    // way and for the same reason: clearing the task has to clear the project with
+    // it, or the note would keep a project it can no longer be traced to.
+    projectId,
     date: values.date,
     comment: values.comment.trim(),
     ...omitBlank('progressUpdate', values.progressUpdate),

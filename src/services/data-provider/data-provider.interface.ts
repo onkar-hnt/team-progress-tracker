@@ -46,6 +46,9 @@ export interface DataProviderCapabilities {
  * - throw the typed errors in `data-provider.errors.ts` rather than raw ones
  * - treat `id` values as the only record keys, never positions or names
  * - enforce referential integrity, since a spreadsheet cannot
+ * - honour `limit` on the three queries that have one, newest first, so that a
+ *   caller asking for a page gets the top of the list rather than an arbitrary
+ *   slice of it
  *
  * Access control is deliberately *not* here. This layer answers "what does
  * the workbook contain"; who may see it is decided above, in `permissions.ts`.
@@ -93,7 +96,11 @@ export interface DataProvider {
 
   deleteProject(id: string): Promise<void>
 
-  /** Ordering is not guaranteed; callers that display data must sort explicitly. */
+  /**
+   * Ordering is not guaranteed *unless* `query.limit` is set, in which case the most
+   * recently updated tasks are the ones returned. Callers that display data sort
+   * explicitly either way.
+   */
   getTasks(query?: AssignedTaskQuery): Promise<AssignedTask[]>
 
   getTaskById(id: string): Promise<AssignedTask | null>
@@ -104,6 +111,7 @@ export interface DataProvider {
 
   deleteTask(id: string): Promise<void>
 
+  /** Newest first when `query.limit` is set; otherwise unordered. */
   getComments(query?: MentorCommentQuery): Promise<MentorComment[]>
 
   createComment(request: CreateMentorCommentRequest): Promise<MentorComment>
@@ -115,7 +123,9 @@ export interface DataProvider {
   /**
    * Entries matching `query`, or all entries when omitted.
    *
-   * Ordering is not guaranteed; callers that display data must sort explicitly.
+   * Ordering is not guaranteed *unless* `query.limit` is set, in which case the
+   * newest entries are the ones returned. Callers that display data sort explicitly
+   * either way.
    */
   getDailyWorkEntries(query?: DailyWorkQuery): Promise<DailyWorkEntry[]>
 

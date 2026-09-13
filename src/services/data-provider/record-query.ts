@@ -38,12 +38,28 @@ export function matchesTaskQuery(task: AssignedTask, query: AssignedTaskQuery): 
   return true
 }
 
+/**
+ * The matching tasks, and at most `query.limit` of them.
+ *
+ * Sorted before it slices, for the reason given at length on
+ * `filterDailyWorkEntries`: the interface promises the most recently updated tasks,
+ * not the ones a workbook lists first.
+ */
 export function filterTasks(
   tasks: readonly AssignedTask[],
   query: AssignedTaskQuery | undefined,
 ): AssignedTask[] {
   if (query === undefined) return [...tasks]
-  return tasks.filter((task) => matchesTaskQuery(task, query))
+
+  const matching = tasks.filter((task) => matchesTaskQuery(task, query))
+  if (query.limit === undefined) return matching
+
+  return matching
+    .sort(
+      (left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id),
+    )
+    .slice(0, query.limit)
 }
 
 export function matchesCommentQuery(
@@ -68,12 +84,19 @@ export function matchesCommentQuery(
   return true
 }
 
+/** The matching comments, newest first and at most `query.limit` of them. */
 export function filterComments(
   comments: readonly MentorComment[],
   query: MentorCommentQuery | undefined,
 ): MentorComment[] {
   if (query === undefined) return [...comments]
-  return comments.filter((comment) => matchesCommentQuery(comment, query))
+
+  const matching = comments.filter((comment) => matchesCommentQuery(comment, query))
+  if (query.limit === undefined) return matching
+
+  return matching
+    .sort((left, right) => right.date.localeCompare(left.date) || right.id.localeCompare(left.id))
+    .slice(0, query.limit)
 }
 
 /**

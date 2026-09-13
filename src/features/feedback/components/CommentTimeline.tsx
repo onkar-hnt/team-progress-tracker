@@ -39,10 +39,17 @@ export function CommentTimeline({
           <div className="comment-timeline__header">
             <div>
               {/* The task leads, because it is what the note is about; who
-                  said it and when are the qualifiers. Feedback recorded
-                  before it was task-scoped has none, and falls back to the
-                  project it named instead. */}
-              <p className="comment-timeline__task">
+                  said it and when are the qualifiers. Feedback that names no
+                  task falls back to the project, and then to "General" — which
+                  is now a choice a mentor made rather than only the mark of a
+                  row written before the task link existed. Styled quietly in
+                  that case, so a general note reads as being about the person
+                  rather than as a task whose name failed to load. */}
+              <p
+                className={`comment-timeline__task${
+                  comment.taskName === undefined ? ' comment-timeline__task--general' : ''
+                }`}
+              >
                 {comment.taskName ?? comment.projectName ?? 'General feedback'}
               </p>
               <p className="comment-timeline__meta">

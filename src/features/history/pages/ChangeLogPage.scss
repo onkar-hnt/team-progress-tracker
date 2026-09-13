@@ -1,0 +1,83 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.change-log {
+  @include page-stack;
+
+  &__note {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  /// Which kind of record changed, styled as the recycle bin styles the same idea:
+  /// a quiet category label rather than a badge, because it is not a state.
+  &__kind {
+    display: inline-block;
+    padding: $space-1 $space-2;
+    border-radius: $radius-sm;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    white-space: nowrap;
+    background: $color-surface-subtle;
+  }
+
+  /// The name the record had at the time. Capped and cut off, so one long task
+  /// title cannot widen the table past the panel.
+  &__subject {
+    max-width: 18rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /// A creation, a deletion or a restore, which have no field diff to show. Coloured
+  /// only where the colour carries meaning somebody scans for: what was removed, and
+  /// what came back.
+  &__action {
+    font-weight: $font-weight-semibold;
+
+    &--delete {
+      color: $color-danger;
+    }
+
+    &--restore {
+      color: $color-success;
+    }
+  }
+
+  /// One line per field, unbulleted: the label already starts each line, and a bullet
+  /// beside it in a table cell reads as a second column.
+  &__fields {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: $font-size-sm;
+
+    li + li {
+      margin-top: $space-1;
+    }
+  }
+
+  &__field {
+    margin-right: $space-2;
+    color: $color-text-muted;
+
+    &::after {
+      content: ':';
+    }
+  }
+
+  /// The old value struck through and the new one emphasised, so the direction of the
+  /// arrow is legible without reading it — the eye finds the change before the words.
+  &__from {
+    color: $color-text-muted;
+    text-decoration: line-through;
+  }
+
+  &__to {
+    color: $color-text;
+    font-weight: $font-weight-medium;
+  }
+}

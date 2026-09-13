@@ -65,7 +65,7 @@ export async function selectTasks(
   // date is never past one. Both fall out of how the function compares them —
   // null satisfies neither `= any (…)` nor `<=` — rather than needing a case
   // here, which is the same thing the filter chain relied on.
-  const { data, error } = await client.rpc('list_tasks', {
+  const request = client.rpc('list_tasks', {
     p_developer_ids: filterList(query?.developerIds),
     p_mentor_ids: filterList(query?.mentorIds),
     p_project_ids: filterList(query?.projectIds),
@@ -73,6 +73,17 @@ export async function selectTasks(
     p_priorities: filterList(query?.priorities),
     p_due_on_or_before: query?.dueOnOrBefore ?? null,
   })
+
+  // Most recently updated first, which is the order the task lists draw and the
+  // order `AssignedTaskQuery.limit` promises. Added to the select over the function
+  // rather than inside it, so one definition serves the paged and unpaged reads.
+  const { data, error } =
+    query?.limit === undefined
+      ? await request
+      : await request
+          .order('updated_at', { ascending: false })
+          .order('id', { ascending: false })
+          .limit(query.limit)
 
   if (error !== null) throw mapPostgrestError(error, { table: 'Tasks', operation: 'read' })
 

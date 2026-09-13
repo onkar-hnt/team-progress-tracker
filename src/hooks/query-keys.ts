@@ -54,6 +54,18 @@ export const queryKeys = {
    */
   deletedRecords: () => [ROOT, 'deleted-records'] as const,
 
+  /**
+   * The change log, whole or for one record.
+   *
+   * Unscoped, like the two above: `record_history_select` answers it per person and
+   * the request carries nothing for a scope identity to keep apart. The limit is in
+   * the key because raising it is a different question with a different answer.
+   */
+  changeLog: (limit: number) => [ROOT, 'change-log', limit] as const,
+
+  recordChanges: (kind: string, recordId: string) =>
+    [ROOT, 'change-log', 'record', kind, recordId] as const,
+
   /** `null` rather than `undefined` so the key serialises consistently. */
   dailyWork: (scopeId: string, query?: DailyWorkQuery) =>
     [ROOT, 'daily-work', scopeId, query ?? null] as const,

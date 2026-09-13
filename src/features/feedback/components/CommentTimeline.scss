@@ -23,6 +23,15 @@
     margin: 0;
     color: $color-text;
     font-weight: $font-weight-semibold;
+
+    /// Feedback about the person rather than about a task. Lighter and unbolded,
+    /// because it is a category and not a title — bold, it looked like a task called
+    /// "General feedback".
+    &--general {
+      color: $color-text-muted;
+      font-weight: $font-weight-medium;
+      font-style: italic;
+    }
   }
 
   &__meta {

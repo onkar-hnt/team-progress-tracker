@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query'
 
 import type {
@@ -67,7 +67,7 @@ import { useAccessScope } from './use-access-scope'
 function useScopedQuery<TValue>(
   buildKey: (scopeId: string) => readonly unknown[],
   run: (scope: AccessScope) => Promise<TValue>,
-  options: { staleTime?: number } = {},
+  options: { staleTime?: number; keepsPreviousData?: boolean } = {},
 ): UseQueryResult<TValue> {
   const { isResolving, scope } = useAccessScope()
 
@@ -79,6 +79,13 @@ function useScopedQuery<TValue>(
     },
     enabled: !isResolving && scope !== null,
     ...(options.staleTime === undefined ? {} : { staleTime: options.staleTime }),
+
+    // For the hooks whose query carries a paging limit. Raising the limit is a new
+    // key, and without this the list a person is reading would be replaced by a
+    // skeleton on its way to becoming one row longer. Held to the hooks that need
+    // it rather than applied to all of them, because everywhere else the screen
+    // is meant to fall back to its skeleton.
+    ...(options.keepsPreviousData === true ? { placeholderData: keepPreviousData } : {}),
   })
 }
 
@@ -200,12 +207,21 @@ export function useTasks(query?: AssignedTaskQuery): UseQueryResult<AssignedTask
   )
 }
 
+/**
+ * Feedback, a page at a time when the caller asks for one.
+ *
+ * The one record hook that keeps its previous answer on screen while fetching,
+ * because it is the one the feedback screens page through with `usePaging`. Nothing
+ * about paging is decided here — the limit arrives in the query like any other
+ * predicate — but the flicker it would otherwise cause is.
+ */
 export function useComments(query?: MentorCommentQuery): UseQueryResult<MentorCommentView[]> {
   const service = getWorkTrackerService()
 
   return useScopedQuery(
     (scopeId) => queryKeys.comments(scopeId, query),
     (scope) => service.getCommentViews(scope, query),
+    { keepsPreviousData: true },
   )
 }
 

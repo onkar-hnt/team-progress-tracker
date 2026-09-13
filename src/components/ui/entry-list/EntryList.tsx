@@ -2,9 +2,9 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
-import { Button } from '@components/ui/button/Button'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { EmptyState } from '@components/ui/feedback/Feedback'
+import { ShowMore } from '@components/ui/show-more/ShowMore'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import type { DailyWorkEntryView } from '@services/work-tracker.service'
 import { formatShortDate } from '@utils/date.utils'
@@ -129,23 +129,17 @@ export function EntryList({
       </ul>
 
       {remaining === 0 ? null : (
-        <div className="entry-list__more">
-          <p className="entry-list__count">
-            Showing {shown} of {entries.length} entries.
-          </p>
-
-          <Button
-            onClick={() => {
-              setExtraPages((current) => current + 1)
-            }}
-            size="small"
-            variant="ghost"
-          >
-            {/* The number is in the label so the button says what pressing it
-                does. "Show more" on a list of sixty-three is a question. */}
-            Show {Math.min(remaining, limit ?? remaining)} more
-          </Button>
-        </div>
+        <ShowMore
+          noun="entries"
+          onShowMore={() => {
+            setExtraPages((current) => current + 1)
+          }}
+          pageSize={limit ?? remaining}
+          shown={shown}
+          // Known here, unlike on the server-paged screens: this component was given
+          // the whole list and is choosing how much of it to draw.
+          total={entries.length}
+        />
       )}
     </>
   )

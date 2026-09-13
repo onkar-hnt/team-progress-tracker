@@ -51,4 +51,14 @@ export interface AssignedTaskQuery {
   priorities?: readonly TaskPriority[]
   /** Inclusive upper bound on `dueDate`, for overdue and due-soon views. */
   dueOnOrBefore?: string
+
+  /**
+   * At most this many tasks, most recently updated first. See `DailyWorkQuery.limit`,
+   * which carries the reasoning for why a limit implies an order.
+   *
+   * Ordered by `updatedAt` rather than by a task's own date, because that is the
+   * order the task lists already display: a task worked on today belongs at the top
+   * whenever it was raised.
+   */
+  limit?: number
 }
