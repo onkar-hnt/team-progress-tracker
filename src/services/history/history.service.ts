@@ -75,6 +75,15 @@ export interface ChangeRecord {
   recordId: string
   changedAt: string
 
+  /**
+   * Who made it, as they were named at the time.
+   *
+   * Absent when there was nobody — a change made by a trigger rather than by a person —
+   * and also when the login has no display name to copy. The screen tells those two
+   * apart by `changedByProfileId`, which is present for the second and not the first.
+   */
+  changedByName?: string
+
   /** Absent when the change was made by a trigger rather than by a person. */
   changedByProfileId?: string
 
@@ -167,7 +176,7 @@ function mapHistoryError(error: { code: string; message: string }): DataProvider
 }
 
 const HISTORY_COLUMNS =
-  'id, table_name, record_id, action, subject, changed_by, changed_at, changes' as const
+  'id, table_name, record_id, action, subject, changed_by, changed_by_name, changed_at, changes' as const
 
 const changeRowSchema = z.object({
   id: z.string().min(1),
@@ -178,6 +187,7 @@ const changeRowSchema = z.object({
   action: z.enum(Object.keys(HISTORY_ACTIONS) as [HistoryAction, ...HistoryAction[]]),
   subject: z.string(),
   changed_by: z.string().nullable(),
+  changed_by_name: z.string(),
   changed_at: z.string().min(1),
 
   // Shape checked one level down and no further: the values are whatever the column
@@ -196,6 +206,7 @@ function toChangeRecord(row: z.infer<typeof changeRowSchema>): ChangeRecord {
     recordId: row.record_id,
     changedAt: row.changed_at,
     ...(row.changed_by === null ? {} : { changedByProfileId: row.changed_by }),
+    ...(row.changed_by_name === '' ? {} : { changedByName: row.changed_by_name }),
 
     fields: Object.entries(row.changes)
       // Sorted by label so two changes to the same pair of fields read the same way

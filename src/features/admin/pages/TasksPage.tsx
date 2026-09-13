@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { useConfirm } from '@app/providers/confirm-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
+import { AttachmentPanel } from '@components/attachments/AttachmentPanel'
 import { Button } from '@components/ui/button/Button'
 import { TableSearch } from '@components/ui/data-table/TableSearch'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
@@ -414,6 +415,18 @@ function TaskForm({
         isWide
         label="Description"
         {...register('description')}
+      />
+
+      {/* Inside the form but outside the submit: attaching a file is its own write and
+          lands immediately, which is why it is offered only for a task that exists. A
+          specification chosen before the task was saved would have nothing to hang
+          from, and holding it until the save would mean two ways for the same action to
+          fail. */}
+      <AttachmentPanel
+        hint="A specification, a design, or a screenshot of what is wanted."
+        owner="tasks"
+        recordId={task?.id ?? null}
+        reopenWith="press Edit on the task"
       />
 
       <div className="form__actions">

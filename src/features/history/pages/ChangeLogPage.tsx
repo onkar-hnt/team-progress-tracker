@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import { SortableHeader } from '@components/ui/data-table/SortableHeader'
 import { TableSearch } from '@components/ui/data-table/TableSearch'
@@ -9,7 +9,6 @@ import { ShowMore } from '@components/ui/show-more/ShowMore'
 import { useChangeLog } from '@hooks/use-history'
 import { usePaging } from '@hooks/use-paging'
 import { useTableSort } from '@hooks/use-table-sort'
-import { useDevelopers, useMentors } from '@hooks/use-work-tracker'
 import {
   HISTORY_ACTIONS,
   HISTORY_KINDS,
@@ -52,39 +51,23 @@ export function ChangeLogPage() {
   const changesQuery = useChangeLog(paging.limit)
   const page = paging.apply(changesQuery.data)
 
-  const developersQuery = useDevelopers()
-  const mentorsQuery = useMentors()
-
   /**
-   * Who a login belongs to.
+   * Who made a change.
    *
-   * Built from the roster the viewer can already see, because that is where the link
-   * between a login and a name lives — `profiles` itself is readable only by an
-   * administrator. It resolves everybody a person is likely to encounter in their own
-   * log: themselves, their mentor, and for a mentor their developers.
+   * Read from the row rather than resolved. The name is copied onto the history row as
+   * it is written, because the alternative — mapping a login id through the roster — is
+   * exactly what a developer cannot do: `profiles` is an administrator's to read, so
+   * their own mentor came back as a stranger. See 20260913235500.
    *
-   * What it cannot resolve is honestly labelled rather than shown as an id. A uuid in
-   * a "Who" column tells nobody anything, and the fact that some change was made by
-   * somebody outside your view is itself the answer.
+   * The two ways a name can be absent mean different things and are said differently. No
+   * actor at all is a change made by a trigger rather than by a person, which is how the
+   * synchronised copy of a status change is recorded. An actor with no name is somebody
+   * whose login carries none.
    */
-  const nameOfProfile = useMemo(() => {
-    const names = new Map<string, string>()
-
-    for (const developer of developersQuery.data ?? []) {
-      if (developer.profileId !== undefined) names.set(developer.profileId, developer.name)
-    }
-
-    for (const mentor of mentorsQuery.data ?? []) {
-      if (mentor.profileId !== undefined) names.set(mentor.profileId, mentor.name)
-    }
-
-    return (profileId: string | undefined) => {
-      // No actor at all: written by a database trigger rather than by a person, which
-      // is how the synchronised copies of a status change are recorded.
-      if (profileId === undefined) return 'The system'
-      return names.get(profileId) ?? 'Someone else'
-    }
-  }, [developersQuery.data, mentorsQuery.data])
+  const nameOfActor = (change: ChangeRecord): string => {
+    if (change.changedByProfileId === undefined) return 'The system'
+    return change.changedByName ?? 'Someone else'
+  }
 
   /** The diff as one line of text, which is also what the search reads. */
   const describeChange = (change: ChangeRecord): string => {
@@ -104,10 +87,7 @@ export function ChangeLogPage() {
       case 'what':
         return compareText(describeChange(left), describeChange(right))
       case 'who':
-        return compareText(
-          nameOfProfile(left.changedByProfileId),
-          nameOfProfile(right.changedByProfileId),
-        )
+        return compareText(nameOfActor(left), nameOfActor(right))
       case 'when':
         return compareText(left.changedAt, right.changedAt)
     }
@@ -121,7 +101,7 @@ export function ChangeLogPage() {
           HISTORY_KINDS[change.kind],
           HISTORY_ACTIONS[change.action],
           describeChange(change),
-          nameOfProfile(change.changedByProfileId),
+          nameOfActor(change),
         ],
         search,
       ),
@@ -230,7 +210,7 @@ export function ChangeLogPage() {
                           )}
                         </td>
                         <td className="data-table__nowrap">
-                          {nameOfProfile(change.changedByProfileId)}
+                          {nameOfActor(change)}
                         </td>
                         {/* Relative, with the exact moment on hover: "2 hours ago"
                             answers "was this just now", and the timestamp is what

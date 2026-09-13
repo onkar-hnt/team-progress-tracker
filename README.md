@@ -93,8 +93,9 @@ supabase link --project-ref <your-project-ref>
 ### Migrations
 
 Everything in `supabase/migrations/` — the schema, the RLS policies, the triggers that raise
-notifications and keep records in step, and the SQL functions the Edge Functions ask for
-permission. They are applied in filename order and each is written to be run once.
+notifications, record every change and keep records in step, the storage bucket attachments go to,
+and the SQL functions the Edge Functions ask for permission. They are applied in filename order and
+each is written to be run once.
 
 ```bash
 supabase migration list --linked   # what is applied, and what is not
@@ -209,10 +210,24 @@ Kept honest rather than aspirational:
   sortable tables sort in the browser, so a paged read would give a stat card that is wrong and a
   column that sorts only what happens to be loaded. **Aggregates and sorting in the database is the
   next piece of this**, and it is the one that would let those screens page too.
-- **No audit trail.** Who changed a task's status yesterday, and what it was before, is not
-  recorded anywhere. Deleting is the exception: every delete — a work entry, a task, feedback, an
-  employee, a mentor or a project — sets the record aside rather than destroying it, and **Recently
-  deleted** stamps who did it and when. An employee, mentor or project can still only be deleted
-  while no live work references it, which is a rule about deleting rather than about the bin.
-- **No attachments, and no general comments** — feedback is attached to a task, and that is the
-  only conversation the application holds.
+- **The audit trail is field-level, but not a time machine.** Every change to a work entry, a
+  task, feedback, an employee, a mentor or a project is recorded as a diff — the field, what it
+  was, what it became, who did it and when — and **Change log** shows it, narrowed by the same rule
+  that narrows the work itself, so a developer sees who moved their task and an administrator sees
+  everything. What it will not do is reassemble a record as it stood on an arbitrary Tuesday:
+  diffs are kept rather than snapshots, which is the right trade for "who did this" and the wrong
+  one for "show me the whole thing as it was". Project membership is the one write not yet logged.
+- **Deleting is recoverable, except for a file.** Every delete of a record sets it aside rather
+  than destroying it, and **Recently deleted** stamps who did it and when; an employee, mentor or
+  project can still only be deleted while no live work references it, which is a rule about
+  deleting rather than about the bin. An attachment is the exception and says so before it goes:
+  the row and the object are both removed, and neither comes back.
+- **Attachments are per record, and nothing wider.** A task, a work entry and a piece of feedback
+  can each carry files — private bucket, signed links that expire in a minute, 10 MB and a named
+  list of types enforced by the service rather than by the browser. There is no gallery, no
+  preview, and no way to attach a file to a project or a person: a file about a piece of work
+  belongs on that work, and one about somebody's employment does not belong here at all.
+- **Feedback is the only conversation.** It can now be about a task or about the person's work in
+  general, which is what a note after a one-to-one actually is. What is still missing is a reply:
+  feedback is written and read, not discussed, so a developer answering a point has to do it
+  somewhere else.

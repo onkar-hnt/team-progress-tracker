@@ -66,6 +66,16 @@ export const queryKeys = {
   recordChanges: (kind: string, recordId: string) =>
     [ROOT, 'change-log', 'record', kind, recordId] as const,
 
+  /**
+   * The files on one record.
+   *
+   * Keyed by the record and not by the screen, so the same list serves wherever that
+   * record is open. Not under the record's own key, because a file is not part of the
+   * record's answer and a write to one should not invalidate the other.
+   */
+  attachments: (owner: string, recordId: string) =>
+    [ROOT, 'attachments', owner, recordId] as const,
+
   /** `null` rather than `undefined` so the key serialises consistently. */
   dailyWork: (scopeId: string, query?: DailyWorkQuery) =>
     [ROOT, 'daily-work', scopeId, query ?? null] as const,
