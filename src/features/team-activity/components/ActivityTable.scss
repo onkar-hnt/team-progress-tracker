@@ -37,5 +37,27 @@
   &__actions {
     white-space: nowrap;
   }
+}
 
+/// Under the table, inside its scrolling wrapper.
+///
+/// `sticky` on the left so that on a window narrower than the table — where the
+/// wrapper scrolls sideways — the count and the button stay where they can be
+/// read, instead of sitting off to the right with the last column.
+.activity-table__more {
+  @include flex($justify: space-between, $align: baseline, $gap: $space-3, $wrap: wrap);
+
+  position: sticky;
+  left: 0;
+  width: 100%;
+  margin-top: $space-3;
+  padding-top: $space-3;
+  border-top: 1px solid $color-border;
+
+  p {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    font-variant-numeric: tabular-nums;
+  }
 }

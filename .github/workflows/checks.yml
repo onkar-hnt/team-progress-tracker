@@ -1,0 +1,60 @@
+name: Checks
+
+# Pull requests, and pushes to anything that is not `main`.
+#
+# `deploy.yml` already typechecks and lints, but only on the way to publishing —
+# so until now the first run of either was on `main`, after the merge, with the
+# deploy of a broken build as the way of finding out. This is the same two
+# commands moved to where they can still stop something.
+#
+# `main` is deliberately excluded from the push trigger: a push there runs the
+# deploy workflow, which does both checks itself, and duplicating them would
+# double every run for no extra signal.
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+# Nothing here reads or writes anything but the checkout.
+permissions:
+  contents: read
+
+# One run per branch. A second push supersedes the first rather than queueing
+# behind it, since only the latest commit's result is of any use.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Not `if: success()`, which is the default — lint runs only if the
+      # typecheck passed, because a type error usually produces a page of lint
+      # noise that says nothing new.
+      - name: Lint
+        run: npm run lint
+
+      # Built without any Supabase configuration, on purpose. This proves the
+      # bundle compiles and that the unconfigured path still works — the
+      # in-memory workbook a fresh clone runs on — which is the one thing the
+      # deploy workflow cannot tell us, since it always builds with a project
+      # configured.
+      - name: Build
+        run: npm run build

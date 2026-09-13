@@ -6,7 +6,7 @@ import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder
 import { FullPageLoader } from '@components/ui/full-page-loader/FullPageLoader'
 import { useAccessScope, useMentorAssignments } from '@hooks/use-access-scope'
 import type { AppUser } from '@models/index'
-import { canManageTeam, canReadFeedback, canViewTeamData } from '@services/auth/index'
+import { canManageTeam, canReadFeedback, canViewTeamData, isAdmin } from '@services/auth/index'
 
 /**
  * Blocks unauthenticated access and remembers where the user was going.
@@ -83,6 +83,25 @@ export function RequireTeamManagement() {
     <RequireRole
       description="This area is available to mentors and administrators."
       isAllowed={canManageTeam}
+    />
+  )
+}
+
+/**
+ * The one area mentors do not share: administering the logins themselves.
+ *
+ * A mentor hands out logins and resets passwords for the people assigned to them,
+ * because both are things that get somebody working. Taking access away is not,
+ * and the roster's own Active flag already lets a mentor record that somebody has
+ * left. The database says the same — `may_manage_account` admits administrators
+ * and nobody else — so this guard is about not offering a screen whose every
+ * control would be refused.
+ */
+export function RequireAdmin() {
+  return (
+    <RequireRole
+      description="Logins are administered by administrators. Mentors can create a login and reset a password from the Employees and Mentors screens."
+      isAllowed={isAdmin}
     />
   )
 }

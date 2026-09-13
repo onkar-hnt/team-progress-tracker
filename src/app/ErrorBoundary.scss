@@ -1,0 +1,22 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+/// The wrapper for the application-scope fallback only.
+///
+/// The screen-scope one is rendered inside the shell's content area, which
+/// already centres and pads what it holds. This one replaces the shell, so it has
+/// to provide the page itself — the same centred, scrollable, subtly tinted page
+/// the login and waiting screens use, so a failure still looks like this
+/// application rather than like the browser's own error.
+.error-boundary {
+  @include flex($justify: center);
+
+  height: 100%;
+  padding: $space-6;
+  overflow-y: auto;
+  background: $color-surface-subtle;
+
+  @include respond-to-mobile {
+    padding: $space-4;
+  }
+}

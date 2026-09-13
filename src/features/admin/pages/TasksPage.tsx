@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useConfirm } from '@app/providers/confirm-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
+import { TableSearch } from '@components/ui/data-table/TableSearch'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { Field, TextAreaField, TextField } from '@components/ui/field/Field'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
@@ -25,6 +26,7 @@ import {
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { AssignedTask } from '@models/index'
 import { todayIsoDate } from '@utils/date.utils'
+import { matchesSearch } from '@utils/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 
@@ -60,6 +62,7 @@ export function TasksPage() {
   const [editing, setEditing] = useState<AssignedTask | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [developerFilter, setDeveloperFilter] = useState('')
+  const [search, setSearch] = useState('')
 
   const query = useMemo(
     () => (developerFilter === '' ? undefined : { developerIds: [developerFilter] }),
@@ -67,6 +70,15 @@ export function TasksPage() {
   )
 
   const tasksQuery = useTasks(query)
+
+  // No sorting here: `TaskTable` owns that, because the columns are its own.
+  const visible = useMemo(
+    () =>
+      (tasksQuery.data ?? []).filter((task) =>
+        matchesSearch([task.name, task.description, task.developerName, task.projectName], search),
+      ),
+    [search, tasksQuery.data],
+  )
   // Developers stay narrowed here, unlike the projects and mentors beside
   // them. A mentor may only assign work to their own developers, and
   // `tasks_insert` refuses anything else, so offering the whole roster would
@@ -134,30 +146,45 @@ export function TasksPage() {
         ) : tasksQuery.isPending ? (
           <Skeleton label="Loading tasks…" rows={5} />
         ) : (
-          <TaskTable
-            emptyMessage="No tasks match this filter."
-            renderActions={(task) => (
-              <div className="row-actions">
-                <Button
-                  onClick={() => {
-                    setEditing(task)
-                  }}
-                  size="small"
-                  variant="ghost"
-                >
-                  Edit
-                </Button>
-                <Button
-                  onClick={() => void requestDelete(task)}
-                  size="small"
-                  variant="danger"
-                >
-                  Delete
-                </Button>
-              </div>
-            )}
-            tasks={tasksQuery.data ?? []}
-          />
+          <>
+            {/* Beside the developer picker rather than instead of it. The picker
+                narrows the query — the data layer fetches one person's tasks —
+                while this searches what came back, which is why one is above the
+                table and the other is in the panel header. */}
+            <TableSearch
+              hint="Task, description, developer or project"
+              matchCount={visible.length}
+              noun="tasks"
+              onChange={setSearch}
+              totalCount={(tasksQuery.data ?? []).length}
+              value={search}
+            />
+
+            <TaskTable
+              emptyMessage={
+                search.trim() === ''
+                  ? 'No tasks match this filter.'
+                  : `No task matches “${search}”.`
+              }
+              renderActions={(task) => (
+                <div className="row-actions">
+                  <Button
+                    onClick={() => {
+                      setEditing(task)
+                    }}
+                    size="small"
+                    variant="ghost"
+                  >
+                    Edit
+                  </Button>
+                  <Button onClick={() => void requestDelete(task)} size="small" variant="danger">
+                    Delete
+                  </Button>
+                </div>
+              )}
+              tasks={visible}
+            />
+          </>
         )}
       </Panel>
 
@@ -276,11 +303,7 @@ function TaskForm({
       />
 
       <div className="form__grid">
-        <Field
-          error={errors.developerId?.message}
-          htmlFor="task-developer"
-          label="Developer"
-        >
+        <Field error={errors.developerId?.message} htmlFor="task-developer" label="Developer">
           <Controller
             control={control}
             name="developerId"
@@ -374,12 +397,7 @@ function TaskForm({
           />
         </Field>
 
-        <TextField
-          id="task-created"
-          label="Start date"
-          type="date"
-          {...register('createdDate')}
-        />
+        <TextField id="task-created" label="Start date" type="date" {...register('createdDate')} />
 
         <TextField
           error={errors.dueDate?.message}
@@ -390,7 +408,12 @@ function TaskForm({
         />
       </div>
 
-      <TextAreaField id="task-description" isWide label="Description" {...register('description')} />
+      <TextAreaField
+        id="task-description"
+        isWide
+        label="Description"
+        {...register('description')}
+      />
 
       <div className="form__actions">
         <Button onClick={onCancel} variant="secondary">

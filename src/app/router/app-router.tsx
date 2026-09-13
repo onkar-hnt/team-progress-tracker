@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
+import { ErrorBoundary } from '@app/ErrorBoundary'
 import { AppLayout } from '@components/layout/app-layout/AppLayout'
 import { Panel } from '@components/ui/panel/Panel'
 import { Skeleton } from '@components/ui/feedback/Feedback'
@@ -8,6 +9,7 @@ import { LoginPage } from '@features/auth/pages/LoginPage'
 import { SetPasswordPage } from '@features/auth/pages/SetPasswordPage'
 
 import {
+  RequireAdmin,
   RequireAuth,
   RequireFeedbackAccess,
   RequirePasswordChange,
@@ -47,6 +49,9 @@ const AdminMentorsPage = lazy(async () => ({
 const AdminEmployeesPage = lazy(async () => ({
   default: (await import('@features/admin/pages/EmployeesPage')).EmployeesPage,
 }))
+const AdminAccountsPage = lazy(async () => ({
+  default: (await import('@features/admin/pages/AccountsPage')).AccountsPage,
+}))
 const AdminProjectsPage = lazy(async () => ({
   default: (await import('@features/admin/pages/ProjectsPage')).ProjectsPage,
 }))
@@ -68,6 +73,18 @@ function PageFallback() {
     <Panel title="Loading">
       <Skeleton label="Loading this screen…" rows={5} />
     </Panel>
+  )
+}
+
+function RoutedScreen() {
+  const { pathname } = useLocation()
+
+  return (
+    <ErrorBoundary key={pathname} scope="screen">
+      <Suspense fallback={<PageFallback />}>
+        <LazyRoutes />
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 
@@ -94,16 +111,9 @@ export function AppRouter() {
               <Route element={<AppLayout />}>
                 <Route index element={<Navigate replace to="/dashboard" />} />
 
-                {/* One boundary inside the layout, so the shell stays on
-                    screen while a screen's chunk is fetched. */}
-                <Route
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <LazyRoutes />
-                    </Suspense>
-                  }
-                  path="*"
-                />
+                {/* Inside the layout, so the shell stays on screen both while a
+                    screen's chunk is fetched and if the screen then fails. */}
+                <Route element={<RoutedScreen />} path="*" />
               </Route>
             </Route>
           </Route>
@@ -154,6 +164,12 @@ function LazyRoutes() {
         <Route path="admin/employees" element={<AdminEmployeesPage />} />
         <Route path="admin/projects" element={<AdminProjectsPage />} />
         <Route path="admin/tasks" element={<AdminTasksPage />} />
+      </Route>
+
+      {/* Inside the administration area but not inside `RequireTeamManagement`:
+          disabling a login is the one thing there that mentors do not do. */}
+      <Route element={<RequireAdmin />}>
+        <Route path="admin/accounts" element={<AdminAccountsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate replace to="/dashboard" />} />

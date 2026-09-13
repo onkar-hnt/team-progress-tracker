@@ -1,10 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
 import type { AppNotification, NotificationType } from '@models/index'
 import {
+  NOTIFICATION_PAGE_SIZE,
   areNotificationsAvailable,
   countUnreadNotifications,
   listNotifications,
@@ -37,14 +38,69 @@ function useNotificationAudience(): { isReady: boolean; scopeId: string } {
   }
 }
 
-export function useNotifications(): UseQueryResult<AppNotification[]> {
-  const { isReady, scopeId } = useNotificationAudience()
+export interface NotificationInbox {
+  notifications: readonly AppNotification[]
 
-  return useQuery({
-    queryKey: queryKeys.notifications(scopeId),
-    queryFn: listNotifications,
+  isPending: boolean
+  error: Error | null
+  refetch: () => void
+
+  /** Absent when everything the account has is already on screen. */
+  loadMore: (() => void) | null
+
+  /** A larger page is in flight, with the smaller one still displayed. */
+  isLoadingMore: boolean
+}
+
+/**
+ * The signed-in person's notifications, a page at a time.
+ *
+ * The page size lives in state and in the query key, so pressing "Older" mounts a
+ * new query rather than refetching the current one. With `placeholderData` that
+ * means the thirty rows already read stay on screen while sixty are fetched, which
+ * is the difference between a list growing and a panel emptying itself and filling
+ * back up.
+ *
+ * Growing the page rather than appending a fetched page is also what keeps this
+ * compatible with Realtime: there is exactly one cached answer to one query at any
+ * moment, so invalidating it on a socket event cannot leave older pages behind
+ * holding stale rows.
+ */
+export function useNotifications(): NotificationInbox {
+  const { isReady, scopeId } = useNotificationAudience()
+  const [limit, setLimit] = useState(NOTIFICATION_PAGE_SIZE)
+
+  const query = useQuery({
+    queryKey: queryKeys.notifications(scopeId, limit),
+    queryFn: () => listNotifications(limit),
     enabled: isReady,
+    placeholderData: keepPreviousData,
   })
+
+  return {
+    notifications: query.data?.notifications ?? [],
+    // `isPending` is the first load only. A larger page arriving is reported
+    // separately, because the panel must not replace a list somebody is reading
+    // with a skeleton.
+    isPending: query.isPending,
+    error: query.error,
+
+    refetch: () => {
+      void query.refetch()
+    },
+
+    loadMore:
+      query.data?.hasMore === true
+        ? () => {
+            setLimit((current) => current + NOTIFICATION_PAGE_SIZE)
+          }
+        : null,
+
+    // `isPlaceholderData` rather than `isFetching`: a background refresh of the
+    // page already shown is not something to put a label on, and this is true
+    // only while the rows on screen belong to the previous, smaller query.
+    isLoadingMore: query.isPlaceholderData,
+  }
 }
 
 export function useUnreadNotificationCount(): UseQueryResult<number> {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { useConfirm } from '@app/providers/confirm-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
+import { SortableHeader } from '@components/ui/data-table/SortableHeader'
+import { TableSearch } from '@components/ui/data-table/TableSearch'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import {
   CheckboxField,
@@ -26,9 +28,11 @@ import {
   useRosterProjects,
   useUpdateProject,
 } from '@hooks/use-work-tracker'
+import { useTableSort } from '@hooks/use-table-sort'
 import { PROJECT_STATUSES } from '@models/project.model'
 import type { Project, ProjectStatus } from '@models/index'
 import { formatShortDate } from '@utils/date.utils'
+import { compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 
@@ -64,6 +68,29 @@ const projectFormSchema = z
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>
 
+type SortKey = 'client' | 'developers' | 'name' | 'start' | 'status'
+
+function compareProjects(left: Project, right: Project, key: SortKey): number {
+  switch (key) {
+    case 'name':
+      return compareText(left.name, right.name)
+    case 'client':
+      return compareText(left.client, right.client)
+    case 'status':
+      // By the lifecycle rather than the alphabet, so the order says something:
+      // planned, active, on hold, completed is how a project moves, and sorting
+      // the labels would interleave the four arbitrarily.
+      return PROJECT_STATUSES.indexOf(left.status) - PROJECT_STATUSES.indexOf(right.status)
+    case 'start':
+      // ISO dates, so comparing them as text is comparing them as dates. Undated
+      // projects sort last ascending, which `compareText` already does for a
+      // missing value.
+      return compareText(left.startDate, right.startDate)
+    case 'developers':
+      return left.assignedDeveloperIds.length - right.assignedDeveloperIds.length
+  }
+}
+
 /**
  * Project records and who works on them.
  *
@@ -77,6 +104,12 @@ export function ProjectsPage() {
 
   const [editing, setEditing] = useState<Project | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const { sort, toggle } = useTableSort<SortKey>({ key: 'name', direction: 'asc' }, [
+    'developers',
+    'start',
+  ])
 
   const projectsQuery = useRosterProjects()
   const developersQuery = useRosterDevelopers()
@@ -101,6 +134,20 @@ export function ProjectsPage() {
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
 
+  // The description is searched although it is not a column, which is the one
+  // exception to matching only what is on screen: it is where the actual subject
+  // of a project is written, and a client with four projects is otherwise four
+  // rows that all look the same.
+  const visible = useMemo(() => {
+    const rows = (projectsQuery.data ?? []).filter((project) =>
+      matchesSearch([project.name, project.client, project.description], search),
+    )
+
+    return sortRows(rows, sort, compareProjects, (left, right) =>
+      compareText(left.name, right.name),
+    )
+  }, [projectsQuery.data, search, sort])
+
   return (
     <AdminPageLayout
       createLabel="Add project"
@@ -119,60 +166,101 @@ export function ProjectsPage() {
         ) : projectsQuery.isPending ? (
           <Skeleton label="Loading projects…" rows={4} />
         ) : (
-          <div className="data-table__scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">Project</th>
-                  <th scope="col">Client</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Dates</th>
-                  <th scope="col">Developers</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
+          <>
+            <TableSearch
+              hint="Project, client or description"
+              matchCount={visible.length}
+              noun="projects"
+              onChange={setSearch}
+              totalCount={(projectsQuery.data ?? []).length}
+              value={search}
+            />
 
-              <tbody>
-                {(projectsQuery.data ?? []).map((project) => (
-                  <tr key={project.id}>
-                    <td>{project.name}</td>
-                    <td>{project.client}</td>
-                    <td>{PROJECT_STATUS_LABELS[project.status]}</td>
-                    <td>
-                      {project.startDate === undefined ? '—' : formatShortDate(project.startDate)}
-                      {project.endDate === undefined ? '' : ` – ${formatShortDate(project.endDate)}`}
-                    </td>
-                    <td>
-                      <NameList
-                        names={project.assignedDeveloperIds.map(developerName)}
-                        title={`Developers on ${project.name}`}
+            {visible.length === 0 ? (
+              <p className="admin-page__note">
+                No project matches “{search}”. Clear the search to see the whole list.
+              </p>
+            ) : (
+              <div className="data-table__scroll">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <SortableHeader
+                        columnKey="name"
+                        label="Project"
+                        onSort={toggle}
+                        sort={sort}
                       />
-                    </td>
-                    <td>
-                      <div className="row-actions">
-                        <Button
-                          onClick={() => {
-                            setEditing(project)
-                          }}
-                          size="small"
-                          variant="ghost"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          onClick={() => void requestDelete(project)}
-                          size="small"
-                          variant="danger"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <SortableHeader
+                        columnKey="client"
+                        label="Client"
+                        onSort={toggle}
+                        sort={sort}
+                      />
+                      <SortableHeader
+                        columnKey="status"
+                        label="Status"
+                        onSort={toggle}
+                        sort={sort}
+                      />
+                      <SortableHeader columnKey="start" label="Dates" onSort={toggle} sort={sort} />
+                      <SortableHeader
+                        columnKey="developers"
+                        label="Developers"
+                        onSort={toggle}
+                        sort={sort}
+                      />
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {visible.map((project) => (
+                      <tr key={project.id}>
+                        <td>{project.name}</td>
+                        <td>{project.client}</td>
+                        <td>{PROJECT_STATUS_LABELS[project.status]}</td>
+                        <td>
+                          {project.startDate === undefined
+                            ? '—'
+                            : formatShortDate(project.startDate)}
+                          {project.endDate === undefined
+                            ? ''
+                            : ` – ${formatShortDate(project.endDate)}`}
+                        </td>
+                        <td>
+                          <NameList
+                            names={project.assignedDeveloperIds.map(developerName)}
+                            title={`Developers on ${project.name}`}
+                          />
+                        </td>
+                        <td>
+                          <div className="row-actions">
+                            <Button
+                              onClick={() => {
+                                setEditing(project)
+                              }}
+                              size="small"
+                              variant="ghost"
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              onClick={() => void requestDelete(project)}
+                              size="small"
+                              variant="danger"
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </Panel>
 

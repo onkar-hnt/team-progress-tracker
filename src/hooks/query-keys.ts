@@ -35,6 +35,16 @@ export const queryKeys = {
    */
   roster: (table: 'developers' | 'mentors' | 'projects') => [ROOT, 'roster', table] as const,
 
+  /**
+   * The logins, for the Accounts screen.
+   *
+   * Unscoped, unlike the lists below. Row-level security already answers this one
+   * differently by role — every row for an administrator, your own for anybody
+   * else — and only an administrator ever asks it, so there is nothing a scope
+   * identity would keep apart.
+   */
+  accounts: () => [ROOT, 'accounts'] as const,
+
   /** `null` rather than `undefined` so the key serialises consistently. */
   dailyWork: (scopeId: string, query?: DailyWorkQuery) =>
     [ROOT, 'daily-work', scopeId, query ?? null] as const,
@@ -61,7 +71,13 @@ export const queryKeys = {
    * from a shared key. The database would not have served them the rows, but the
    * cache sits in front of the database.
    */
-  notifications: (scopeId: string) => [ROOT, 'notifications', scopeId] as const,
+  /**
+   * The page size is part of the key rather than state beside it, so asking for
+   * another page is a new query rather than a refetch of the old one — which is
+   * what keeps the previous page on screen while the larger one loads.
+   */
+  notifications: (scopeId: string, limit: number) =>
+    [ROOT, 'notifications', scopeId, 'list', limit] as const,
 
   /**
    * Counted separately from the list because the list is capped — see

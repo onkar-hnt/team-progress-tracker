@@ -72,8 +72,18 @@
     @include flex($gap: $space-2, $wrap: wrap);
   }
 
+  /// The count and the button that answers it, on one line. Wraps rather than
+  /// squeezes: these lists are often a narrow column of a two-column row.
   &__more {
-    margin: $space-3 0 0;
+    @include flex($justify: space-between, $gap: $space-3, $wrap: wrap);
+
+    margin-top: $space-3;
+    padding-top: $space-3;
+    border-top: 1px solid $color-border;
+  }
+
+  &__count {
+    margin: 0;
     color: $color-text-muted;
     font-size: $font-size-xs;
   }

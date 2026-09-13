@@ -28,6 +28,7 @@ export type IconName =
   | 'filter'
   | 'inbox'
   | 'info'
+  | 'key'
   | 'menu'
   | 'mentors'
   | 'projects'
@@ -187,6 +188,17 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M20 12h-9" />
     </>
   ),
+  // A key, for the screen that administers logins. A padlock was the obvious
+  // alternative and says the wrong thing: this is about who holds a way in, not
+  // about something being shut.
+  key: (
+    <>
+      <circle cx="8" cy="8" r="4" />
+      <path d="M10.9 10.9 20 20" />
+      <path d="M17.5 17.5 15 20M20 15l-2.5 2.5" />
+    </>
+  ),
+
   'chevron-down': <path d="M5.5 9.5 12 16l6.5-6.5" />,
   'chevron-left': <path d="M14.5 5.5 8 12l6.5 6.5" />,
   'chevron-right': <path d="M9.5 5.5 16 12l-6.5 6.5" />,

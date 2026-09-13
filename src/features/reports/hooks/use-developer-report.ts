@@ -117,14 +117,18 @@ export function useDeveloperReport(filters: DeveloperReportFilters | null): Deve
 }
 
 /**
- * The rows of the downloaded file.
+ * The rows of the downloaded file: one per entry.
  *
  * Every column is a field that exists on the record. The narrow ones come first
  * so the file is readable without scrolling, and the long free-text ones last.
  * Numbers are written plainly rather than formatted, because the destination is
  * a spreadsheet that will want to sum them.
+ *
+ * Named for the rows rather than for the report, because the team report exports
+ * the same shape over a whole period: the Developer column was always there, so
+ * the only thing the two downloads differ in is which entries are handed in.
  */
-export function buildDeveloperReportCsv(entries: readonly DailyWorkEntryView[]): string[][] {
+export function buildEntriesCsv(entries: readonly DailyWorkEntryView[]): string[][] {
   const header = [
     'Date',
     'Developer',

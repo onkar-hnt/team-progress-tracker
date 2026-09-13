@@ -93,12 +93,13 @@ export function toDailyWorkQuery(filters: ActivityFilterState): DailyWorkQuery {
   }
 }
 
-export function matchesSearch(
-  fields: readonly (string | undefined)[],
-  search: string,
-): boolean {
-  const term = search.trim().toLowerCase()
-  if (term === '') return true
-
-  return fields.some((field) => field !== undefined && field.toLowerCase().includes(term))
-}
+/**
+ * Re-exported rather than defined here any longer.
+ *
+ * It was this screen's own until the administration tables and the Logins screen
+ * wanted the same behaviour, and it is now `@utils/table.utils`. The name stays
+ * exported from this module so the two call sites on this screen read as they did
+ * — and because it belongs in a list of this screen's filters even when the
+ * implementation does not live here.
+ */
+export { matchesSearch } from '@utils/table.utils'

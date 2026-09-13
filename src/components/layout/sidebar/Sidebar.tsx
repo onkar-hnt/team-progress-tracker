@@ -8,12 +8,14 @@ import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { APP_EYEBROW } from '@constants/app.constants'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import type { AppUser } from '@models/user.model'
+import { areAccountsAvailable } from '@services/accounts/account.service'
 import {
   canManageTeam,
   canReadFeedback,
   canSubmitDailyUpdate,
   canViewTeamData,
   canWriteFeedback,
+  isAdmin,
 } from '@services/auth/index'
 
 import './Sidebar.scss'
@@ -42,6 +44,18 @@ interface NavigationGroup {
  */
 function readsOwnFeedbackOnly(user: AppUser | null): boolean {
   return canReadFeedback(user) && !canWriteFeedback(user)
+}
+
+/**
+ * Whether the Logins screen is worth offering.
+ *
+ * Two conditions rather than one. Administrators only, because the controls on
+ * that screen are refused for everybody else — and only where logins exist at
+ * all, since the offline data sources have no auth accounts to administer and the
+ * screen would say so and nothing more.
+ */
+function canAdministerLogins(user: AppUser | null): boolean {
+  return isAdmin(user) && areAccountsAvailable()
 }
 
 /**
@@ -86,6 +100,7 @@ const navigationGroups: readonly NavigationGroup[] = [
       { label: 'Employees', path: '/admin/employees', icon: 'users', isVisible: canManageTeam },
       { label: 'Projects', path: '/admin/projects', icon: 'projects', isVisible: canManageTeam },
       { label: 'Tasks', path: '/admin/tasks', icon: 'tasks', isVisible: canManageTeam },
+      { label: 'Logins', path: '/admin/accounts', icon: 'key', isVisible: canAdministerLogins },
     ],
   },
 ]

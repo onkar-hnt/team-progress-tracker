@@ -7,6 +7,8 @@ import { useAuth } from '@app/providers/auth-context'
 import { useConfirm } from '@app/providers/confirm-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
+import { SortableHeader } from '@components/ui/data-table/SortableHeader'
+import { TableSearch } from '@components/ui/data-table/TableSearch'
 import { CheckboxField, ChecklistField, TextField } from '@components/ui/field/Field'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
@@ -22,8 +24,10 @@ import {
   useSetMentorAssignments,
   useUpdateMentor,
 } from '@hooks/use-work-tracker'
+import { useTableSort } from '@hooks/use-table-sort'
 import type { Mentor } from '@models/index'
 import { canManageMentorAssignments } from '@services/auth/index'
+import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
 import { appConfig } from '@config/app.config'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
@@ -66,6 +70,32 @@ function describeUnprovisionable(mentor: Mentor): string | null {
   return null
 }
 
+type SortKey = 'assigned' | 'email' | 'login' | 'name' | 'status'
+
+/**
+ * One column at a time, ascending.
+ *
+ * `assigned` needs the assignment map, which is state rather than part of a
+ * mentor — hence the extra argument, and hence this being a factory rather than a
+ * plain function like the other tables have.
+ */
+function compareMentorsBy(assignmentCount: (mentor: Mentor) => number) {
+  return (left: Mentor, right: Mentor, key: SortKey): number => {
+    switch (key) {
+      case 'name':
+        return compareText(left.name, right.name)
+      case 'email':
+        return compareText(left.email, right.email)
+      case 'status':
+        return compareFlag(left.active, right.active)
+      case 'assigned':
+        return assignmentCount(left) - assignmentCount(right)
+      case 'login':
+        return compareFlag(left.profileId !== undefined, right.profileId !== undefined)
+    }
+  }
+}
+
 /**
  * Mentor records and their assigned developers.
  *
@@ -86,6 +116,9 @@ export function MentorsPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [assigning, setAssigning] = useState<Mentor | null>(null)
   const [notice, setNotice] = useState<ProvisioningNotice | null>(null)
+  const [search, setSearch] = useState('')
+
+  const { sort, toggle } = useTableSort<SortKey>({ key: 'name', direction: 'asc' }, ['assigned'])
 
   const mentorsQuery = useRosterMentors()
   const developersQuery = useRosterDevelopers()
@@ -111,6 +144,20 @@ export function MentorsPage() {
 
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
+
+  // Searched by name and address only. The assigned developers are on screen but
+  // deliberately not searchable here: somebody looking for "who mentors Priya"
+  // wants the Employees screen, and matching a mentor row against a name that is
+  // not the mentor's would read as the wrong row coming back.
+  const visible = useMemo(() => {
+    const rows = (mentorsQuery.data ?? []).filter((mentor) =>
+      matchesSearch([mentor.name, mentor.email], search),
+    )
+
+    const compare = compareMentorsBy((mentor) => (assignmentsByMentor.get(mentor.id) ?? []).length)
+
+    return sortRows(rows, sort, compare, (left, right) => compareText(left.name, right.name))
+  }, [assignmentsByMentor, mentorsQuery.data, search, sort])
 
   /**
    * Asks first, then deletes, then says so.
@@ -211,96 +258,130 @@ export function MentorsPage() {
             title="No mentors yet"
           />
         ) : (
-          <div className="data-table__scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">Name</th>
-                  <th scope="col">Email</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Assigned developers</th>
-                  {CAN_PROVISION_LOGINS ? <th scope="col">Login</th> : null}
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
+          <>
+            <TableSearch
+              hint="Name or email"
+              matchCount={visible.length}
+              noun="mentors"
+              onChange={setSearch}
+              totalCount={(mentorsQuery.data ?? []).length}
+              value={search}
+            />
 
-              <tbody>
-                {(mentorsQuery.data ?? []).map((mentor) => {
-                  const assigned = assignmentsByMentor.get(mentor.id) ?? []
-
-                  return (
-                    <tr key={mentor.id}>
-                      <td className="data-table__nowrap">{mentor.name}</td>
-                      <td className="data-table__nowrap">{mentor.email}</td>
-                      <td>{mentor.active ? 'Active' : 'Inactive'}</td>
-                      <td>
-                        <NameList
-                          names={assigned.map(developerName)}
-                          title={`Developers assigned to ${mentor.name}`}
-                        />
-                      </td>
-                      {/* Linked means an account exists and is attached.
-                          Whether the password has been changed is not
-                          readable from here, and guessing at it would be
-                          worse than saying nothing. */}
+            {visible.length === 0 ? (
+              <p className="admin-page__note">
+                No mentor matches “{search}”. Clear the search to see the whole list.
+              </p>
+            ) : (
+              <div className="data-table__scroll">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <SortableHeader columnKey="name" label="Name" onSort={toggle} sort={sort} />
+                      <SortableHeader columnKey="email" label="Email" onSort={toggle} sort={sort} />
+                      <SortableHeader
+                        columnKey="status"
+                        label="Status"
+                        onSort={toggle}
+                        sort={sort}
+                      />
+                      <SortableHeader
+                        columnKey="assigned"
+                        label="Assigned developers"
+                        onSort={toggle}
+                        sort={sort}
+                      />
                       {CAN_PROVISION_LOGINS ? (
-                        <td>
-                          {mentor.profileId !== undefined
-                            ? 'Linked'
-                            : describeUnprovisionable(mentor) === null
-                              ? 'Not set up'
-                              : '—'}
-                        </td>
+                        <SortableHeader
+                          columnKey="login"
+                          label="Login"
+                          onSort={toggle}
+                          sort={sort}
+                        />
                       ) : null}
-                      <td>
-                        <div className="row-actions">
-                          {CAN_PROVISION_LOGINS &&
-                          mentor.profileId === undefined &&
-                          describeUnprovisionable(mentor) === null ? (
-                            <Button
-                              disabled={provisionLogin.isPending}
-                              onClick={() => void requestLogin(mentor)}
-                              size="small"
-                              variant="ghost"
-                            >
-                              {provisionLogin.isPending ? 'Working…' : 'Create login'}
-                            </Button>
-                          ) : null}
-                          {canManageMentorAssignments(user, mentor.id) ? (
-                            <Button
-                              onClick={() => {
-                                setAssigning(mentor)
-                              }}
-                              size="small"
-                              variant="ghost"
-                            >
-                              Assign
-                            </Button>
-                          ) : null}
-                          <Button
-                            onClick={() => {
-                              setEditing(mentor)
-                            }}
-                            size="small"
-                            variant="ghost"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => void requestDelete(mentor)}
-                            size="small"
-                            variant="danger"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
+                      <th scope="col">Actions</th>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+
+                  <tbody>
+                    {visible.map((mentor) => {
+                      const assigned = assignmentsByMentor.get(mentor.id) ?? []
+
+                      return (
+                        <tr key={mentor.id}>
+                          <td className="data-table__nowrap">{mentor.name}</td>
+                          <td className="data-table__nowrap">{mentor.email}</td>
+                          <td>{mentor.active ? 'Active' : 'Inactive'}</td>
+                          <td>
+                            <NameList
+                              names={assigned.map(developerName)}
+                              title={`Developers assigned to ${mentor.name}`}
+                            />
+                          </td>
+                          {/* Linked means an account exists and is attached.
+                              Whether the password has been changed is not
+                              readable from here, and guessing at it would be
+                              worse than saying nothing. */}
+                          {CAN_PROVISION_LOGINS ? (
+                            <td>
+                              {mentor.profileId !== undefined
+                                ? 'Linked'
+                                : describeUnprovisionable(mentor) === null
+                                  ? 'Not set up'
+                                  : '—'}
+                            </td>
+                          ) : null}
+                          <td>
+                            <div className="row-actions">
+                              {CAN_PROVISION_LOGINS &&
+                              mentor.profileId === undefined &&
+                              describeUnprovisionable(mentor) === null ? (
+                                <Button
+                                  disabled={provisionLogin.isPending}
+                                  onClick={() => void requestLogin(mentor)}
+                                  size="small"
+                                  variant="ghost"
+                                >
+                                  {provisionLogin.isPending ? 'Working…' : 'Create login'}
+                                </Button>
+                              ) : null}
+                              {canManageMentorAssignments(user, mentor.id) ? (
+                                <Button
+                                  onClick={() => {
+                                    setAssigning(mentor)
+                                  }}
+                                  size="small"
+                                  variant="ghost"
+                                >
+                                  Assign
+                                </Button>
+                              ) : null}
+                              <Button
+                                onClick={() => {
+                                  setEditing(mentor)
+                                }}
+                                size="small"
+                                variant="ghost"
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                onClick={() => void requestDelete(mentor)}
+                                size="small"
+                                variant="danger"
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </Panel>
 
@@ -387,12 +468,7 @@ function MentorForm({
 
   return (
     <form className="form" noValidate onSubmit={handleSubmit(onSubmit)}>
-      <TextField
-        error={errors.name?.message}
-        id="mentor-name"
-        label="Name"
-        {...register('name')}
-      />
+      <TextField error={errors.name?.message} id="mentor-name" label="Name" {...register('name')} />
 
       <TextField
         error={errors.email?.message}

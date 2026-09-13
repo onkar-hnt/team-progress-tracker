@@ -8,6 +8,7 @@ import {
   WeeklyTrendChart,
 } from '@components/charts/WorkCharts'
 import { DeveloperSummaryTable, ProjectSummaryTable } from '@components/summaries/SummaryTables'
+import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { FilterField } from '@components/ui/field/Field'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
@@ -16,6 +17,7 @@ import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { DeveloperReportPanel } from '@features/reports/components/DeveloperReportPanel'
 import { useDevelopers, useProjects, useRangeOverview } from '@hooks/use-work-tracker'
+import { downloadCsv, toCsv } from '@utils/csv.utils'
 import type { DateRange } from '@utils/date.utils'
 import {
   formatLongDate,
@@ -27,6 +29,13 @@ import {
   todayIsoDate,
 } from '@utils/date.utils'
 import { buildDeveloperSummaries, buildProjectSummaries } from '@utils/work-summary.utils'
+
+import { buildEntriesCsv } from '../hooks/use-developer-report'
+import {
+  buildDeveloperTotalsCsv,
+  buildProjectTotalsCsv,
+  buildTeamReportFilename,
+} from '../team-report-csv'
 
 import './ReportsPage.scss'
 
@@ -90,8 +99,39 @@ export function ReportsPage() {
     (summary) => summary.developer.active && summary.statuses.total === 0,
   )
 
+  /**
+   * One download, from what is already on screen.
+   *
+   * Nothing is fetched: the rows handed in are the rows the panel is showing, so a
+   * file cannot disagree with the table it was downloaded from. Refused while the
+   * period is still loading, which is why every caller is behind the same
+   * `isLoading` guard the tables are.
+   */
+  const exportCsv = (part: string, rows: string[][]) => {
+    downloadCsv(buildTeamReportFilename(part, range), toCsv(rows))
+  }
+
+  const exportButton = (label: string, part: string, rows: () => string[][]) => (
+    <Button
+      disabled={isLoading}
+      icon="download"
+      onClick={() => {
+        exportCsv(part, rows())
+      }}
+      size="small"
+      variant="secondary"
+    >
+      {label}
+    </Button>
+  )
+
   const periodPicker = (
     <div className="reports__controls">
+      {/* Beside the period rather than in each panel heading, because what it
+          exports is the period: the file is named after the dates chosen here,
+          and the rows are every entry inside them. */}
+      {exportButton('Export entries', 'entries', () => buildEntriesCsv(entries))}
+
       <FilterField label="Period">
         <Dropdown
           ariaLabel="Period"
@@ -214,11 +254,21 @@ export function ReportsPage() {
           and is unaffected by the period picker in the heading. */}
       <DeveloperReportPanel />
 
-      <Panel description="Totals per developer for the selected period." title="Developer totals">
+      <Panel
+        action={exportButton('Export', 'developers', () =>
+          buildDeveloperTotalsCsv(developerSummaries),
+        )}
+        description="Totals per developer for the selected period."
+        title="Developer totals"
+      >
         {isLoading ? <Skeleton rows={5} /> : <DeveloperSummaryTable summaries={developerSummaries} />}
       </Panel>
 
-      <Panel description="Totals per project for the selected period." title="Project report">
+      <Panel
+        action={exportButton('Export', 'projects', () => buildProjectTotalsCsv(projectSummaries))}
+        description="Totals per project for the selected period."
+        title="Project report"
+      >
         {isLoading ? <Skeleton rows={4} /> : <ProjectSummaryTable summaries={projectSummaries} />}
       </Panel>
 

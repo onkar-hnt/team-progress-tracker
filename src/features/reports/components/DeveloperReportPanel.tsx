@@ -8,8 +8,8 @@ import { downloadCsv, toCsv } from '@utils/csv.utils'
 import { getMonthRange, todayIsoDate } from '@utils/date.utils'
 
 import {
-  buildDeveloperReportCsv,
   buildDeveloperReportFilename,
+  buildEntriesCsv,
   describeReportRange,
   useDeveloperReport,
 } from '../hooks/use-developer-report'
@@ -101,7 +101,7 @@ export function DeveloperReportPanel() {
 
     downloadCsv(
       buildDeveloperReportFilename(appliedDeveloperName, applied),
-      toCsv(buildDeveloperReportCsv(report.entries)),
+      toCsv(buildEntriesCsv(report.entries)),
     )
   }
 

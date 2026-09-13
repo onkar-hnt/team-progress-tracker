@@ -21,12 +21,13 @@ import './NotificationBell.scss'
  * is open or shut, and the panel is handed the rows rather than fetching its own
  * — one request each, and no chance of the badge and the list disagreeing.
  *
- * The list is fetched up front rather than on first open. It is thirty rows
+ * The first page is fetched up front rather than on first open. It is thirty rows
  * behind one index, the socket subscription is already live for the badge, and
- * the alternative is a spinner every time somebody looks.
+ * the alternative is a spinner every time somebody looks. Further pages are only
+ * fetched when asked for, from inside the panel.
  */
 export function NotificationBell() {
-  const notificationsQuery = useNotifications()
+  const inbox = useNotifications()
   const unreadQuery = useUnreadNotificationCount()
 
   // Mounted here, once. The header is the only place the bell appears, and a
@@ -123,13 +124,13 @@ export function NotificationBell() {
           tabIndex={-1}
         >
           <NotificationPanel
-            error={notificationsQuery.error}
-            isPending={notificationsQuery.isPending}
-            notifications={notificationsQuery.data ?? []}
+            error={inbox.error}
+            isLoadingMore={inbox.isLoadingMore}
+            isPending={inbox.isPending}
+            notifications={inbox.notifications}
             onDismiss={() => close({ restoreFocus: false })}
-            onRetry={() => {
-              void notificationsQuery.refetch()
-            }}
+            onLoadMore={inbox.loadMore}
+            onRetry={inbox.refetch}
             unreadCount={unreadCount}
           />
         </div>

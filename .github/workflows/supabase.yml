@@ -1,0 +1,113 @@
+name: Supabase
+
+# Applying migrations and deploying the Edge Functions, from here instead of from
+# whichever laptop last had the CLI installed.
+#
+# Manual on purpose. A schema change and the code that depends on it usually have
+# to land in a particular order — a function that asks for a SQL function which
+# does not exist yet fails closed, and a policy that arrives before the screen
+# expecting it does nothing — and choosing that order is a judgement, not
+# something to infer from a push.
+#
+# It is also the record of what was deployed and by whom, which a laptop is not.
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: What to deploy
+        required: true
+        default: both
+        type: choice
+        options:
+          - migrations
+          - functions
+          - both
+      dry-run:
+        description: List pending migrations without applying them
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+# One at a time. Two runs pushing migrations at once would race for the
+# migration history table.
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # Named so that required reviewers can be attached to it in repository
+    # settings, which is how this becomes an approved deploy rather than a button
+    # anybody with write access can press.
+    environment: supabase
+
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Checked before anything is installed, so a missing secret costs seconds
+      # and produces a message naming it rather than a CLI error about being
+      # unable to log in.
+      - name: Check configuration
+        run: |
+          missing=""
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$PROJECT_REF" ] || missing="$missing SUPABASE_PROJECT_REF"
+
+          # Only migrations need the database password; deploying a function does
+          # not touch the database directly.
+          if [ "${{ inputs.what }}" != "functions" ] && [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            missing="$missing SUPABASE_DB_PASSWORD"
+          fi
+
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing"
+            echo "Add them under Settings > Secrets and variables > Actions."
+            echo "SUPABASE_ACCESS_TOKEN comes from https://supabase.com/dashboard/account/tokens."
+            exit 1
+          fi
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$PROJECT_REF"
+
+      # Always, whichever option was chosen: it is the one line that says what
+      # this run is about to change, and it belongs in the log even when the run
+      # only deploys functions.
+      - name: List migrations
+        run: supabase migration list --linked
+
+      - name: Apply migrations
+        if: ${{ inputs.what != 'functions' && !inputs.dry-run }}
+        run: supabase db push --linked
+
+      # Every function rather than a chosen one, because they share
+      # `_shared/provisioning.ts`: deploying one of them alone after a change to
+      # that file leaves the other three running the old copy.
+      - name: Deploy functions
+        if: ${{ inputs.what != 'migrations' && !inputs.dry-run }}
+        run: supabase functions deploy
+
+      - name: Summarise
+        run: |
+          {
+            echo "### Supabase deploy"
+            echo
+            echo "- Project: \`$PROJECT_REF\`"
+            echo "- Requested: \`${{ inputs.what }}\`"
+            echo "- Dry run: \`${{ inputs.dry-run }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

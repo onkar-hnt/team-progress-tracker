@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
+import { Button } from '@components/ui/button/Button'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
@@ -18,7 +20,17 @@ interface EntryListProps {
 
   showDate?: boolean
 
-  /** Caps long lists; the caller decides whether to link to the full view. */
+  /**
+   * How many entries to show before offering the rest.
+   *
+   * A page rather than a cap. It used to be a hard limit with "Showing 20 of 63
+   * entries." underneath — which told somebody that forty-three entries existed
+   * and gave them no way to reach any of them. The number is now what arrives
+   * first, and the rest are a button away.
+   *
+   * Left out, everything is shown, which is right for a panel whose whole purpose
+   * is the full list.
+   */
   limit?: number
 
   /**
@@ -45,9 +57,23 @@ export function EntryList({
   showDate = false,
   showDeveloper = true,
 }: EntryListProps) {
+  /**
+   * How many extra pages have been asked for.
+   *
+   * Pages rather than a row count, so the state means the same thing if `limit`
+   * ever changes, and deliberately not reset when `entries` changes: these lists
+   * refetch on focus and on every realtime event, and collapsing an expanded list
+   * under somebody because a background refresh landed is worse than showing more
+   * rows of a list they have since filtered.
+   */
+  const [extraPages, setExtraPages] = useState(0)
+
   if (entries.length === 0) return <EmptyState message={emptyMessage} />
 
-  const visible = limit === undefined ? entries : entries.slice(0, limit)
+  const shown =
+    limit === undefined ? entries.length : Math.min(limit * (extraPages + 1), entries.length)
+  const visible = entries.slice(0, shown)
+  const remaining = entries.length - shown
 
   return (
     <>
@@ -102,11 +128,25 @@ export function EntryList({
         ))}
       </ul>
 
-      {limit !== undefined && entries.length > limit ? (
-        <p className="entry-list__more">
-          Showing {limit} of {entries.length} entries.
-        </p>
-      ) : null}
+      {remaining === 0 ? null : (
+        <div className="entry-list__more">
+          <p className="entry-list__count">
+            Showing {shown} of {entries.length} entries.
+          </p>
+
+          <Button
+            onClick={() => {
+              setExtraPages((current) => current + 1)
+            }}
+            size="small"
+            variant="ghost"
+          >
+            {/* The number is in the label so the button says what pressing it
+                does. "Show more" on a list of sixty-three is a question. */}
+            Show {Math.min(remaining, limit ?? remaining)} more
+          </Button>
+        </div>
+      )}
     </>
   )
 }

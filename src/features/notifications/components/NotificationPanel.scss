@@ -46,6 +46,14 @@
     list-style: none;
   }
 
+  /// Inside the scrolling body, at the end of the list: it is the end of what has
+  /// been loaded, not a control that belongs to the panel as a whole.
+  &__more {
+    @include flex-center;
+
+    padding-top: $space-3;
+  }
+
   &__error {
     margin: 0;
     padding: $space-3 $space-4;

@@ -30,11 +30,7 @@ const COLUMNS: readonly { key: SortKey; label: string; isNumeric?: boolean }[] =
   { key: 'hours', label: 'Hours', isNumeric: true },
 ]
 
-function compareEntries(
-  left: DailyWorkEntryView,
-  right: DailyWorkEntryView,
-  key: SortKey,
-): number {
+function compareEntries(left: DailyWorkEntryView, right: DailyWorkEntryView, key: SortKey): number {
   switch (key) {
     case 'date':
       return left.date.localeCompare(right.date)
@@ -68,15 +64,25 @@ interface ActivityTableProps {
  * dependency: for one team the row count never justifies the bundle cost, and
  * this keeps sorting, focus order and screen-reader output predictable.
  */
-export function ActivityTable({
-  deletingId,
-  entries,
-  onDelete,
-  onEdit,
-  user,
-}: ActivityTableProps) {
+/**
+ * How many rows are drawn before the rest are offered.
+ *
+ * The whole point of the filters above this table is that the answer is usually
+ * far smaller than this, so most periods never see the button. A month of a busy
+ * team does, and it is the case that matters: five hundred rows of tooltips and
+ * badges is a second of layout on every sort, for a table nobody reads past the
+ * first screen of.
+ *
+ * The rows are all fetched and all sorted — this caps rendering, not data. So the
+ * figures above the table, and the order the first page appears in, are those of
+ * the whole period rather than of what happens to be drawn.
+ */
+const ROWS_PER_PAGE = 100
+
+export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: ActivityTableProps) {
   const [sort, setSort] = useState<SortState>({ key: 'date', direction: 'desc' })
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [extraPages, setExtraPages] = useState(0)
 
   const sorted = useMemo(() => {
     const factor = sort.direction === 'asc' ? 1 : -1
@@ -106,6 +112,9 @@ export function ActivityTable({
         : { key, direction: key === 'date' ? 'desc' : 'asc' },
     )
   }
+
+  const shown = Math.min(ROWS_PER_PAGE * (extraPages + 1), sorted.length)
+  const remaining = sorted.length - shown
 
   return (
     <div className="data-table__scroll">
@@ -147,7 +156,7 @@ export function ActivityTable({
         </thead>
 
         <tbody>
-          {sorted.map((entry) => {
+          {sorted.slice(0, shown).map((entry) => {
             const isConfirming = confirmingId === entry.id
             const isDeleting = deletingId === entry.id
 
@@ -251,6 +260,27 @@ export function ActivityTable({
           })}
         </tbody>
       </table>
+
+      {remaining === 0 ? null : (
+        // Inside the horizontally scrolling wrapper, so it stays with the table it
+        // belongs to. `sticky` on the left edge keeps it visible on a narrow
+        // window, where the table itself is wider than the panel.
+        <div className="activity-table__more">
+          <p>
+            Showing {shown} of {sorted.length} entries.
+          </p>
+
+          <Button
+            onClick={() => {
+              setExtraPages((current) => current + 1)
+            }}
+            size="small"
+            variant="secondary"
+          >
+            Show {Math.min(remaining, ROWS_PER_PAGE)} more
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

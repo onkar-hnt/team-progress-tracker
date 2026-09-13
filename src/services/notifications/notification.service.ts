@@ -50,11 +50,16 @@ export function areNotificationsAvailable(): boolean {
 }
 
 /**
- * How many notifications the panel holds.
+ * How many notifications arrive at a time.
  *
- * A cap rather than paging. The unread count is asked for separately and
- * exactly, so a long history costs nothing to display correctly — and nobody
- * scrolls an inbox of this kind past the first screen.
+ * It was a hard cap at first, on the argument that nobody scrolls an inbox past
+ * the first screen. Mostly true, and wrong in the one case that matters: coming
+ * back from a week away, the thing worth finding is the assignment from Tuesday,
+ * and a cap makes it unreachable rather than merely further down. So the panel now
+ * asks for another page instead, and the size is a page rather than a limit.
+ *
+ * The unread count is still asked for separately and exactly, so the badge is
+ * right however many pages have been read.
  */
 export const NOTIFICATION_PAGE_SIZE = 30
 
@@ -117,6 +122,13 @@ function mapNotificationError(
   return new DataProviderError(fallback, { cause: error })
 }
 
+export interface NotificationPage {
+  notifications: AppNotification[]
+
+  /** Whether asking for a larger page would return anything new. */
+  hasMore: boolean
+}
+
 /**
  * The most recent notifications for whoever is signed in.
  *
@@ -125,28 +137,53 @@ function mapNotificationError(
  * person's rows however the request is shaped. That is the whole security
  * argument, and it is the reason this takes no id — there is no parameter here
  * for a caller to tamper with.
+ *
+ * ## Why a growing limit rather than a cursor
+ *
+ * Each page re-reads from the newest row rather than continuing after the oldest
+ * one already held. That is one more row per page than a cursor would fetch, and
+ * for an inbox it is the better trade: notifications arrive while the panel is
+ * open, and with a cursor a row that arrived between two pages would either be
+ * missed or appear in the middle of the list. Re-reading from the top means the
+ * list is always one consistent answer to one query, which is also what lets
+ * Realtime keep it current by simply invalidating it.
+ *
+ * One row more than asked for is fetched and then dropped. It is how `hasMore` is
+ * known without a second count query, and it is why the button offering another
+ * page never appears when there is nothing behind it.
  */
-export async function listNotifications(): Promise<AppNotification[]> {
+export async function listNotifications(
+  limit: number = NOTIFICATION_PAGE_SIZE,
+): Promise<NotificationPage> {
   const { data, error } = await requireClient()
     .from('notifications')
     .select(NOTIFICATION_COLUMNS)
     .order('created_at', { ascending: false })
-    .limit(NOTIFICATION_PAGE_SIZE)
+    // Tie-broken by id, so two notifications written by the same trigger in the
+    // same statement — an assignment and its digest, say — keep a fixed order
+    // between pages instead of being ordered by whatever the planner returns.
+    .order('id', { ascending: false })
+    .limit(limit + 1)
 
   if (error !== null) throw mapNotificationError(error, 'Your notifications could not be loaded.')
 
-  return (data ?? []).map((row) => {
-    const parsed = notificationRowSchema.safeParse(row)
+  const rows = data ?? []
 
-    if (!parsed.success) {
-      throw new DataProviderError(
-        'A notification could not be read. The database schema may be ahead of this build.',
-        { cause: parsed.error },
-      )
-    }
+  return {
+    notifications: rows.slice(0, limit).map((row) => {
+      const parsed = notificationRowSchema.safeParse(row)
 
-    return toAppNotification(parsed.data)
-  })
+      if (!parsed.success) {
+        throw new DataProviderError(
+          'A notification could not be read. The database schema may be ahead of this build.',
+          { cause: parsed.error },
+        )
+      }
+
+      return toAppNotification(parsed.data)
+    }),
+    hasMore: rows.length > limit,
+  }
 }
 
 /**

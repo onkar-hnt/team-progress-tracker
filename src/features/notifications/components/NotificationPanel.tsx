@@ -20,6 +20,11 @@ interface NotificationPanelProps {
 
   /** Closes the popover once a notification has been followed. */
   onDismiss: () => void
+
+  /** Absent when there is nothing older to fetch, which is when no button is drawn. */
+  onLoadMore: (() => void) | null
+
+  isLoadingMore: boolean
 }
 
 /**
@@ -32,9 +37,11 @@ interface NotificationPanelProps {
  */
 export function NotificationPanel({
   error,
+  isLoadingMore,
   isPending,
   notifications,
   onDismiss,
+  onLoadMore,
   onRetry,
   unreadCount,
 }: NotificationPanelProps) {
@@ -87,15 +94,33 @@ export function NotificationPanel({
             title="Nothing to catch up on"
           />
         ) : (
-          <ul className="notification-panel__list">
-            {notifications.map((notification) => (
-              <NotificationRow
-                key={notification.id}
-                notification={notification}
-                onFollow={follow}
-              />
-            ))}
-          </ul>
+          <>
+            <ul className="notification-panel__list">
+              {notifications.map((notification) => (
+                <NotificationRow
+                  key={notification.id}
+                  notification={notification}
+                  onFollow={follow}
+                />
+              ))}
+            </ul>
+
+            {/* At the end of the list rather than as endless scrolling. A popover
+                that loads more as it is scrolled cannot be scrolled to the
+                bottom, and the bottom is where somebody stops looking. */}
+            {onLoadMore === null ? null : (
+              <div className="notification-panel__more">
+                <Button
+                  disabled={isLoadingMore}
+                  onClick={onLoadMore}
+                  size="small"
+                  variant="secondary"
+                >
+                  {isLoadingMore ? 'Loading…' : 'Show older'}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
