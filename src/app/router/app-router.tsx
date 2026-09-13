@@ -155,10 +155,12 @@ function LazyRoutes() {
           trusting either. */}
       <Route path="profile" element={<ProfilePage />} />
 
-      {/* Open to everybody too, and for a similar reason: the bin holds what the
-          person may see, and the three select policies decide that rather than a
-          guard here. A developer restoring their own deleted entry is the case
-          this exists for, so putting it behind a role would defeat it. */}
+      {/* Reachable by everybody, and offered in the sidebar only to the people who can
+          delete something — see `canDeleteRecords`. The two differ on purpose: a
+          developer has no Delete on any of their screens, so the link would lead to an
+          empty table, but the UPDATE policies do let them restore their own work entry
+          in the one case where somebody else deleted it. Guarding the route would take
+          that away to tidy a menu. */}
       <Route path="recently-deleted" element={<RecycleBinPage />} />
 
       {/* And the log, on the same argument: `record_history_select` returns the

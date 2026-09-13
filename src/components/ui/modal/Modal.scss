@@ -47,18 +47,29 @@
     max-height: min(36rem, calc(100dvh - #{$space-8}));
   }
 
+  /// Deliberately shallow. The bar carries a title and a close button and takes the
+  /// height of the taller of the two, so the padding is the only part worth arguing
+  /// about — 1.25rem of it above and below a 2.25rem button made a 4.75rem strip of
+  /// chrome above every form, which on the shorter dialogs was a third of the dialog.
+  ///
+  /// `align-items: center` matters more than the number: the title and the button are
+  /// different heights, and centred they read as one bar rather than as a heading with
+  /// a control floating beside it.
   &__header {
-    @include flex($justify: space-between, $gap: $space-4);
+    @include flex($justify: space-between, $align: center, $gap: $space-4);
 
     flex-shrink: 0;
-    padding: $space-5 $space-6;
+    padding: $space-3 $space-4;
     border-bottom: 1px solid $color-border;
   }
 
+  /// A step down from `lg`. At 1.125rem the title was competing with the page heading
+  /// behind it; a dialog is a interruption rather than a place, and 1rem is enough to
+  /// lead the content under it.
   &__title {
     margin: 0;
     color: $color-text;
-    font-size: $font-size-lg;
+    font-size: $font-size-md;
     font-weight: $font-weight-semibold;
     line-height: $line-height-tight;
   }
@@ -89,7 +100,7 @@
   &__body {
     flex: 1 1 auto;
     min-height: 0;
-    padding: $space-6 $space-6 0;
+    padding: $space-4 $space-5 0;
     overflow: hidden auto;
     overscroll-behavior: contain;
   }
@@ -100,13 +111,16 @@
   /// submit button has to stay inside its own `<form>` to submit it, so a real
   /// footer element would mean lifting every button out and wiring it back
   /// with a `form` attribute — six forms changed to move one bar.
+  /// The margins have to match the body's horizontal padding exactly, or the bar
+  /// stops short of one edge — which is the reason they are stated as the same
+  /// variable rather than as a number that happens to agree.
   &__body .form__actions,
   &__body .daily-update-form__actions {
     position: sticky;
     bottom: 0;
     z-index: $z-sticky;
-    margin-inline: -$space-6;
-    padding: $space-4 $space-6;
+    margin-inline: -$space-5;
+    padding: $space-3 $space-5;
     border-top: 1px solid $color-border;
     background: $color-white;
   }

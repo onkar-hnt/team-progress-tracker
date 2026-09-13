@@ -10,6 +10,7 @@ import { USER_ROLE_LABELS } from '@models/user.model'
 import type { AppUser } from '@models/user.model'
 import { areAccountsAvailable } from '@services/accounts/account.service'
 import {
+  canDeleteRecords,
   canManageTeam,
   canReadFeedback,
   canSubmitDailyUpdate,
@@ -61,15 +62,17 @@ function canAdministerLogins(user: AppUser | null): boolean {
 }
 
 /**
- * Whether there is a bin to look in.
+ * Whether there is a bin worth looking in.
  *
- * Everybody who signs in, and no role test: the bin holds what the person may
- * already see, so a developer finds their own deleted entries and an administrator
- * finds everybody's. Only the data source is asked, because the offline providers
- * delete a row outright and the screen would have nothing to list.
+ * Two conditions, and the second was added after the first proved not to be enough.
+ * The data source has to keep what it deletes, because the offline providers remove the
+ * row outright and the screen would have nothing to list. And the person has to be able
+ * to delete something in the first place: every Delete in the application is on an
+ * administrator's or a mentor's screen, so a developer's bin was a link to an empty
+ * table — see `canDeleteRecords`, which carries the argument.
  */
-function canRestoreDeletedRecords(): boolean {
-  return isRecycleBinAvailable()
+function canRestoreDeletedRecords(user: AppUser | null): boolean {
+  return isRecycleBinAvailable() && canDeleteRecords(user)
 }
 
 /**
@@ -109,12 +112,6 @@ const navigationGroups: readonly NavigationGroup[] = [
         isVisible: readsOwnFeedbackOnly,
       },
       {
-        label: 'Recently Deleted',
-        path: '/recently-deleted',
-        icon: 'trash',
-        isVisible: canRestoreDeletedRecords,
-      },
-      {
         label: 'Change Log',
         path: '/change-log',
         icon: 'history',
@@ -139,6 +136,16 @@ const navigationGroups: readonly NavigationGroup[] = [
       { label: 'Projects', path: '/admin/projects', icon: 'projects', isVisible: canManageTeam },
       { label: 'Tasks', path: '/admin/tasks', icon: 'tasks', isVisible: canManageTeam },
       { label: 'Logins', path: '/admin/accounts', icon: 'key', isVisible: canAdministerLogins },
+
+      /* Moved out of the personal group, where it sat while everybody had one. It is now
+         shown to the people who can delete something, and what they can delete is mostly
+         other people's — which makes it a maintenance screen rather than one of "mine". */
+      {
+        label: 'Recently Deleted',
+        path: '/recently-deleted',
+        icon: 'trash',
+        isVisible: canRestoreDeletedRecords,
+      },
     ],
   },
 ]

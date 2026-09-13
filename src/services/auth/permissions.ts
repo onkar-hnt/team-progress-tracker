@@ -223,6 +223,28 @@ export function canViewTeamData(user: AppUser | null): boolean {
 }
 
 /**
+ * Whether this person can delete anything at all.
+ *
+ * An observation about the screens rather than a rule of its own, which is why it is
+ * worth stating in one place: every delete in the application — a work entry, a task,
+ * feedback, an employee, a mentor, a project — is offered on a screen only an
+ * administrator or a mentor can reach. A developer's own screens have Edit and a status
+ * control and no Delete anywhere.
+ *
+ * So a developer's Recently deleted could only ever be empty, and a bin that can never
+ * fill is worse than no bin: it invites somebody to look for something that was never
+ * put there. This is what hides the link for them.
+ *
+ * It decides what to offer and not what is permitted. The UPDATE policies still let a
+ * developer restore their own deleted work entry, which matters in the one case where
+ * somebody else deleted it — the route stays reachable for that reason, it is just no
+ * longer advertised to people with nothing to find behind it.
+ */
+export function canDeleteRecords(user: AppUser | null): boolean {
+  return isAdmin(user) || isMentor(user)
+}
+
+/**
  * Whether `user` may log or amend work on behalf of `developerId`.
  *
  * A developer account without a linked employee row cannot log work at all,
