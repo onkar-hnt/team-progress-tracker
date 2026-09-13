@@ -72,6 +72,18 @@ export const queryKeys = {
     [ROOT, 'notifications', scopeId, 'unread-count'] as const,
 
   /**
+   * Which notification types the signed-in person has switched off.
+   *
+   * Deliberately *not* nested under `notifications`, unlike the count above.
+   * Marking a notification read invalidates that whole family, and it happens on
+   * every click in the panel — refetching a preference nobody changed each time
+   * would be a request per click. Preferences change from one screen, and that
+   * screen invalidates this key itself.
+   */
+  notificationPreferences: (scopeId: string) =>
+    [ROOT, 'notification-preferences', scopeId] as const,
+
+  /**
    * Prefixes, for invalidating a whole family after a write.
    *
    * The keys above all carry a scope and often a filter, and a write has no
@@ -86,12 +98,4 @@ export const queryKeys = {
   allNotifications: () => [ROOT, 'notifications'] as const,
   allRangeOverviews: () => [ROOT, 'range-overview'] as const,
   allTasks: () => [ROOT, 'tasks'] as const,
-
-  /**
-   * The Admin workbook itself, rather than the records in it.
-   *
-   * Under the same root so a write still refreshes it: creating a mentor is
-   * also evidence that the workbook is reachable and correctly structured.
-   */
-  adminWorkbook: () => [ROOT, 'admin', 'workbook'] as const,
 }

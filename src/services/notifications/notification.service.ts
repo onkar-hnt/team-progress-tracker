@@ -1,7 +1,8 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 
 import { appConfig } from '@config/app.config'
-import type { AppNotification } from '@models/index'
+import { NOTIFICATION_TYPES } from '@models/index'
+import type { AppNotification, NotificationType } from '@models/index'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
 
@@ -79,6 +80,21 @@ function requireClient() {
 const MISSING_TABLE_CODES: ReadonlySet<string> = new Set(['42P01', 'PGRST205'])
 
 /**
+ * Named separately because preferences arrived a migration later than the inbox.
+ *
+ * A database with notifications but not this table is an ordinary state — one
+ * deploy behind — and pointing at the wrong file to apply would send whoever hit
+ * it looking in a migration that is already there.
+ */
+const PREFERENCES_MIGRATION = '20260913150000_notification_preferences.sql'
+
+const KNOWN_NOTIFICATION_TYPES: ReadonlySet<string> = new Set(NOTIFICATION_TYPES)
+
+function isNotificationType(value: unknown): value is NotificationType {
+  return typeof value === 'string' && KNOWN_NOTIFICATION_TYPES.has(value)
+}
+
+/**
  * Translates a rejected statement.
  *
  * A local mapper rather than `mapPostgrestError`: that one is keyed by
@@ -86,11 +102,14 @@ const MISSING_TABLE_CODES: ReadonlySet<string> = new Set(['42P01', 'PGRST205'])
  * share, and notifications are not one of those. Adding a member to it to reach
  * this would have put a notification sheet into the Excel schema's vocabulary.
  */
-function mapNotificationError(error: PostgrestError, fallback: string): DataProviderError {
+function mapNotificationError(
+  error: PostgrestError,
+  fallback: string,
+  migration = '20260913120000_notifications.sql',
+): DataProviderError {
   if (MISSING_TABLE_CODES.has(error.code)) {
     return new DataSourceUnavailableError(
-      'Notifications are not set up in this database yet. Apply ' +
-        'supabase/migrations/20260913120000_notifications.sql, then reload.',
+      `Notifications are not set up in this database yet. Apply supabase/migrations/${migration}, then reload.`,
       { cause: error },
     )
   }
@@ -204,6 +223,87 @@ export async function markAllNotificationsRead(): Promise<void> {
  * the same query as everything else, so the panel cannot end up holding rows
  * that arrived by a different route and were shaped by different code.
  */
+/**
+ * The types this person has switched off.
+ *
+ * Takes no recipient, for the same reason the list above does not: the SELECT
+ * policy compares `profile_id` against `auth.uid()`, so the table holds at most
+ * one row this query can see and there is no parameter to tamper with.
+ * `maybeSingle` rather than `single` because the row is written the first time
+ * somebody changes something — never having opened the screen is the norm, and
+ * it means everything is delivered.
+ *
+ * Unrecognised values are dropped rather than rejected. A build older than the
+ * database would otherwise fail to render the screen over a preference it has no
+ * checkbox for, which is a worse outcome than ignoring it: what it cannot show,
+ * it also cannot have been asked to change.
+ */
+export async function readMutedNotificationTypes(): Promise<NotificationType[]> {
+  const { data, error } = await requireClient()
+    .from('user_preferences')
+    .select('muted_notification_types')
+    .maybeSingle()
+
+  if (error !== null) {
+    throw mapNotificationError(
+      error,
+      'Your notification preferences could not be read.',
+      PREFERENCES_MIGRATION,
+    )
+  }
+
+  const stored: unknown = data?.muted_notification_types
+
+  return Array.isArray(stored)
+    ? stored.filter((value): value is NotificationType => isNotificationType(value))
+    : []
+}
+
+/**
+ * Replaces the whole set.
+ *
+ * Sent entire rather than as one added or removed type, because the column is
+ * the answer to a single question and two toggles in quick succession should not
+ * depend on the order their statements arrive in. An upsert because the row may
+ * not exist yet: the primary key turns the second save into an update.
+ *
+ * This is the one write in this file that needs the profile id — the policy
+ * requires the column, and `with check` compares it to `auth.uid()`. So a
+ * tampered id fails the statement rather than writing to somebody else's row.
+ */
+export async function saveMutedNotificationTypes(
+  types: readonly NotificationType[],
+): Promise<void> {
+  const client = requireClient()
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await client.auth.getSession()
+
+  if (sessionError !== null || session === null) {
+    throw new DataSourceUnavailableError(
+      'Your notification preferences could not be saved because you are no longer signed in.',
+      ...(sessionError === null ? [] : [{ cause: sessionError }]),
+    )
+  }
+
+  const { error } = await client
+    .from('user_preferences')
+    .upsert(
+      { profile_id: session.user.id, muted_notification_types: [...types] },
+      { onConflict: 'profile_id' },
+    )
+
+  if (error !== null) {
+    throw mapNotificationError(
+      error,
+      'Your notification preferences could not be saved.',
+      PREFERENCES_MIGRATION,
+    )
+  }
+}
+
 export function subscribeToNotifications(onChange: () => void): () => void {
   if (!areNotificationsAvailable()) return () => undefined
 

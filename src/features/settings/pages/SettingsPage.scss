@@ -33,67 +33,9 @@
     color: $color-warning;
   }
 
-  &__steps {
-    margin-top: $space-6;
-
-    h3 {
-      margin: 0 0 $space-3;
-      font-size: $font-size-md;
-    }
-
-    ol {
-      @include grid($gap: $space-2);
-      margin: 0;
-      padding-left: $space-5;
-      color: $color-text;
-      font-size: $font-size-sm;
-    }
-  }
-
   &__actions {
     @include flex($align: null, $gap: $space-2, $wrap: wrap);
     margin-top: $space-5;
-  }
-
-  &__sheets {
-    @include grid($gap: $space-3);
-    margin: 0;
-  }
-
-  &__sheet {
-    padding: $space-3 $space-4;
-    border: 1px solid $color-border;
-    border-radius: $radius-md;
-
-    dt {
-      margin-bottom: $space-1;
-    }
-
-    dd {
-      margin: 0;
-
-      p {
-        margin: 0;
-        color: $color-text-muted;
-        font-size: $font-size-sm;
-      }
-    }
-  }
-
-  /// Wraps rather than scrolls: the column list is reference material, not
-  /// something to be read in one line.
-  &__columns {
-    margin-top: $space-2 !important;
-    font-family: $font-family-mono;
-    font-size: $font-size-xs !important;
-    overflow-wrap: anywhere;
-  }
-
-  code {
-    padding: 0 $space-1;
-    border-radius: $radius-sm;
-    font-size: $font-size-xs;
-    background: $color-surface-sunken;
   }
 
   &__note {

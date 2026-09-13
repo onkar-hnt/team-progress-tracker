@@ -1,0 +1,24 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+/// The list of notification tickboxes.
+///
+/// Only the spacing between lines, because everything inside is already shared:
+/// `CheckboxField` brings `form__field`, `form__checkbox` and `form__hint`, all
+/// of which are standalone classes rather than descendants of `.form`, so they
+/// style correctly outside a form — which this is. There is no form here to
+/// submit: each line saves as it is clicked.
+///
+/// Tighter than the `$space-5` a form uses between fields. These are one-line
+/// yes-or-no statements about the same subject, and reading them as a list is
+/// the point.
+.notification-preferences {
+  @include grid($gap: $space-4);
+
+  &__note {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    line-height: $line-height-loose;
+  }
+}

@@ -55,7 +55,7 @@ function WorkbookPreparationNotice({ state }: { state: AdminWorkbookInitialisati
     return (
       <p className="data-source-notice data-source-notice--error" role="status">
         <strong>The Admin workbook could not be prepared.</strong> {state.error} You are still
-        signed in; use <strong>Check workbook structure</strong> in Settings to try again.
+        signed in, and reloading the page tries again — the check runs once per sign-in.
       </p>
     )
   }
@@ -95,7 +95,7 @@ function DataSourceModeNotice() {
           cannot be opened from a browser without a Microsoft app registration, so records are
           being held in memory and will be lost when this tab is reloaded.
           {canOpenWorkbook(user)
-            ? ' Settings explains what is needed to connect the real workbook.'
+            ? ' Connecting the real workbook needs VITE_ENTRA_CLIENT_ID and VITE_ENTRA_TENANT_ID pointed at a Microsoft app registration.'
             : ''}
         </p>
       )

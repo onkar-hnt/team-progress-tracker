@@ -1,284 +1,162 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useNavigate } from 'react-router-dom'
 
+import { useAuth } from '@app/providers/auth-context'
 import { Button } from '@components/ui/button/Button'
-import { ErrorState } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import { DATA_SOURCE_LABELS, appConfig } from '@config/app.config'
-import {
-  useAdminWorkbookInitialisation,
-  useAdminWorkbookStatus,
-  useEnsureAdminWorkbook,
-} from '@hooks/use-admin-workbook'
-import {
-  chooseWorkbook,
-  disconnectWorkbook,
-  getWorkbookConnection,
-  subscribeToWorkbookConnection,
-} from '@services/data-provider'
-import { getDataProvider } from '@services/data-provider/index'
-import type { WorkbookStructureReport } from '@services/data-provider/excel/ensure-workbook-structure'
-import { WORKBOOK_TEMPLATE } from '@services/data-provider/excel/workbook-template'
+import { NotificationPreferences } from '@features/notifications/components/NotificationPreferences'
+import { USER_ROLE_LABELS } from '@models/user.model'
+import { resolveAuthMode } from '@services/auth/index'
+import type { AuthMode } from '@services/auth/index'
 
 import './SettingsPage.scss'
 
 /**
- * Where the data source is explained and, for a local workbook, changed.
+ * Your account, what you want to be told about, and where records are kept.
  *
- * This exists because "the dashboard is empty" has several possible causes,
- * and an administrator needs to be able to tell them apart without reading
- * environment files: whether the workbook is connected, what it must contain,
- * and what is missing if it is not.
+ * The middle one is the only thing on here that changes anything, which is why
+ * it is a settings screen at all rather than a diagnostics screen. It comes from
+ * the notifications feature; see `NotificationPreferences`.
+ *
+ * Deliberately short. This screen used to carry the workbook diagnostics — the
+ * sheets and columns a file had to contain, whether one was connected, how to
+ * register the application with Microsoft, and a control that repaired the
+ * structure — from when the Excel workbook was the live database. Records are in
+ * PostgreSQL now, so every one of those described a file nobody reads, and the
+ * screen spent its length telling an administrator to fix something that was not
+ * broken. Connecting a local workbook, where that is still the configured
+ * source, is what `WorkbookGate` does at startup.
+ *
+ * Each fact below can say more than one thing, which is the test they had to
+ * pass. A "connected?" row would fail it: reaching any screen means the provider
+ * was built, and on the database source that throws rather than degrades. Rows
+ * with one possible value read as reassurance and carry no information.
  */
 export function SettingsPage() {
-  const connection = useSyncExternalStore(subscribeToWorkbookConnection, getWorkbookConnection)
-  const [isBusy, setIsBusy] = useState(false)
-  const workbookStatus = useAdminWorkbookStatus()
-
-  const isLocalWorkbook = appConfig.dataSource === 'local-excel'
-  const hasWorkbookUrl = appConfig.sharePoint.workbookUrl !== ''
-  const hasRegistration = appConfig.entra.clientId !== '' && appConfig.entra.tenantId !== ''
-
-  // Taken from the workbook itself rather than inferred from configuration:
-  // configuration says what should happen, and this says what actually did.
-  const isConnected = workbookStatus.data?.isConnected ?? false
-
-  async function run(action: () => Promise<void>) {
-    setIsBusy(true)
-    try {
-      await action()
-    } finally {
-      setIsBusy(false)
-    }
-  }
+  const authMode = resolveAuthMode()
+  const isDatabase = appConfig.dataSource === 'supabase'
 
   return (
     <div className="settings">
+      <AccountPanel authMode={authMode} />
+
+      {/* Hides itself where notifications do not exist, so there is nothing to
+          decide here. */}
+      <NotificationPreferences />
+
       <Panel
         description="Where the application is reading and writing records."
-        isPageHeading
         title="Data source"
       >
         <dl className="settings__facts">
-          <Fact
-            label="Status"
-            tone={isConnected ? 'positive' : 'attention'}
-            value={
-              workbookStatus.isPending
-                ? 'Checking…'
-                : isConnected
-                  ? 'Connected to the Excel workbook'
-                  : 'Not connected'
-            }
-          />
-          <Fact label="Configured source" value={DATA_SOURCE_LABELS[appConfig.dataSource]} />
-          <Fact label="Provider in use" value={getDataProvider().name} />
+          <Fact label="Records" value={DATA_SOURCE_LABELS[appConfig.dataSource]} />
 
-          {isLocalWorkbook ? (
-            <Fact
-              label="Connected file"
-              tone={connection.fileName === null ? 'attention' : 'positive'}
-              value={connection.fileName ?? 'None'}
-            />
-          ) : (
-            <>
-              <Fact
-                label="Workbook link"
-                tone={hasWorkbookUrl ? 'positive' : 'attention'}
-                value={hasWorkbookUrl ? 'Set' : 'Not set'}
-              />
-              <Fact
-                label="Microsoft app registration"
-                tone={hasRegistration ? 'positive' : 'attention'}
-                value={hasRegistration ? 'Set' : 'Not set'}
-              />
-            </>
-          )}
+          {/* Only the database source has a project to name, and naming it is
+              how one environment is told from another. */}
+          {isDatabase ? (
+            <Fact label="Project" value={describeProject(appConfig.supabase.url)} />
+          ) : null}
 
-          <Fact label="Expected file name" value={appConfig.sharePoint.workbookFileName} />
+          <Fact label="Sign-in" value={AUTH_MODE_LABELS[authMode]} />
         </dl>
 
-        {workbookStatus.data?.error == null ? null : (
-          <ErrorState
-            message={workbookStatus.data.error}
-            onRetry={() => void workbookStatus.refetch()}
-          />
-        )}
-
-        {isLocalWorkbook ? (
-          <div className="settings__actions">
-            <Button disabled={isBusy} onClick={() => void run(chooseWorkbook)} variant="primary">
-              Change workbook
-            </Button>
-            <Button
-              disabled={isBusy || connection.status !== 'connected'}
-              onClick={() => void run(disconnectWorkbook)}
-              variant="secondary"
-            >
-              Disconnect
-            </Button>
-          </div>
-        ) : null}
-
-        {isLocalWorkbook ? (
-          <p className="settings__note">
-            Changes are written straight into the file. Keep it in the folder synced by OneDrive
-            and the sync client publishes every change to SharePoint. Anything edited in Excel
-            appears here when you return to this tab.
-          </p>
-        ) : (
-          <GraphSteps isConnected={isConnected} />
-        )}
-      </Panel>
-
-      <Panel
-        description="One sheet per table. The application reads them by name, so spelling and casing matter."
-        title="Workbook structure"
-      >
-        <dl className="settings__sheets">
-          {WORKBOOK_TEMPLATE.map((sheet) => (
-            <div key={sheet.sheetName} className="settings__sheet">
-              <dt>
-                <code>{sheet.sheetName}</code>
-              </dt>
-              <dd>
-                <p>{sheet.description}</p>
-                <p className="settings__columns">{sheet.columns.join(' · ')}</p>
-              </dd>
-            </div>
-          ))}
-        </dl>
         <p className="settings__note">
-          No records are stored in the application itself. An empty workbook, or one with only a
-          default <code>Sheet1</code>, will produce empty screens.
+          {isDatabase
+            ? 'Records are held in PostgreSQL, so there is nothing here to configure. What each person may read and write is decided by row-level security in the database, against the account they signed in with — so a screen with nothing on it means their own records or assignments are empty, rather than that the connection is wrong.'
+            : 'Records are read from and written to the source named above, which is chosen by deployment configuration rather than from this screen.'}
         </p>
-
-        <WorkbookStructureCheck />
       </Panel>
     </div>
   )
 }
 
 /**
- * Checks the workbook against the structure above, and repairs it if it can.
+ * How each identity source reads to somebody who has to explain it.
  *
- * Here rather than on a screen of its own because this is the panel that
- * states what the workbook must contain, and "does it?" is the obvious next
- * question. Running it is safe at any time: nothing is deleted, and a
- * workbook that is already correct is left untouched.
+ * Local to this screen: `AUTH_MODES` is the vocabulary the auth layer decides
+ * with, and this is only the wording one page puts on the answer.
  */
-function WorkbookStructureCheck() {
-  const status = useAdminWorkbookStatus()
-  const initialisation = useAdminWorkbookInitialisation()
-  const ensure = useEnsureAdminWorkbook()
+const AUTH_MODE_LABELS: Readonly<Record<AuthMode, string>> = {
+  entra: 'Microsoft work account',
+  local: 'Workbook password (offline fallback)',
+  supabase: 'Email and password, through Supabase Auth',
+}
 
-  const isChecking = ensure.isPending || initialisation.status === 'initialising'
+/**
+ * Who is signed in, and the one thing they can change about it.
+ *
+ * The password screen has always accepted a signed-in session — `updateUser`
+ * works against any live one, which is what lets it double as the
+ * change-password form — but nothing in the application linked to it. The only
+ * ways in were the invitation email and the route guard that holds an account
+ * until it replaces the password it was issued, so somebody who simply wanted a
+ * new password had no route at all. This is that route.
+ *
+ * Name, email and access level are read rather than edited on purpose: they come
+ * from the employee or mentor record an administrator maintains, and a second
+ * place to change them would be a second answer to who somebody is.
+ */
+function AccountPanel({ authMode }: { authMode: AuthMode }) {
+  const { user } = useAuth()
+  const navigate = useNavigate()
 
-  // The startup run and this button report through the same state, so an
-  // administrator sees one answer rather than two that can disagree.
-  const message =
-    initialisation.report === null
-      ? describeMissing(status.data?.structure ?? null)
-      : describeReport(initialisation.report)
+  if (user === null) return null
+
+  // Only Supabase Auth holds a password this application can replace. An Entra
+  // password belongs to Microsoft, and the offline workbook password is derived
+  // rather than stored.
+  const canChangePassword = authMode === 'supabase'
 
   return (
-    <>
-      <div className="settings__actions">
-        <Button
-          disabled={isChecking || status.data?.hasWorkbook !== true}
-          onClick={() => ensure.mutate()}
-          variant="secondary"
-        >
-          {isChecking ? 'Checking the workbook…' : 'Check workbook structure'}
-        </Button>
-      </div>
+    <Panel
+      description="Your details come from the record an administrator keeps for you."
+      isPageHeading
+      title="Your account"
+    >
+      <dl className="settings__facts">
+        <Fact label="Name" value={user.name} />
+        <Fact label="Email" value={user.email} />
+        <Fact label="Access" value={USER_ROLE_LABELS[user.role]} />
+      </dl>
 
-      <div aria-live="polite" role="status">
-        {initialisation.error === null ? (
-          message === null ? null : <p className="settings__note">{message}</p>
-        ) : (
-          <p className="form__alert">{initialisation.error}</p>
-        )}
-      </div>
-    </>
+      {canChangePassword ? (
+        <>
+          <div className="settings__actions">
+            <Button onClick={() => void navigate('/set-password')} variant="secondary">
+              Change password
+            </Button>
+          </div>
+
+          <p className="settings__note">
+            You will be asked for a new password twice, and signed back in with it. Anything else
+            about your account — your name, email or access level — is changed by an administrator
+            on the Employees screen.
+          </p>
+        </>
+      ) : (
+        <p className="settings__note">
+          Your password is held by whoever provides your{' '}
+          {AUTH_MODE_LABELS[authMode].toLowerCase()}, so it cannot be changed here.
+        </p>
+      )}
+    </Panel>
   )
 }
 
-/** `null` when nothing is known yet, so the panel stays quiet rather than guessing. */
-function describeMissing(
-  missing: {
-    missingTables: string[]
-    missingColumns: { tableName: string; columns: string[] }[]
-  } | null,
-): string | null {
-  if (missing === null) return null
+/**
+ * The project, as its host name.
+ *
+ * Enough to tell one environment from another, which is the question this
+ * answers — and less to read than the whole URL, which carries nothing else.
+ */
+function describeProject(url: string): string {
+  if (url === '') return 'Not set'
 
-  if (missing.missingTables.length === 0 && missing.missingColumns.length === 0) {
-    return 'The workbook has every sheet and column the application needs.'
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
   }
-
-  const parts = [
-    missing.missingTables.length === 0
-      ? null
-      : `missing tables: ${missing.missingTables.join(', ')}`,
-    missing.missingColumns.length === 0
-      ? null
-      : `missing columns: ${missing.missingColumns
-          .map((entry) => `${entry.tableName} (${entry.columns.join(', ')})`)
-          .join('; ')}`,
-  ].filter((part): part is string => part !== null)
-
-  return `The workbook is incomplete — ${parts.join(', and ')}.`
-}
-
-function describeReport(report: WorkbookStructureReport): string {
-  const created = [
-    report.createdTables.length === 0
-      ? null
-      : `created ${report.createdTables.join(', ')}`,
-    report.addedColumns.length === 0
-      ? null
-      : `added columns to ${report.addedColumns.map((entry) => entry.tableName).join(', ')}`,
-  ].filter((part): part is string => part !== null)
-
-  if (created.length > 0) {
-    return `Workbook updated: ${created.join(', and ')}.`
-  }
-
-  if (report.isReady) {
-    return 'The workbook already has every sheet and column the application needs.'
-  }
-
-  return `${describeMissing(report) ?? ''} This connection cannot create them, so they must be added in Excel.`.trim()
-}
-
-function GraphSteps({ isConnected }: { isConnected: boolean }) {
-  if (isConnected) return null
-
-  return (
-    <div className="settings__steps">
-      <h3>To connect the workbook</h3>
-      <ol>
-        <li>
-          Set <code>VITE_DATA_SOURCE</code> to <code>local-excel</code> and connect the synced
-          copy of the file. This needs no registration and is the quickest route.
-        </li>
-        <li>
-          Or, to read SharePoint directly, register the application in Microsoft Entra as a
-          single-page application with delegated <code>Files.ReadWrite.All</code> and{' '}
-          <code>User.Read</code> permissions and a redirect URI matching where this app is served.
-        </li>
-        <li>
-          Put the registration&apos;s client and tenant ids in <code>.env.local</code> as{' '}
-          <code>VITE_ENTRA_CLIENT_ID</code> and <code>VITE_ENTRA_TENANT_ID</code>, then set{' '}
-          <code>VITE_DATA_SOURCE</code> to <code>sharepoint-excel</code>.
-        </li>
-      </ol>
-      <p className="settings__note">
-        The sharing link alone is not enough for the SharePoint route. A browser cannot read a
-        SharePoint file without a token, and the registration is what issues one.
-      </p>
-    </div>
-  )
 }
 
 function Fact({
