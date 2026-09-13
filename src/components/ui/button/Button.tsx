@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, ComponentPropsWithRef, ReactNode } from 'react'
+import type { ComponentPropsWithRef, ReactNode } from 'react'
 
 import { Icon } from '@components/ui/icons/Icon'
 import type { IconName } from '@components/ui/icons/Icon'
@@ -168,33 +168,5 @@ export function Button({
         {children}
       </ButtonContent>
     </button>
-  )
-}
-
-type ButtonLinkProps = ButtonAppearance &
-  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'className'> & { children: ReactNode }
-
-/**
- * The same control as a link, for a destination rather than an action.
- *
- * Separate rather than a polymorphic `as` prop, so each one accepts only the
- * attributes its element actually has — `href` and `target` here, `disabled`
- * and `type` there — instead of a union that permits both and honours neither.
- */
-export function ButtonLink({
-  children,
-  collapsesLabel = false,
-  icon,
-  isIconOnly = false,
-  size = 'medium',
-  variant = 'secondary',
-  ...rest
-}: ButtonLinkProps) {
-  return (
-    <a className={buttonClass({ isIconOnly, size, variant })} {...rest}>
-      <ButtonContent collapsesLabel={collapsesLabel} isIconOnly={isIconOnly} {...{ icon }}>
-        {children}
-      </ButtonContent>
-    </a>
   )
 }

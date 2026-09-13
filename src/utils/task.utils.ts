@@ -130,29 +130,3 @@ export function groupTasksByCompletion<TTask extends { name: string; status: Tas
     open: sorted.filter((task) => task.status !== 'completed'),
   }
 }
-
-export function sortByPriority<TEntry extends DailyWorkEntry>(
-  entries: readonly TEntry[],
-): TEntry[] {
-  return [...entries].sort((left, right) => {
-    const difference = PRIORITY_WEIGHT[left.priority] - PRIORITY_WEIGHT[right.priority]
-    return difference !== 0 ? difference : right.date.localeCompare(left.date)
-  })
-}
-
-/** Groups entries by a derived key, preserving input order within groups. */
-export function groupBy<TValue, TKey extends string>(
-  values: readonly TValue[],
-  getKey: (value: TValue) => TKey,
-): Map<TKey, TValue[]> {
-  const groups = new Map<TKey, TValue[]>()
-
-  for (const value of values) {
-    const key = getKey(value)
-    const existing = groups.get(key)
-    if (existing === undefined) groups.set(key, [value])
-    else existing.push(value)
-  }
-
-  return groups
-}

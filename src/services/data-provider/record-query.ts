@@ -77,23 +77,6 @@ export function filterComments(
 }
 
 /**
- * Generates an identifier for a new record.
- *
- * Ids are created client-side because neither Excel nor a static host can
- * hand out sequence numbers, and because the id must exist before the row is
- * written. `randomUUID` needs a secure context, so a non-cryptographic
- * fallback keeps plain-HTTP development working.
- */
-export function createRecordId(prefix: string): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${prefix}-${crypto.randomUUID()}`
-  }
-
-  const random = Math.random().toString(36).slice(2, 10)
-  return `${prefix}-${Date.now().toString(36)}-${random}`
-}
-
-/**
  * Generates a short sequential id such as `MEN004`.
  *
  * Used for records a person will read and type in the sheet, where a UUID

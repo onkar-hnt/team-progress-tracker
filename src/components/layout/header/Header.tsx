@@ -3,14 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@app/providers/auth-context'
 import { useConfirm } from '@app/providers/confirm-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
-import { Button, ButtonLink } from '@components/ui/button/Button'
+import { Button } from '@components/ui/button/Button'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
-import { appConfig } from '@config/app.config'
 import { APP_EYEBROW, APP_NAME } from '@constants/app.constants'
 import { NotificationBell } from '@features/notifications/components/NotificationBell'
 import { useRefreshWorkTracker } from '@hooks/use-work-tracker'
 import { USER_ROLE_LABELS } from '@models/user.model'
-import { canOpenWorkbook } from '@services/auth/index'
 import { logFailure, toUserMessage } from '@services/errors/error-message'
 
 import './Header.scss'
@@ -29,10 +27,6 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
   const snackbar = useSnackbar()
   const navigate = useNavigate()
   const refresh = useRefreshWorkTracker()
-
-  // Available whatever the data source is: the workbook is where the team
-  // maintains its records even while the app is still reading fixtures.
-  const workbookUrl = appConfig.sharePoint.workbookUrl
 
   /**
    * Asks first, then says so either way.
@@ -138,23 +132,6 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
             all unless the data source can produce notifications, and nothing
             when signed out. */}
         {user === null ? null : <NotificationBell />}
-
-        {/* Opening the master file is a maintenance action for the people who
-            own the data, so it sits with the account controls rather than in
-            the navigation. `noreferrer` keeps the app's URL out of the
-            referrer sent to SharePoint. */}
-        {canOpenWorkbook(user) && workbookUrl !== '' ? (
-          <ButtonLink
-            collapsesLabel
-            href={workbookUrl}
-            icon="table"
-            rel="noreferrer noopener"
-            target="_blank"
-            variant="inverse"
-          >
-            Open Excel Sheet
-          </ButtonLink>
-        ) : null}
 
         <div className="header__identity">
           <span>{user === null ? 'Signed out' : USER_ROLE_LABELS[user.role]}</span>

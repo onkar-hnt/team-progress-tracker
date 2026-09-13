@@ -3,8 +3,8 @@
 
 /// The header bar.
 ///
-/// Four controls used to be styled here — an icon button, a sign-out button, a
-/// workbook link and a refresh button — each repeating the same white border,
+/// Every control here used to be styled individually — an icon button, a
+/// sign-out button, a refresh button — each repeating the same white border,
 /// radius, hover tint and focus ring at a slightly different opacity. They are
 /// all `Button variant="inverse"` now, so this file describes only the bar and
 /// where things sit on it.
