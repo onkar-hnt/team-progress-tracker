@@ -198,10 +198,29 @@ and is worth exactly one paragraph to never repeat.
 
 Every size, colour, radius, shadow, duration and layer is a token in `styles/_variables.scss`, and
 a literal in a feature stylesheet is a bug rather than a shortcut — the file says what each token
-is for, which is usually enough to find the right rung of the scale. The one place tokens are
-readable from TypeScript is the chart palette, which Recharts takes as props: `_reset.scss`
-publishes those few values as custom properties and `charts/chart.theme.ts` refers to them, so
-"completed" is one green whether it is a badge or a pie slice.
+is for, which is usually enough to find the right rung of the scale.
+
+### Charts
+
+ApexCharts, wrapped in `components/charts/`. `ApexChart.tsx` is the frame every chart shares — the
+text summary read in place of the drawing, the empty state, the imports — `chart-theme.ts` holds the
+options they all agree on, `chart-utils.ts` the number formatting, and `WorkCharts.tsx` the five
+charts themselves over the aggregations in `work-summary.utils`.
+
+The split between Sass and TypeScript is deliberate and is the thing to understand before changing
+a colour. Everything around the data — axis labels, grid lines, legend, tooltip — is ordinary DOM
+that `ApexChart.scss` styles from the same tokens as the rest of the application. The data colours
+cannot work that way, because Apex does arithmetic on them to shade gradients and hover states, so
+they are literals in `chart-colors.ts`: one tier brighter than the interface palette, which is tuned
+for 12px text rather than for a filled area. Each one means something, and `STATUS_CHART_COLORS`
+keys them by status so a chart cannot list its data in one order and its colours in another.
+
+Renderers are imported one per chart type rather than as Apex's default bundle, which is worth about
+260 KB; a new kind of chart needs its renderer added to `ApexChart.tsx`, and the console says so.
+Clicking a status slice, a developer's bar or a project slice opens the activity list filtered to
+those rows, through `activityRangeLink`. That is a shortcut rather than the only route, because the
+drawing is hidden from assistive technology: the metric cards above are real links to the same
+views.
 
 ### Motion
 
@@ -213,7 +232,7 @@ the shared keyframes live in `_motion.scss`; keyframes describing one component 
 
 Two exceptions cannot be expressed in CSS and read the preference in script through
 `usePrefersReducedMotion`: the counting stat-card values, where each frame is a different string,
-and the chart animations, which are props on a library that does not ask. A blanket rule in
+and the chart animations, which are options on a library that does not ask. A blanket rule in
 `_reset.scss` is the floor under all of it, for transitions that arrive from a dependency's own
 stylesheet.
 

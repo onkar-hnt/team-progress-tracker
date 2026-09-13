@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import {
   DeveloperProgressChart,
@@ -20,7 +20,8 @@ import { StatCard } from '@components/ui/stat-card/StatCard'
 import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { DailyUpdateForm } from '@features/daily-update/components/DailyUpdateForm'
-import { activityLink } from '@features/team-activity/activity-filters'
+import type { ActivitySlice } from '@features/team-activity/activity-filters'
+import { activityLink, activityRangeLink } from '@features/team-activity/activity-filters'
 import { TASK_STATUS_LABELS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import {
   useDayOverview,
@@ -58,6 +59,7 @@ import './DashboardPage.scss'
 export function DashboardPage() {
   const { user } = useAuth()
   const snackbar = useSnackbar()
+  const navigate = useNavigate()
   const isTeamView = canViewTeamData(user)
 
   // Opening on a weekend should show the last working day rather than an
@@ -87,6 +89,22 @@ export function DashboardPage() {
   )
 
   const error = dayQuery.error ?? weekQuery.error ?? developersQuery.error ?? projectsQuery.error
+
+  /**
+   * Clicking a chart, for somebody who can see the team's rows.
+   *
+   * The charts below are counts of exactly what the activity list holds, so a slice, a bar or
+   * a person's row is a shortcut to the rows behind the number — the same argument as the
+   * metric cards above, which are links for the same reason.
+   *
+   * Only for the team view. A developer has no activity screen to arrive at, and a chart that
+   * navigated somewhere they cannot go would be worse than one that does nothing.
+   */
+  const openActivity = isTeamView
+    ? (slice: ActivitySlice) => {
+        void navigate(activityRangeLink(weekRange, slice))
+      }
+    : undefined
 
   /**
    * Amending your own update, from where you noticed it needed amending.
@@ -402,7 +420,16 @@ export function DashboardPage() {
           {isLoading || week === undefined ? (
             <Skeleton rows={4} />
           ) : (
-            <StatusDistributionChart statuses={week.statuses} />
+            <StatusDistributionChart
+              onSelectStatus={
+                openActivity === undefined
+                  ? undefined
+                  : (status) => {
+                      openActivity({ status })
+                    }
+              }
+              statuses={week.statuses}
+            />
           )}
         </Panel>
       </div>
@@ -410,12 +437,38 @@ export function DashboardPage() {
       <div className="dashboard__row">
         {isTeamView ? (
           <Panel description="Stacked task status per developer." title="Developer-wise progress">
-            {isLoading ? <Skeleton rows={4} /> : <DeveloperProgressChart summaries={developerSummaries} />}
+            {isLoading ? (
+              <Skeleton rows={4} />
+            ) : (
+              <DeveloperProgressChart
+                onSelectDeveloper={
+                  openActivity === undefined
+                    ? undefined
+                    : (developerId) => {
+                        openActivity({ developerId })
+                      }
+                }
+                summaries={developerSummaries}
+              />
+            )}
           </Panel>
         ) : null}
 
         <Panel description="Where this week's work is concentrated." title="Project distribution">
-          {isLoading ? <Skeleton rows={4} /> : <ProjectDistributionChart summaries={projectSummaries} />}
+          {isLoading ? (
+            <Skeleton rows={4} />
+          ) : (
+            <ProjectDistributionChart
+              onSelectProject={
+                openActivity === undefined
+                  ? undefined
+                  : (projectId) => {
+                      openActivity({ projectId })
+                    }
+              }
+              summaries={projectSummaries}
+            />
+          )}
         </Panel>
       </div>
 

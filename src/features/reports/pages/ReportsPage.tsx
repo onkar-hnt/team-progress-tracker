@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import {
   DeveloperProgressChart,
@@ -16,6 +17,8 @@ import { EntryList } from '@components/ui/entry-list/EntryList'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { DeveloperReportPanel } from '@features/reports/components/DeveloperReportPanel'
+import type { ActivitySlice } from '@features/team-activity/activity-filters'
+import { activityRangeLink } from '@features/team-activity/activity-filters'
 import { useDevelopers, useProjects, useRangeOverview } from '@hooks/use-work-tracker'
 import { downloadCsv, toCsv } from '@utils/csv.utils'
 import type { DateRange } from '@utils/date.utils'
@@ -56,6 +59,8 @@ const PERIOD_OPTIONS = Object.entries(PERIODS).map(([key, period]) => ({
 }))
 
 export function ReportsPage() {
+  const navigate = useNavigate()
+
   const [periodKey, setPeriodKey] = useState<PeriodKey>('this-week')
   const [customRange, setCustomRange] = useState<DateRange>(() => getWeekRange(todayIsoDate()))
 
@@ -67,6 +72,20 @@ export function ReportsPage() {
   const rangeQuery = useRangeOverview(range)
   const developersQuery = useDevelopers()
   const projectsQuery = useProjects()
+
+  /**
+   * From a chart on this screen to the rows it counted.
+   *
+   * A report answers "how much"; the next question is invariably "which ones", and until now
+   * that meant going to the activity screen and rebuilding the same period and filter by hand.
+   * The period travels with the link, so the list opens on exactly what was on show here.
+   *
+   * Unconditional, unlike the dashboard's version: this whole screen is behind team access, so
+   * anybody reading it can read the activity list too.
+   */
+  const openActivity = (slice: ActivitySlice) => {
+    void navigate(activityRangeLink(range, slice))
+  }
 
   // Stable identity so the summaries below are only recomputed on new data.
   const entries = useMemo(() => rangeQuery.data?.entries ?? [], [rangeQuery.data])
@@ -287,18 +306,41 @@ export function ReportsPage() {
           {isLoading || rangeQuery.data === undefined ? (
             <Skeleton rows={4} />
           ) : (
-            <StatusDistributionChart statuses={rangeQuery.data.statuses} />
+            <StatusDistributionChart
+              onSelectStatus={(status) => {
+                openActivity({ status })
+              }}
+              statuses={rangeQuery.data.statuses}
+            />
           )}
         </Panel>
       </div>
 
       <div className="reports__row">
         <Panel description="Stacked task status per developer." title="Developer comparison">
-          {isLoading ? <Skeleton rows={4} /> : <DeveloperProgressChart summaries={developerSummaries} />}
+          {isLoading ? (
+            <Skeleton rows={4} />
+          ) : (
+            <DeveloperProgressChart
+              onSelectDeveloper={(developerId) => {
+                openActivity({ developerId })
+              }}
+              summaries={developerSummaries}
+            />
+          )}
         </Panel>
 
         <Panel description="Effort distribution across projects." title="Project distribution">
-          {isLoading ? <Skeleton rows={4} /> : <ProjectDistributionChart summaries={projectSummaries} />}
+          {isLoading ? (
+            <Skeleton rows={4} />
+          ) : (
+            <ProjectDistributionChart
+              onSelectProject={(projectId) => {
+                openActivity({ projectId })
+              }}
+              summaries={projectSummaries}
+            />
+          )}
         </Panel>
       </div>
 

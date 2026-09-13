@@ -209,25 +209,47 @@ export function filtersToSearchParams(filters: ActivityFilterState): URLSearchPa
 }
 
 /**
- * A link to this screen, showing one slice of one day.
+ * What can be picked out of a period: a status, one person, one project, or only what is
+ * blocked. The same four things the activity screen's own filters offer, which is not a
+ * coincidence — a link that could express more than the screen can would be a link to a view
+ * nobody could then adjust.
+ */
+export interface ActivitySlice {
+  status?: TaskStatus
+  developerId?: string
+  projectId?: string
+  blockedOnly?: boolean
+}
+
+/**
+ * A link to this screen, showing one slice of one period.
  *
  * Here rather than on the dashboard so that the parameter names stay private to this
  * module: a screen that wants to link to a filtered activity list says what it wants in
  * domain terms, and if a parameter is ever renamed there is one place it is spelled.
+ *
+ * The period arrives as an explicit range rather than as a preset because the callers have one
+ * — the dashboard knows the week it is showing, the reports screen the range that was chosen —
+ * and translating that back into whichever preset happens to match today would be a link that
+ * means something different tomorrow.
  */
-export function activityLink(
-  date: string,
-  slice: { status?: TaskStatus; blockedOnly?: boolean } = {},
-): string {
+export function activityRangeLink(range: DateRange, slice: ActivitySlice = {}): string {
   const params = filtersToSearchParams({
     ...createDefaultFilters(),
     preset: 'custom',
-    customRange: { from: date, to: date },
+    customRange: range,
     ...(slice.status === undefined ? {} : { status: slice.status }),
+    ...(slice.developerId === undefined ? {} : { developerId: slice.developerId }),
+    ...(slice.projectId === undefined ? {} : { projectId: slice.projectId }),
     ...(slice.blockedOnly === undefined ? {} : { blockedOnly: slice.blockedOnly }),
   })
 
   return `/team-activity?${params.toString()}`
+}
+
+/** The same, for the common case of a single day. */
+export function activityLink(date: string, slice: ActivitySlice = {}): string {
+  return activityRangeLink({ from: date, to: date }, slice)
 }
 
 /**
