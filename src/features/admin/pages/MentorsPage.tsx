@@ -28,8 +28,8 @@ import { useTableSort } from '@hooks/use-table-sort'
 import type { Mentor } from '@models/index'
 import { canManageMentorAssignments } from '@services/auth/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
+import { isSupabaseConfigured } from '@services/supabase/index'
 import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
-import { appConfig } from '@config/app.config'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 import { ProvisioningNoticeView } from '../components/ProvisioningNotice'
@@ -48,7 +48,7 @@ const mentorFormSchema = z.object({
 type MentorFormValues = z.infer<typeof mentorFormSchema>
 
 // Provisioning requires Supabase Auth.
-const CAN_PROVISION_LOGINS = appConfig.dataSource === 'supabase'
+const CAN_PROVISION_LOGINS = isSupabaseConfigured()
 
 function describeUnprovisionable(mentor: Mentor): string | null {
   if (!mentor.active) {

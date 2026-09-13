@@ -23,10 +23,10 @@ npm install
 npm run dev
 ```
 
-That is the whole setup. With no configuration at all the application runs on a workbook held in
-memory, seeded with sample data — every screen works, admin writes survive the session, and
-nothing is saved when the tab closes. It is the right mode for looking around and for working on
-the interface.
+The interface will start and render, but there is nothing behind it until a Supabase project is
+configured: records, sign-in and every feature read the database, and with no configuration the
+application says which variable is missing rather than pretending. See
+[Configuration](#configuration).
 
 | Script              | What it does                                              |
 | ------------------- | --------------------------------------------------------- |
@@ -35,6 +35,7 @@ the interface.
 | `npm run lint`      | ESLint over the whole project                             |
 | `npm run build`     | Typecheck, then a production build into `dist/`           |
 | `npm run preview`   | Serves `dist/` locally, to check a build before deploying  |
+| `npm run analyze`   | Builds with source maps and attributes every chunk's bytes to a package |
 
 There is no test script. That is a real gap rather than an oversight — see
 [What is missing](#what-is-missing).
@@ -50,21 +51,17 @@ design: it identifies the project rather than the caller, and access is decided 
 row-level security. A `service_role` or `sb_secret_…` key is not safe there, and the application
 inspects the key and refuses to start if it finds one.
 
-### Where records come from — `VITE_DATA_SOURCE`
+### Where records come from
 
-| Value              | What it reads                                                      |
-| ------------------ | ------------------------------------------------------------------ |
-| `supabase`         | PostgreSQL through Supabase, with RLS. The production source.       |
-| `memory-excel`     | A workbook in memory. **The default**, and what a fresh clone runs. |
-| `local-excel`      | An `.xlsx` on this computer, chosen from the browser.               |
-| `sharepoint-excel` | The shared workbook through Microsoft Graph. Needs Entra.           |
-| `mock`             | The fixtures in `src/data`.                                        |
+Supabase, and only Supabase. Records are PostgreSQL rows behind row-level security, and the two
+variables that point at the project are all the data layer needs. Earlier versions could also read
+an Excel workbook or a set of fixtures; both were removed, because several features — notifications,
+login provisioning, password resets, the change log, the recycle bin, the Logins and Usage screens —
+are database triggers and functions rather than anything a spreadsheet can do, and every one of them
+had to be gated and hidden under the other modes.
 
-The Excel modes are not a second production path. They came first, they still exercise the same
-mappers and structure checks, and they remain useful for import, export and working offline — but
-several features exist only under `supabase` and say so rather than pretending: notifications,
-login provisioning, password resets, the Logins screen and the Usage screen all check
-`appConfig.dataSource === 'supabase'` and hide themselves otherwise.
+Each of those features still checks `isSupabaseConfigured()` and hides itself when the project is
+not configured, which is what keeps a half-configured deployment honest.
 
 ### Who signs in — `VITE_AUTH_MODE`
 
@@ -72,11 +69,11 @@ login provisioning, password resets, the Logins screen and the Usage screen all 
 | ---------- | --------------------------------------------------------------------------- |
 | `supabase` | Supabase Auth. The role is read from `public.profiles`, never from the token. |
 | `entra`    | Microsoft single sign-on, through the app registration.                       |
-| `local`    | Passwords derived from the workbook. Development only.                        |
+| `local`    | Passwords derived from the roster entry. Development only.                    |
 
 Left blank, the mode is chosen for you: Supabase if a project is configured, Entra if a
-registration is, and the offline workbook otherwise. Setting it pins the choice, which is what
-makes the offline fallback a decision rather than something the application can slip into.
+registration is, and roster passwords otherwise. Setting it pins the choice, which is what makes
+the offline fallback a decision rather than something the application can slip into.
 
 ## The Supabase side
 
@@ -144,8 +141,7 @@ typechecking and linting. It needs two repository variables under
 
 Both are public values, so repository *variables* are the right home rather than secrets. The
 workflow checks for them before it builds and stops with a message naming what is missing — without
-that check the build would succeed, fall back to the in-memory workbook, and deploy a site that
-looks fine and saves nothing.
+that check the build would succeed and deploy a site that renders and then cannot read a thing.
 
 `.github/workflows/checks.yml` runs the same typecheck and lint on pull requests, so a branch is
 gated before it reaches `main` rather than after.
@@ -178,10 +174,10 @@ supabase/
 
 Four seams are worth knowing before changing anything:
 
-- **`services/data-provider`** is the interface that makes the record store replaceable, and it is
-  implemented three times over — Supabase, Excel and fixtures. Anything a spreadsheet cannot do
-  does not belong on it; that is why notifications, accounts and the recycle bin sit beside it
-  instead, gated on the data source.
+- **`services/data-provider`** is the interface every screen reads records through, implemented once
+  over Supabase. The seam is still worth keeping: it is what stops feature code from holding a
+  Postgres query, and notifications, accounts, history and the recycle bin sit beside it rather than
+  on it, because they are about a database rather than about records.
 - **`services/auth/permissions.ts`** answers every "may they?" in the interface. Screens ask it
   rather than checking `role === 'admin'` inline, so the policy can be read in one place.
 - **`hooks/query-keys.ts`** declares every cache key once, so a write cannot fail to refresh a
@@ -221,6 +217,24 @@ Clicking a status slice, a developer's bar or a project slice opens the activity
 those rows, through `activityRangeLink`. That is a shortcut rather than the only route, because the
 drawing is hidden from assistive technology: the metric cards above are real links to the same
 views.
+
+### The bundle
+
+Every screen is a lazy route, and the two heaviest dependencies are only fetched by what needs them:
+ApexCharts arrives with the dashboard and the reports, MSAL only under Entra sign-in. The first load
+is React, the Supabase client, and zod with react-hook-form for the login form — about 250 KB
+gzipped, most of which is those four libraries.
+
+`vite.config.ts` groups those eager dependencies into named chunks (`react-vendor`, `supabase`,
+`forms`, `vendor`) so that shipping a UI change no longer invalidates the cached copy of React.
+**A group ignores the boundary between static and dynamic imports**, so grouping a lazy dependency
+drags it into the entry — which is why ApexCharts and MSAL have no group and are left to automatic
+chunking. The size report is the check: if a lazy chunk's name appears in `dist/index.html` as a
+`modulepreload`, something now loads it eagerly.
+
+`npm run analyze` answers "what is in there" with numbers rather than guesses. It builds to
+`dist-analyze/` with source maps and attributes each chunk's bytes to the package they came from;
+`node scripts/analyze-bundle.mjs WorkCharts` drills into one chunk's individual modules.
 
 ### Scrolling
 

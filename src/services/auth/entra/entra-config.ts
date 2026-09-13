@@ -4,4 +4,5 @@ export function isEntraConfigured(): boolean {
   return appConfig.entra.clientId !== '' && appConfig.entra.tenantId !== ''
 }
 
-export const GRAPH_SCOPES = ['Files.ReadWrite.All', 'User.Read']
+/** Sign-in only: the app reads the person's identity and nothing else from Microsoft. */
+export const SIGN_IN_SCOPES = ['User.Read']

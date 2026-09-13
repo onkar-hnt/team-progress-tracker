@@ -10,15 +10,7 @@
  */
 interface ImportMetaEnv {
   /**
-   * `supabase`, `local-excel`, `memory-excel`, `sharepoint-excel` or `mock`.
-   *
-   * Defaults to `memory-excel`, which exercises the real Excel path against a
-   * workbook held in memory.
-   */
-  readonly VITE_DATA_SOURCE?: string
-
-  /**
-   * The bootstrap administrator, the only account not held in the workbook.
+   * The bootstrap administrator, the only account not held in the database.
    *
    * Override all three on any deployment reachable beyond the team: the
    * defaults are in the public bundle.
@@ -27,14 +19,11 @@ interface ImportMetaEnv {
   readonly VITE_ADMIN_NAME?: string
   readonly VITE_ADMIN_PASSWORD?: string
 
-  /** Artificial delay for the mock provider, in milliseconds. */
-  readonly VITE_MOCK_LATENCY_MS?: string
-
   /**
    * `supabase`, `entra` or `local`. Leave unset for automatic selection.
    *
-   * Only needed to force the offline workbook password provider (`local`),
-   * which is never selected automatically when Supabase is configured.
+   * Only needed to force the roster password provider (`local`), which is
+   * never selected automatically when Supabase is configured.
    */
   readonly VITE_AUTH_MODE?: string
 
@@ -62,16 +51,11 @@ interface ImportMetaEnv {
    */
   readonly VITE_SUPABASE_ANON_KEY?: string
 
-  /** Sharing URL of the live workbook, as copied from SharePoint or OneDrive. */
-  readonly VITE_SHAREPOINT_WORKBOOK_URL?: string
-
-  readonly VITE_SHAREPOINT_SITE_URL?: string
-  readonly VITE_SHAREPOINT_WORKBOOK_PATH?: string
-
   /**
-   * Entra app registration. Public identifiers, not secrets.
+   * Entra app registration, used for single sign-on. Public identifiers, not
+   * secrets.
    *
-   * Leave both empty to run on mock data with workbook password sign-in.
+   * Leave both empty to sign in with roster passwords instead.
    */
   readonly VITE_ENTRA_CLIENT_ID?: string
   readonly VITE_ENTRA_TENANT_ID?: string

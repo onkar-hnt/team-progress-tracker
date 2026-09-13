@@ -32,6 +32,14 @@ export function parseIsoDate(isoDate: string): Date | null {
   return isValid(parsed) ? parsed : null
 }
 
+/** `true` for a `yyyy-MM-dd` string denoting a real date; the round trip rejects 31 February. */
+export function isIsoDateString(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length !== 10) return false
+
+  const parsed = parseIsoDate(value)
+  return parsed !== null && toIsoDate(parsed) === value
+}
+
 /** ISO weekday, Monday = 1 through Sunday = 7. */
 export function getWeekday(isoDate: string): number | null {
   const parsed = parseIsoDate(isoDate)

@@ -1,11 +1,10 @@
 import { z } from 'zod'
 
-import { appConfig } from '@config/app.config'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
 
 export function isHistoryAvailable(): boolean {
-  return appConfig.dataSource === 'supabase' && isSupabaseConfigured()
+  return isSupabaseConfigured()
 }
 
 /** The tables a change can be recorded against, named as the domain names them. */

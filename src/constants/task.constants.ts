@@ -1,7 +1,7 @@
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { TaskPriority, TaskStatus } from '@models/daily-work.model'
 
-/** UI labels only; workbook values live in excel-schema.ts. */
+/** UI labels only; the values stored in the database are the model's own. */
 export const TASK_STATUS_LABELS: Readonly<Record<TaskStatus, string>> = {
   'not-started': 'Not Started',
   'in-progress': 'In Progress',

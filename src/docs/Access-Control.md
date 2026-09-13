@@ -7,7 +7,7 @@ and does not protect against.
 
 Roles come from the `AccessRole` column of the Employees table, or from the
 presence of a row in the Mentors table. They are not configured in code, and
-changing somebody's access means editing the workbook, not a deployment.
+changing somebody's access means editing a record, not a deployment.
 
 | Role | Sees |
 |---|---|
@@ -67,34 +67,26 @@ reports, administration) out of reach of roles that should not have them.
 
 ## What this does not protect against
 
-**This is enforced in the browser.** It reliably prevents the application from
-displaying another person's data, including through a hand-edited URL, a stale
-filter or the query cache. It is not a defence against a determined user.
+**What is written here is enforced twice, and only one of the two is a
+boundary.** The scope in the browser decides what the application draws, which
+is what stops another person's data appearing through a hand-edited URL, a stale
+filter or the query cache. Row-level security in Postgres decides what may
+actually be read or written, and that is the boundary: the publishable key in
+the bundle identifies the project rather than the caller, so a request made by
+hand from developer tools is subject to exactly the same policies.
 
-The application is a single-page app that reads the workbook with the signed-in
-person's own Microsoft Graph token, using delegated permissions. That token is
-in the browser, and the file it addresses is a shared workbook. Anyone willing
-to open developer tools can therefore read the whole file, regardless of what
-this application chooses to render. The same is true of the SharePoint sharing
-link itself: whoever holds it has the access the link grants.
+So the client-side rules are a correctness and privacy control for ordinary use,
+and the policies in `supabase/migrations/20260910181600_rls_policies.sql` are the
+security. When the two disagree it is a bug in the client, and the symptom is a
+screen that offers something the database then refuses.
 
-Put plainly: the role model here is a correctness and privacy control for
-ordinary use — people do not stumble into each other's records, and the UI never
-reveals them — but it is not a security boundary.
+Two things still sit outside that:
 
-Making it one requires moving the data behind a server: an API that holds the
-workbook or database credentials, authenticates the caller, and filters rows
-before responding. At that point the same `AccessScope` logic moves server-side,
-and the client keeps its copy only to decide what to render. The
-`DataProvider` abstraction exists precisely so that change is a new
-implementation rather than a rewrite.
-
-Until then:
-
-- Keep the deployment behind company sign-in and off the public internet.
-- Treat the workbook sharing link as a credential.
-- Do not put anything in the workbook that would be damaging for a colleague to
-  read.
+- The privileged operations — provisioning a login, resetting somebody's
+  password, disabling an account — hold the service-role key and so run as Edge
+  Functions, each asking the database whether the caller may before acting.
+- A role read from a JWT claim would be writable by the account holder, so the
+  role is always read from `public.profiles`.
 
 ## Writing
 

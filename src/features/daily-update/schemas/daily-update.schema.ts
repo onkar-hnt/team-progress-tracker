@@ -3,8 +3,7 @@ import { z } from 'zod'
 import { PROGRESS_MAX, PROGRESS_MIN } from '@constants/task.constants'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { CreateDailyWorkEntryRequest, DailyWorkEntry } from '@models/index'
-import { isIsoDateString } from '@services/data-provider/excel/excel-value.utils'
-import { todayIsoDate } from '@utils/date.utils'
+import { isIsoDateString, todayIsoDate } from '@utils/date.utils'
 
 const TASK_TITLE_MAX = 160
 

@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import { appConfig } from '@config/app.config'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import {
   getSupabaseClient,
@@ -10,7 +9,7 @@ import {
 import { GIGABYTE, MEGABYTE } from '@utils/bytes.utils'
 
 export function isUsageAvailable(): boolean {
-  return appConfig.dataSource === 'supabase' && isSupabaseConfigured()
+  return isSupabaseConfigured()
 }
 
 /** One table, as the breakdown lists it. */

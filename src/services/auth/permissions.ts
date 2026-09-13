@@ -93,10 +93,6 @@ export function canReadFeedback(user: AppUser | null): boolean {
   return canWriteFeedback(user) || user.developerId !== undefined
 }
 
-export function canOpenWorkbook(user: AppUser | null): boolean {
-  return isAdmin(user) || isMentor(user)
-}
-
 export function canViewTeamData(user: AppUser | null): boolean {
   return isAdmin(user) || isMentor(user)
 }

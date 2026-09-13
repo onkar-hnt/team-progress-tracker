@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "analyze": "vite build --sourcemap --outDir dist-analyze && node scripts/analyze-bundle.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -17,7 +18,6 @@
     "@tanstack/react-query": "^5.102.8",
     "apexcharts": "^7.3.0",
     "date-fns": "^4.4.0",
-    "exceljs": "^4.4.0",
     "react": "^19.2.8",
     "react-apexcharts": "^2.1.1",
     "react-dom": "^19.2.8",

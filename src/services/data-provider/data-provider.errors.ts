@@ -33,7 +33,7 @@ export class DataSourceUnavailableError extends DataProviderError {
   }
 }
 
-/** The workbook is missing a required table or column, so mapping is unsafe. */
+/** The table is missing a required column, so mapping is unsafe. */
 export class SchemaMismatchError extends DataProviderError {
   readonly table: DataSourceTable
   readonly missingColumns: readonly string[]
@@ -41,7 +41,7 @@ export class SchemaMismatchError extends DataProviderError {
   constructor(table: DataSourceTable, missingColumns: readonly string[]) {
     super(
       `Table "${table}" is missing required column(s): ${missingColumns.join(', ')}. ` +
-        'The workbook structure must match the agreed schema.',
+        'The database schema must match the one the application expects.',
     )
     this.name = 'SchemaMismatchError'
     this.table = table
@@ -84,21 +84,6 @@ export class RecordNotFoundError extends DataProviderError {
     this.name = 'RecordNotFoundError'
     this.table = table
     this.recordId = recordId
-  }
-}
-
-export class WorkbookRowNotFoundError extends DataProviderError {
-  readonly tableName: string
-  readonly keyValue: string
-
-  constructor(tableName: string, keyColumn: string, keyValue: string) {
-    super(
-      `No row in Excel table "${tableName}" has ${keyColumn} = "${keyValue}". ` +
-        'It may have been deleted or changed in the workbook.',
-    )
-    this.name = 'WorkbookRowNotFoundError'
-    this.tableName = tableName
-    this.keyValue = keyValue
   }
 }
 

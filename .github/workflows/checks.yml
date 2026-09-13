@@ -52,9 +52,8 @@ jobs:
         run: npm run lint
 
       # Built without any Supabase configuration, on purpose. This proves the
-      # bundle compiles and that the unconfigured path still works — the
-      # in-memory workbook a fresh clone runs on — which is the one thing the
-      # deploy workflow cannot tell us, since it always builds with a project
-      # configured.
+      # bundle compiles and that nothing reads a variable at build time that it
+      # cannot do without — which is the one thing the deploy workflow cannot
+      # tell us, since it always builds with a project configured.
       - name: Build
         run: npm run build

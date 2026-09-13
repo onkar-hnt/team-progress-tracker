@@ -10,7 +10,6 @@ import { PasswordField } from '@components/ui/field/Field'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
-import { appConfig } from '@config/app.config'
 import { useAccessScope } from '@hooks/use-access-scope'
 import { useResetUserPassword } from '@hooks/use-password-reset'
 import { useRosterDevelopers, useRosterMentors } from '@hooks/use-work-tracker'
@@ -24,6 +23,7 @@ import {
 import { PASSWORD_MIN_LENGTH, buildPasswordSchema } from '@services/auth/password-policy'
 import type { PasswordFormValues } from '@services/auth/password-policy'
 import type { ResetPasswordResult } from '@services/provisioning/reset-password'
+import { isSupabaseConfigured } from '@services/supabase/index'
 import { toUserMessage } from '@services/errors/error-message'
 
 import './PasswordManagement.scss'
@@ -40,7 +40,7 @@ interface Candidate {
 }
 
 // Password reset requires Supabase Auth.
-const CAN_MANAGE_PASSWORDS = appConfig.dataSource === 'supabase'
+const CAN_MANAGE_PASSWORDS = isSupabaseConfigured()
 
 export function PasswordManagement() {
   const { user } = useAuth()

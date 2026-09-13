@@ -82,7 +82,7 @@ export function ChangeLogPage() {
   if (!isHistoryAvailable()) {
     return (
       <PagePlaceholder
-        description="Recording what changed needs the Supabase data source. A workbook has no way to catch a write, nobody to attribute it to, and can be edited without this application ever seeing it — so a log kept there would be quietly incomplete, which is worse than none."
+        description="Recording what changed needs a configured Supabase project: the log is written by database triggers, which is what lets every write be attributed to somebody. Until one is configured there is nothing to record."
         title="Change log"
       />
     )

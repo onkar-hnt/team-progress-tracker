@@ -118,7 +118,7 @@ export function RecycleBinPage() {
   if (!isRecycleBinAvailable()) {
     return (
       <PagePlaceholder
-        description="Keeping what has been deleted needs the Supabase data source. Under the workbook and the sample data a delete removes the row outright, so there is nothing for this screen to list — in a workbook, undo is Ctrl+Z in Excel."
+        description="Keeping what has been deleted needs a configured Supabase project: the bin is a database column, and restoring is an update to it. Until one is configured there is nothing for this screen to list."
         title="Recently deleted"
       />
     )

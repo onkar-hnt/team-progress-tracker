@@ -73,9 +73,9 @@ export function NotificationBell() {
     if (isOpen) panelRef.current?.focus()
   }, [isOpen])
 
-  // Nothing to show, and nothing that could ever arrive: the fixtures and the
-  // workbook have no triggers to write a notification. An inbox that can never
-  // fill is worse than no inbox.
+  // Nothing to show, and nothing that could ever arrive: notifications are
+  // written by database triggers. An inbox that can never fill is worse than
+  // no inbox.
   if (!areNotificationsAvailable()) return null
 
   return (

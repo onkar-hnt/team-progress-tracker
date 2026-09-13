@@ -5,15 +5,15 @@ import { bootstrapAdmin, bootstrapAdminUser, isBootstrapAdminEmail } from './boo
 
 const PASSWORD_SUFFIX = '@1234'
 
-export interface WorkbookIdentity {
+export interface RosterIdentity {
   user: AppUser
   expectedPassword: string
 }
 
-export async function resolveWorkbookIdentity(
+export async function resolveRosterIdentity(
   provider: DataProvider,
   email: string,
-): Promise<WorkbookIdentity | null> {
+): Promise<RosterIdentity | null> {
   const normalised = email.trim().toLowerCase()
   if (normalised === '') return null
 

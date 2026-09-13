@@ -1,6 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 
-import { appConfig } from '@config/app.config'
 import { NOTIFICATION_TYPES } from '@models/index'
 import type { AppNotification, NotificationType } from '@models/index'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
@@ -15,7 +14,7 @@ import {
 /** Supabase-only; rows come from triggers, not client INSERT. */
 
 export function areNotificationsAvailable(): boolean {
-  return appConfig.dataSource === 'supabase' && isSupabaseConfigured()
+  return isSupabaseConfigured()
 }
 
 /** Page size for notification list; unread count is fetched separately. */

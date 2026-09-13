@@ -3,12 +3,7 @@ import type { PropsWithChildren } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import type { AppUser, SignInCredentials } from '@models/user.model'
-import {
-  initialiseAdminWorkbook,
-  resetAdminWorkbookInitialisation,
-} from '@services/admin/admin-workbook-initialisation'
 import { getAuthProvider } from '@services/auth/index'
-import { isAdmin } from '@services/auth/permissions'
 
 import { AuthContext } from './auth-context'
 import type { AuthContextValue } from './auth-context'
@@ -47,19 +42,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     return authProvider.onSessionChange?.((nextUser) => {
       setUser(nextUser)
 
-      if (nextUser === null) {
-        queryClient.clear()
-        resetAdminWorkbookInitialisation()
-      }
+      if (nextUser === null) queryClient.clear()
     })
   }, [authProvider, queryClient])
-
-  /** Fire-and-forget admin workbook prep; do not block sign-in on Graph timeouts. */
-  useEffect(() => {
-    if (!isAdmin(user)) return
-
-    void initialiseAdminWorkbook()
-  }, [user])
 
   const signIn = useCallback(
     async (credentials?: SignInCredentials) => {
@@ -81,7 +66,6 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     setUser(null)
     // Drop cached data from the previous session.
     queryClient.clear()
-    resetAdminWorkbookInitialisation()
   }, [authProvider, queryClient])
 
   const value = useMemo<AuthContextValue>(

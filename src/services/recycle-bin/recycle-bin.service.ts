@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import { appConfig } from '@config/app.config'
 import type { AccessScope } from '@services/auth/index'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
@@ -8,7 +7,7 @@ import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/inde
 /** Supabase-only soft-delete bin; auth is enforced by RLS, not this module. */
 
 export function isRecycleBinAvailable(): boolean {
-  return appConfig.dataSource === 'supabase' && isSupabaseConfigured()
+  return isSupabaseConfigured()
 }
 
 /** Delete confirmation text depends on whether soft-delete is available. */

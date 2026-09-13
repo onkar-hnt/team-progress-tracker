@@ -27,7 +27,7 @@ export function ProfilePage() {
 
 const AUTH_MODE_LABELS: Readonly<Record<AuthMode, string>> = {
   entra: 'Microsoft work account',
-  local: 'Workbook password (offline fallback)',
+  local: 'Roster password (offline fallback)',
   supabase: 'Email and password, through Supabase Auth',
 }
 

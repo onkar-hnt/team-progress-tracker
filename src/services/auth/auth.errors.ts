@@ -23,7 +23,7 @@ export class InactiveAccountError extends AuthError {
 export class UnknownAccountError extends AuthError {
   constructor(email: string) {
     super(
-      `${email} is not set up in the team workbook. Ask an administrator to add you to the Employees sheet.`,
+      `${email} is not set up on the team. Ask an administrator to add you on the Employees screen.`,
     )
     this.name = 'UnknownAccountError'
   }

@@ -26,8 +26,9 @@ import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer, UserRole } from '@models/index'
 import { isAdmin } from '@services/auth/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
+import { isSupabaseConfigured } from '@services/supabase/index'
 import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
-import { appConfig } from '@config/app.config'
+
 import { AdminPageLayout } from '../components/AdminPageLayout'
 import { ProvisioningNoticeView } from '../components/ProvisioningNotice'
 import {
@@ -53,7 +54,7 @@ const ACCESS_ROLE_OPTIONS = USER_ROLES.map((role) => ({
 type EmployeeFormValues = z.infer<typeof employeeFormSchema>
 
 // Provisioning requires Supabase Auth.
-const CAN_PROVISION_LOGINS = appConfig.dataSource === 'supabase'
+const CAN_PROVISION_LOGINS = isSupabaseConfigured()
 
 function describeUnprovisionable(developer: Developer): string | null {
   if (!developer.active) {
@@ -361,7 +362,7 @@ export function EmployeesPage() {
   )
 }
 
-/** Blank optional fields are omitted so the workbook keeps empty cells. */
+/** Blank optional fields are omitted so the column stays null rather than empty. */
 function toRequest(values: EmployeeFormValues) {
   return {
     name: values.name,

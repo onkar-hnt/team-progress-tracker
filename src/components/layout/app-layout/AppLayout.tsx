@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 
-import { DataSourceNotice } from '@components/layout/data-source-notice/DataSourceNotice'
 import { Header } from '@components/layout/header/Header'
 import { Sidebar } from '@components/layout/sidebar/Sidebar'
 
@@ -64,8 +63,6 @@ export function AppLayout() {
       />
 
       <main className="app-layout__content" id="main-content" ref={contentRef} tabIndex={-1}>
-        <DataSourceNotice />
-
         {/* Keyed by path for enter animation and fresh screen state per route. */}
         <div className="app-layout__screen" key={pathname}>
           <Outlet />

@@ -1,14 +1,10 @@
-import {
-  BrowserAuthError,
-  InteractionRequiredAuthError,
-  PublicClientApplication,
-} from '@azure/msal-browser'
+import { BrowserAuthError, PublicClientApplication } from '@azure/msal-browser'
 import type { AccountInfo, Configuration } from '@azure/msal-browser'
 
 import { appConfig } from '@config/app.config'
 
 import { SignInFailedError } from '../auth.errors'
-import { GRAPH_SCOPES } from './entra-config'
+import { SIGN_IN_SCOPES } from './entra-config'
 
 function buildConfiguration(): Configuration {
   return {
@@ -60,7 +56,7 @@ export async function signInWithEntra(): Promise<EntraSignInResult> {
   const client = await getClient()
 
   try {
-    const result = await client.loginPopup({ scopes: GRAPH_SCOPES, prompt: 'select_account' })
+    const result = await client.loginPopup({ scopes: SIGN_IN_SCOPES, prompt: 'select_account' })
     client.setActiveAccount(result.account)
     return toSignInResult(result.account)
   } catch (error) {
@@ -87,27 +83,6 @@ export async function signOutFromEntra(): Promise<void> {
   const account = readActiveAccount(client)
 
   await client.clearCache(account === null ? undefined : { account })
-}
-
-export async function acquireGraphToken(): Promise<string> {
-  const client = await getClient()
-  const account = readActiveAccount(client)
-
-  if (account === null) {
-    throw new SignInFailedError('No Microsoft account is signed in.')
-  }
-
-  try {
-    const result = await client.acquireTokenSilent({ scopes: GRAPH_SCOPES, account })
-    return result.accessToken
-  } catch (error) {
-    if (error instanceof InteractionRequiredAuthError) {
-      const result = await client.acquireTokenPopup({ scopes: GRAPH_SCOPES, account })
-      return result.accessToken
-    }
-
-    throw new SignInFailedError('Could not obtain access to the workbook.', { cause: error })
-  }
 }
 
 function toSignInResult(account: AccountInfo): EntraSignInResult {

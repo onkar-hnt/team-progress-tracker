@@ -4,10 +4,10 @@ import type { DataProvider } from '@services/data-provider/data-provider.interfa
 import type { AuthProvider } from './auth-provider.interface'
 import { InvalidCredentialsError } from './auth.errors'
 import { forgetSignedInEmail, readSignedInEmail, rememberSignedInEmail } from './session-store'
-import { resolveWorkbookIdentity } from './workbook-identity'
+import { resolveRosterIdentity } from './roster-identity'
 
 export class LocalAuthProvider implements AuthProvider {
-  readonly name = 'workbook-password'
+  readonly name = 'roster-password'
   readonly isOffline = true
   readonly usesCredentials = true
 
@@ -20,10 +20,10 @@ export class LocalAuthProvider implements AuthProvider {
   async signIn(credentials?: SignInCredentials): Promise<AppUser> {
     if (credentials === undefined) throw new InvalidCredentialsError()
 
-    const identity = await resolveWorkbookIdentity(this.getProvider(), credentials.email)
+    const identity = await resolveRosterIdentity(this.getProvider(), credentials.email)
 
     // One error for both causes, so the response never reveals whether an
-    // address exists in the workbook.
+    // address is on the roster.
     if (identity === null || identity.expectedPassword !== credentials.password) {
       throw new InvalidCredentialsError()
     }
@@ -40,7 +40,7 @@ export class LocalAuthProvider implements AuthProvider {
     const email = readSignedInEmail()
     if (email === null) return null
 
-    const identity = await resolveWorkbookIdentity(this.getProvider(), email)
+    const identity = await resolveRosterIdentity(this.getProvider(), email)
     if (identity === null) {
       forgetSignedInEmail()
       return null

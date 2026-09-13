@@ -32,7 +32,7 @@ export function AdminPageLayout({
         title={title}
       >
         <p className="admin-page__note">
-          Everything on this screen is stored in the team workbook and is read from it everywhere
+          Everything on this screen is stored in the team database and is read from it everywhere
           else in the application.
         </p>
       </Panel>

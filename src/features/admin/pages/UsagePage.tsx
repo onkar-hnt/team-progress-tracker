@@ -250,7 +250,7 @@ export function UsagePage() {
   if (!isUsageAvailable()) {
     return (
       <PagePlaceholder
-        description="Usage is a property of a Supabase project — its database size, its files, its plan — and this deployment reads its data from somewhere else. A workbook's limit is the disk it sits on."
+        description="Usage is a property of a Supabase project — its database size, its files, its plan — and this deployment has no project configured to report on."
         title="Usage"
       />
     )

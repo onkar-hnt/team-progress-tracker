@@ -26,9 +26,9 @@ jobs:
 
       # Fails before the build rather than after the deploy.
       #
-      # Without these two the build still succeeds: the app falls back to the
-      # in-memory workbook, and the result looks like a working site that
-      # quietly saves nothing. That is a far worse outcome than a red run, so
+      # Without these two the build still succeeds and the result looks like a
+      # working site that cannot read or save a thing, because there is no
+      # project behind it. That is a far worse outcome than a red run, so
       # a missing value is made to stop the pipeline here, where the message
       # says which one and where to put it.
       - name: Check deployment configuration
@@ -69,7 +69,6 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_DATA_SOURCE: supabase
           VITE_AUTH_MODE: supabase
         run: npm run build
 

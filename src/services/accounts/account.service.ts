@@ -1,7 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { z } from 'zod'
 
-import { appConfig } from '@config/app.config'
 import { USER_ROLES } from '@models/user.model'
 import type { UserRole } from '@models/user.model'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
@@ -10,7 +9,7 @@ import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/inde
 
 /** Whether this deployment has logins to administer at all. */
 export function areAccountsAvailable(): boolean {
-  return appConfig.dataSource === 'supabase' && isSupabaseConfigured()
+  return isSupabaseConfigured()
 }
 
 /** One login, as the Accounts screen shows it. */

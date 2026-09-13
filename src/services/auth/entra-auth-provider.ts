@@ -4,7 +4,7 @@ import type { DataProvider } from '@services/data-provider/data-provider.interfa
 import type { AuthProvider } from './auth-provider.interface'
 import { UnknownAccountError } from './auth.errors'
 import { forgetSignedInEmail, rememberSignedInEmail } from './session-store'
-import { resolveWorkbookIdentity } from './workbook-identity'
+import { resolveRosterIdentity } from './roster-identity'
 
 const loadMsal = () => import('./entra/msal-client')
 
@@ -46,7 +46,7 @@ export class EntraAuthProvider implements AuthProvider {
   }
 
   private async resolveOrReject(email: string): Promise<AppUser> {
-    const identity = await resolveWorkbookIdentity(this.getProvider(), email)
+    const identity = await resolveRosterIdentity(this.getProvider(), email)
     if (identity === null) throw new UnknownAccountError(email)
 
     rememberSignedInEmail(identity.user.email)

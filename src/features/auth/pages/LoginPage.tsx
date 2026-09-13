@@ -95,7 +95,7 @@ export function LoginPage() {
             </Button>
 
             <p className="login__hint">
-              A sign-in window will open. Your access is based on your entry in the team workbook.
+              A sign-in window will open. Your access is based on your entry on the team roster.
             </p>
           </div>
         )}
@@ -105,7 +105,7 @@ export function LoginPage() {
         <footer className="login__footer">
           {usesCredentials && isOffline && bootstrapAdmin.isUsingDefaultPassword ? (
             <>
-              Everyone else signs in with the details in the team workbook. For the very first
+              Everyone else signs in with their roster details. For the very first
               sign-in, before anyone has been added, use <code>{bootstrapAdmin.email}</code> with
               the built-in administrator password.
             </>
