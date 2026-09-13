@@ -6,9 +6,12 @@
 /// that only got wider when the sidebar collapsed. The fields are held to a
 /// sensible width by the form's own column count instead, which is the thing
 /// that was actually wanted.
+/// No `align-items: start`, which this had while the page was as tall as its content
+/// and so had no effect anyway. Now that the stack fills the window it would have one:
+/// it would hold the card to the height of the form and put the bare background back
+/// underneath, which is the thing being fixed.
 .daily-update-page {
   @include page-stack;
-  align-items: start;
 
   &__panel {
     padding: $space-6;

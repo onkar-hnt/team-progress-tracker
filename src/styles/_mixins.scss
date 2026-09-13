@@ -78,8 +78,23 @@
 /// right of the screen on a table-heavy page. `minmax(0, 1fr)` holds the column
 /// to the space available and leaves the table to scroll inside its own panel,
 /// which is what `.data-table__scroll` is for.
+///
+/// `flex: 1` is what makes a screen reach the bottom of the window: the shell's
+/// content area is a column, and this takes the rest of it. Every screen
+/// used to be exactly as tall as its content, so a short one sat in the top half with
+/// a band of bare background under it — which reads as a page that failed to finish
+/// loading rather than as one that is simply short.
+///
+/// The rows stay `auto`, and a grid hands leftover height to its auto rows, so the
+/// sections share whatever the window has spare and the last one ends where the window
+/// does. Where there is more content than window there is nothing spare to hand out,
+/// nothing changes, and the area scrolls as it always did — `flex-basis: auto` with the
+/// default `min-height: auto` is what keeps a long page from being squeezed into the
+/// window instead.
 @mixin page-stack {
     @include grid($columns: minmax(0, 1fr), $gap: $space-6);
+
+    flex: 1 1 auto;
 }
 
 @mixin size($width, $height) {

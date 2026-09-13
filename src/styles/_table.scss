@@ -36,6 +36,14 @@
     top: 0;
     z-index: $z-sticky;
     border-bottom-color: $color-neutral-border;
+
+    /// The same rule again, painted inside the cell. A collapsed border belongs to the
+    /// table's own border grid rather than to the cell, and a browser scrolling rows
+    /// under a stuck header commonly leaves it behind — so the line under the header
+    /// vanished exactly when it was doing the most work, with rows appearing to slide
+    /// out of it. An inset shadow is drawn by the cell and travels with it.
+    box-shadow: inset 0 -1px 0 $color-neutral-border;
+
     white-space: nowrap;
     background: $color-surface-subtle;
   }
@@ -88,8 +96,39 @@
     color: $color-brand;
   }
 
+  /// The window every table is read through.
+  ///
+  /// Ten rows and then it scrolls, in both directions. Before this the height was
+  /// whatever the data happened to be: a hundred entries made a hundred-row table, and
+  /// the page it sat on grew with it until the filters, the totals and the search box
+  /// above were all a long way above the window — so the one control that would have
+  /// made the table shorter was the one thing scrolled off the screen.
+  ///
+  /// Counted in rows rather than set in pixels, and derived rather than guessed, so it
+  /// stays ten rows if the cell padding or the font ever changes:
+  ///
+  ///   row    = line-height of $font-size-sm + $space-3 top and bottom + 1px rule
+  ///   header = the same, in the smaller overline face
+  ///
+  /// Ten rows of one line each, that is. A row whose cell wraps — a change with three
+  /// fields in it, a long blocker — is taller, so such a table shows fewer than ten and
+  /// scrolls sooner. That is the right way round: the cap is really "about a screenful",
+  /// and a fixed count of tall rows would be the thing that grew without limit.
+  ///
+  /// No minimum. A table of two rows is two rows tall, which is the honest size for it;
+  /// a floor would only put empty space inside the panel to make short lists look like
+  /// long ones.
+  ///
+  /// The header stays put while the body moves under it — `thead th` above is already
+  /// `position: sticky`, which was there for the horizontal case and is what makes the
+  /// vertical one legible rather than a list of unlabelled values.
   &__scroll {
-    overflow-x: auto;
+    --data-table-row: calc(#{$font-size-sm} * #{$line-height-base} + #{$space-3} * 2 + 1px);
+    --data-table-header: calc(#{$font-size-xs} * #{$line-height-base} + #{$space-3} * 2 + 1px);
+
+    max-height: calc(var(--data-table-header) + var(--data-table-row) * 10);
+    overflow: auto;
+    overscroll-behavior: contain;
   }
 }
 

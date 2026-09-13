@@ -1,11 +1,26 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
+/// Feedback, newest first, about a screenful at a time.
+///
+/// Capped at the height of a ten-row table, like the entry lists, so the panels on a
+/// screen that mixes the two do not disagree about how tall a list of records is. A
+/// comment can run to several lines, so the number of them that fits varies — which is
+/// why this is a height and not a count.
+///
+/// The page's `ShowMore` sits outside the list and stays visible under it, so reaching
+/// the twenty-sixth comment is one control rather than a scroll followed by a hunt.
 .comment-timeline {
   @include grid($gap: $space-4);
   margin: 0;
-  padding: 0;
+
+  /// Room for the focus ring on the buttons inside a card now that the box clips.
+  padding: 2px;
+
   list-style: none;
+  max-height: 31rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 
   &__item {
     padding: $space-4;

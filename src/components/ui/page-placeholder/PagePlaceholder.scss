@@ -1,12 +1,15 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// Fills the area it is given and centres the card in it, both ways. The shell's
-/// content area is a grid track of a known height, so `100%` here is the screen
-/// the placeholder is standing in for.
+/// Fills the area it is given and centres the card in it, both ways.
+///
+/// `flex: 1` because the content area is a column now and this is one of its items;
+/// `min-height: 100%` stays for the case where it is not — the waiting screens drop
+/// this straight into the page, outside the shell.
 .page-placeholder {
   @include flex($justify: center);
 
+  flex: 1 1 auto;
   min-height: 100%;
 
   /// Centred text, unlike every panel on a working screen.

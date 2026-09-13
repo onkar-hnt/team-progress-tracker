@@ -1,11 +1,30 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
+/// A list of work entries, about a screenful of it at a time.
+///
+/// The same cap the tables have and for the same reason: a developer with three months
+/// of history is a list that never ends, and a page that grows with its data puts the
+/// filters that would shorten it out of reach. 31rem is the height of a ten-row table,
+/// which is what makes a list panel and a table panel beside each other the same size.
+///
+/// A card is taller than a table row, so this is six or seven entries rather than ten.
+/// Counting entries was never the point — a screenful is.
+///
+/// `ShowMore` is a sibling of this list rather than part of it, so it stays put under
+/// the scrolling box instead of being something to scroll down and find.
 .entry-list {
   @include grid($gap: $space-3);
   margin: 0;
-  padding: 0;
+
+  /// Room for a focus ring. The cards sit flush against a box that now clips, and
+  /// without this the outline on a link in the first card was shaved down its left side.
+  padding: 2px;
+
   list-style: none;
+  max-height: 31rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 
   &__item {
     @include grid($gap: $space-3);

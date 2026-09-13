@@ -33,6 +33,15 @@
     height: 21rem;
     overflow-y: auto;
     overscroll-behavior: contain;
+
+    /// The list inside caps itself at a screenful elsewhere, and here that would be a
+    /// scrolling box inside a scrolling box — where a flick either moves the wrong one
+    /// or stops at an inner end that looks like the end of the list. This panel is
+    /// shorter than that cap anyway, so it is the one that should do the scrolling.
+    .entry-list {
+      max-height: none;
+      overflow-y: visible;
+    }
   }
 
   &__missing {

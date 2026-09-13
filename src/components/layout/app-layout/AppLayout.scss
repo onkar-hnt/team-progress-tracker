@@ -29,7 +29,18 @@
   /// `minmax(0, 1fr)` above is what allows this to scroll rather than stretch
   /// the grid: without it a wide table would expand the track and hand the
   /// scrollbar back to the page.
+  /// A column, so the routed screen can be told to take whatever height is left.
+  /// Screens are short more often than they are tall — the daily update form, a log
+  /// with nothing in it yet — and as a plain block container this left them sitting
+  /// in the top half with a band of bare background underneath.
+  ///
+  /// A column rather than a percentage height on the screen itself, because the
+  /// notice above it is sometimes there and sometimes not: `flex: 1` means "the rest
+  /// of it" either way, where `100%` would overshoot by the height of the notice and
+  /// produce a scrollbar for a page that fits.
   &__content {
+    @include flex(column, $align: null);
+
     grid-area: content;
     padding: $space-8;
     overflow-y: auto;
