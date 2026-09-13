@@ -11,7 +11,7 @@ import type {
 } from '@utils/work-summary.utils'
 
 import { ApexChart } from './ApexChart'
-import { CHART_COLORS, STATUS_CHART_COLORS, seriesColor } from './chart-colors'
+import { CHART_COLORS, STATUS_CHART_COLORS, labelInkOn, seriesColor } from './chart-colors'
 import { CHART_HEIGHT, useChartBase, withChartBase } from './chart-theme'
 import { formatCount, formatHours, formatPercent } from './chart-utils'
 
@@ -54,6 +54,31 @@ type ChartEvents = NonNullable<NonNullable<ApexOptions['chart']>['events']>
 /// behind it is; `$color-white` cannot be read from here, and a slice separator is the one
 /// colour where the drawing has to match the surface exactly rather than approximately.
 const SLICE_SEPARATOR = '#ffffff'
+
+/**
+ * The percentages printed on a donut, each in the ink that reads on the slice under it.
+ *
+ * Takes the slice colours the chart is already drawing with, so the two cannot disagree: a
+ * colour added to a donut brings its own label ink with it rather than needing a second list
+ * kept in the same order. See `labelInkOn`.
+ *
+ * A share of a whole is the one case where a printed number beats a tooltip, but only where
+ * there is room for it: under about one slice in twenty the label lands outside its own wedge
+ * and points at a neighbour.
+ */
+function sliceLabels(sliceColors: readonly string[]): ApexOptions['dataLabels'] {
+  return {
+    enabled: true,
+    formatter: formatPercent,
+
+    /// Apex's shadow is there to rescue white text on a colour it cannot read on, which is a
+    /// problem `labelInkOn` has already solved — and a shadow under legible type reads as a
+    /// mistake rather than as emphasis.
+    dropShadow: { enabled: false },
+
+    style: { colors: sliceColors.map(labelInkOn) },
+  }
+}
 
 interface WeeklyTrendChartProps {
   trend: readonly DailyTrendPoint[]
@@ -149,18 +174,16 @@ export function StatusDistributionChart({
     { key: 'blocked', value: statuses.blocked },
   ] as const satisfies readonly { key: TaskStatus; value: number }[]
 
+  const sliceColors = slices.map((slice) => STATUS_CHART_COLORS[slice.key])
+
   const options = withChartBase(base, {
     chart: {
       type: 'donut',
       events: onSelectStatus === undefined ? {} : selectByIndex(slices, onSelectStatus),
     },
-    colors: slices.map((slice) => STATUS_CHART_COLORS[slice.key]),
+    colors: sliceColors,
     labels: slices.map((slice) => TASK_STATUS_LABELS[slice.key]),
-
-    /// A share of a whole is the one case where a printed number beats a tooltip, but only
-    /// where there is room for it: under about one slice in twenty the label lands outside its
-    /// own wedge and points at a neighbour.
-    dataLabels: { enabled: true, formatter: formatPercent, dropShadow: { enabled: false } },
+    dataLabels: sliceLabels(sliceColors),
 
     plotOptions: {
       pie: {
@@ -237,9 +260,9 @@ export function DeveloperProgressChart({
         onSelectDeveloper === undefined
           ? {}
           : selectByIndex(
-              summaries.map((row) => ({ key: row.developer.id })),
-              onSelectDeveloper,
-            ),
+            summaries.map((row) => ({ key: row.developer.id })),
+            onSelectDeveloper,
+          ),
     },
     colors: [
       STATUS_CHART_COLORS.completed,
@@ -305,6 +328,7 @@ export function ProjectDistributionChart({
 
   const slices = summaries.filter((summary) => summary.statuses.total > 0)
   const total = slices.reduce((sum, slice) => sum + slice.statuses.total, 0)
+  const sliceColors = slices.map((_, index) => seriesColor(index))
 
   const options = withChartBase(base, {
     chart: {
@@ -313,13 +337,13 @@ export function ProjectDistributionChart({
         onSelectProject === undefined
           ? {}
           : selectByIndex(
-              slices.map((slice) => ({ key: slice.project.id })),
-              onSelectProject,
-            ),
+            slices.map((slice) => ({ key: slice.project.id })),
+            onSelectProject,
+          ),
     },
-    colors: slices.map((_, index) => seriesColor(index)),
+    colors: sliceColors,
     labels: slices.map((slice) => slice.project.name),
-    dataLabels: { enabled: true, formatter: formatPercent, dropShadow: { enabled: false } },
+    dataLabels: sliceLabels(sliceColors),
 
     plotOptions: {
       pie: {

@@ -105,3 +105,65 @@ const SERIES_CHART_COLORS = [
 export function seriesColor(index: number): string {
   return SERIES_CHART_COLORS[index % SERIES_CHART_COLORS.length] ?? CHART_COLORS.primary
 }
+
+/**
+ * The two inks a number printed on top of a slice is written in.
+ *
+ * `$color-white` and `$color-text` from the interface palette, repeated here because this is the
+ * one place a token has to reach a value ApexCharts writes into an SVG attribute — see
+ * `labelInkOn` for why it cannot be a custom property.
+ */
+const LABEL_INK = {
+  light: '#ffffff',
+  dark: '#172033',
+} as const
+
+/**
+ * The slice luminance at which the two inks above read equally well on it.
+ *
+ * Solved rather than chosen: contrast is `(lighter + 0.05) / (darker + 0.05)`, so white and the
+ * dark ink are level where `(L + 0.05)² = 1.05 × (0.0145 + 0.05)`, with 0.0145 the dark ink's own
+ * luminance. That puts the crossover at 0.21.
+ */
+const INK_CROSSOVER = 0.21
+
+/**
+ * Which of the two inks is legible on a given slice.
+ *
+ * Every printed percentage used to be white, set in the stylesheet, on the reasoning that a slice
+ * is saturated and white is what reads on saturated colour. That is true of the blues and the
+ * violet and false of everything else in the palette: white on the green is 2.4:1 and on the
+ * slate 2.3:1, which is not a contrast ratio so much as a rumour of one. The 29% on a donut of
+ * two projects was legible or not depending on which colour its slice happened to draw.
+ *
+ * So the ink is chosen per slice from the slice's own lightness, at the luminance where the two
+ * inks are equally readable on it. That crossover is 0.179 for pure black against white, and 0.21
+ * for the ink actually used here, which is dark navy rather than black and so slightly the weaker
+ * of the two — a threshold copied from the black-and-white case would send the blues to the dark
+ * ink at 3.6:1 when white would have given them 4.5:1.
+ *
+ * At 0.21 every colour in the palette pairs at 4.2:1 or better: white on the blues, the indigo and
+ * the violet, dark on the green, the cyan, the slate, the red and the amber.
+ *
+ * ## Why this is not done in the stylesheet
+ *
+ * A rule cannot know which slice it is painting. ApexCharts writes the colour as the SVG `fill`
+ * *attribute* per label — `dataLabels.style.colors[i]` — and an attribute takes a colour, not a
+ * `var()`. Any stylesheet answer is therefore one colour for every slice, which is the bug.
+ * Being the shade of a data colour, this belongs beside them in any case.
+ *
+ * The luminance formula is the sRGB one: linearise each channel, then weight them by how much
+ * the eye takes from each. A `#rgb` shorthand is not accepted, because nothing in this module
+ * writes one.
+ */
+export function labelInkOn(sliceColor: string): string {
+  const channels = [1, 3, 5].map((offset) => Number.parseInt(sliceColor.slice(offset, offset + 2), 16) / 255)
+
+  const [red, green, blue] = channels.map((channel) =>
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  ) as [number, number, number]
+
+  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+  return luminance > INK_CROSSOVER ? LABEL_INK.dark : LABEL_INK.light
+}

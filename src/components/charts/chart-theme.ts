@@ -92,12 +92,23 @@ export function useChartBase(): ApexOptions {
         padding: { bottom: 0, left: 8, right: 8, top: 0 },
       },
 
+      /**
+       * Position, geometry and spacing only.
+       *
+       * Colour, size, weight and face are left out on purpose. Apex writes those as inline styles
+       * on each label, so a value here would be a second copy of a design token that the
+       * stylesheet has to overrule anyway — `ApexChart.scss` sets all four from the tokens, and
+       * naming them here would only make the losing side of that argument look authoritative.
+       *
+       * `itemMargin` is the exception among the spacing values, because it is also written inline
+       * and so cannot be moved into the stylesheet. It is the one thing separating the items, and
+       * the stylesheet says so where it declines to add a gap of its own.
+       */
       legend: {
         position: 'bottom',
         horizontalAlign: 'center',
-        fontWeight: 500,
         markers: { shape: 'circle', size: 6 },
-        itemMargin: { horizontal: 10, vertical: 2 },
+        itemMargin: { horizontal: 8, vertical: 2 },
       },
 
       /**
@@ -131,7 +142,7 @@ export function useChartBase(): ApexOptions {
           breakpoint: TABLET_BREAKPOINT,
           options: {
             chart: { height: 220 },
-            legend: { itemMargin: { horizontal: 6, vertical: 1 } },
+            legend: { itemMargin: { horizontal: 5, vertical: 1 } },
             grid: { padding: { left: 4, right: 4 } },
           },
         },

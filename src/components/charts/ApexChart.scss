@@ -20,9 +20,20 @@
 /// dependency on its markup, and the honest thing to say about it is that the class names are
 /// public API — documented, and what every Apex theme in existence targets.
 ///
-/// Load order does the work that `!important` would otherwise be doing: `ApexChart.tsx`
-/// imports Apex's sheet first and this one second, so at equal specificity these win. The two
-/// exceptions are marked where they appear, and both are overriding an inline style.
+/// ## How these rules win, which is not only by load order
+///
+/// `ApexChart.tsx` imports Apex's stylesheet first and this one second, so at equal specificity
+/// these win — for everything Apex ships in that sheet.
+///
+/// The legend is the exception, and it is worth knowing about before editing the rules for it.
+/// Apex's legend *feature* carries its own copy of the CSS as a string and injects it into the
+/// document head when the module loads, which puts it after this file however this file is
+/// imported. So an equal-specificity rule for a legend loses. The rules below therefore reach the
+/// legend through `.apexcharts-canvas`, which outranks the single class Apex writes with.
+///
+/// The legend text is a step beyond even that: Apex writes its colour, size, weight and face as
+/// *inline* styles, taken from `legend.fontSize` and friends. Those four are the only
+/// `!important` declarations in this file, each marked where it appears.
 
 .apex-chart {
   &__canvas {
@@ -34,6 +45,7 @@
     min-width: 0;
 
     &--interactive {
+
       .apexcharts-bar-area,
       .apexcharts-pie-area,
       .apexcharts-marker {
@@ -54,6 +66,7 @@
 /// ---------------------------------------------------------------------------
 
 .apexcharts-canvas {
+
   .apexcharts-text,
   .apexcharts-xaxis-label,
   .apexcharts-yaxis-label {
@@ -79,13 +92,22 @@
     stroke: $color-brand-muted;
   }
 
-  /// Printed on the donuts only, where the number is the point. White on a saturated slice,
-  /// with a shadow removed: Apex draws these with a `text-shadow` that is meant to rescue
-  /// unreadable contrast, and looks like a mistake when the contrast is already right.
+  /// Printed on the donuts only, where the number is the point.
+  ///
+  /// Size and weight here; colour is not, and this is the one place in the file where a colour
+  /// deliberately stays in TypeScript. It was `fill: $color-white`, which is a single answer to a
+  /// question that has a different answer per slice: white reads on the blues and disappears into
+  /// the green and the slate at barely 2.4:1. Apex writes the fill per label as an SVG attribute,
+  /// which cannot take a `var()`, so the choice is made from the slice's own lightness where the
+  /// slice colours live — see `labelInkOn` in `chart-colors.ts`.
+  ///
+  /// A rule here would override that, per slice, with one colour. So there isn't one.
   .apexcharts-datalabel {
-    fill: $color-white;
     font-size: $font-size-xs;
     font-weight: $font-weight-semibold;
+
+    /// Apex adds a `text-shadow` to rescue white type from a slice it cannot be read on. The ink
+    /// is chosen to be readable instead, and a shadow under legible type reads as a mistake.
     text-shadow: none;
   }
 
@@ -112,8 +134,15 @@
 /// Legend
 /// ---------------------------------------------------------------------------
 
-.apexcharts-legend {
-  gap: $space-1 0;
+/// Scoped through `.apexcharts-canvas` rather than written against `.apexcharts-legend` alone,
+/// because Apex injects its own legend CSS at runtime and would otherwise win on load order —
+/// see the note at the top of this file.
+.apexcharts-canvas .apexcharts-legend {
+  /// Apex pads the strip by 10px on top of the margin it puts on each item. The items carry
+  /// their own spacing — `legend.itemMargin`, which it writes inline and no rule here can
+  /// undercut — so this only ever moved the whole strip off centre.
+  ///
+  /// Deliberately no `gap`: it would stack on those inline margins and space the items twice.
   padding: 0;
 
   .apexcharts-legend-series {
@@ -122,12 +151,34 @@
     gap: $space-2;
   }
 
+  /// Apex marks the swatch off from its label by a single pixel. The gap above spaces them.
+  .apexcharts-legend-marker {
+    margin-right: 0;
+  }
+
+  /// ### The label, and why its margin is stated
+  ///
+  /// Apex gives this `padding-left: 15px` with `margin-left: -15px`, which leaves the text
+  /// exactly where it would be without either and stretches its clickable box back over the
+  /// swatch. Zeroing only the padding — which is what this rule used to do — kept the negative
+  /// margin and pulled every label 15px left, onto the swatch beside it. That is the collision
+  /// visible on every legend in the application: a dot printed over the C of "Completed".
+  ///
+  /// Both are zeroed now and the flex gap above does the spacing, which is the same answer the
+  /// rest of the application uses for a marker beside a word. What is given up is the enlarged
+  /// hit area, and it is given up cheaply: the swatch is a click target in its own right, and
+  /// the label still has its own.
   .apexcharts-legend-text {
-    color: $color-text-muted !important; /* Apex writes this one inline. */
-    font-family: inherit !important; /* And this. */
+    color: $color-text-muted !important;
+    /* Inline, from `legend.labels.colors`. */
+    font-family: inherit !important;
+    /* Inline, from `chart.fontFamily`. */
     font-size: $font-size-xs !important;
-    font-weight: $font-weight-medium;
-    padding: 0 !important; /* Its own padding assumes a marker this one does not use. */
+    /* Inline, from `legend.fontSize`. */
+    font-weight: $font-weight-medium !important;
+    /* Inline, from `legend.fontWeight`. */
+    margin: 0;
+    padding: 0;
   }
 }
 
