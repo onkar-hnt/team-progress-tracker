@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import type { PropsWithChildren } from 'react'
 
-import { Icon } from '@components/ui/icons/Icon'
+import { Button } from '@components/ui/button/Button'
 
 import './Modal.scss'
 
@@ -78,9 +78,13 @@ export function Modal({
           <h2 className="modal__title" id={titleId}>
             {title}
           </h2>
-          <button aria-label="Close" className="modal__close" onClick={onClose} type="button">
-            <Icon name="close" size={16} />
-          </button>
+          {/* The shared button, not a bespoke one. This was a hand-styled
+              2rem square with its own hover and focus rules, which is what
+              `isIconOnly` and `secondary` already are — the same control, drawn
+              twice, and only one of the two copies got the press animation. */}
+          <Button icon="close" isIconOnly onClick={onClose} variant="secondary">
+            Close
+          </Button>
         </header>
         <div className="modal__body">{isOpen ? children : null}</div>
       </div>

@@ -69,36 +69,11 @@
     width: min(28rem, calc(100vw - #{$space-8}));
   }
 
-  /// Holds the close glyph, which used to be a literal capital X in the markup
-  /// and is now the `close` icon — a cross drawn to the same weight as every
-  /// other icon in the application, rather than a letter that happened to look
-  /// like one.
-  &__close {
-    @include flex-center;
-    @include square(2rem);
-
-    flex-shrink: 0;
-    padding: 0;
-    border: 1px solid $color-border;
-    border-radius: $radius-md;
-    color: $color-text-muted;
-    background: $color-white;
-    cursor: pointer;
-    transition:
-      color $transition-fast,
-      border-color $transition-fast,
-      background-color $transition-fast;
-
-    &:hover {
-      border-color: $color-neutral-border;
-      color: $color-text;
-      background: $color-surface-subtle;
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-    }
-  }
+  /// No rule for the close control. It is `Button` with `isIconOnly`, which is
+  /// where the square, the border, the hover and the focus ring already live —
+  /// this block held a copy of all four, and the copy was 2rem where the button is
+  /// 2.25rem, so the one control the dialog shares with every screen was the one
+  /// that did not match them.
 
   /// The only part that scrolls. `min-height: 0` is what allows it to shrink
   /// below its content inside the flex column; without it a long form pushes

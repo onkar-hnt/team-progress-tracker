@@ -206,7 +206,9 @@ Kept honest rather than aspirational:
   the right trade for a team and the wrong one for a company: the fix is `range()` on the reads,
   which means the query interface the three data providers share has to grow a limit.
 - **No audit trail.** Who changed a task's status yesterday, and what it was before, is not
-  recorded anywhere. Deleting is the exception: work entries, tasks and feedback are set aside
-  rather than destroyed, and **Recently deleted** stamps who did it and when.
+  recorded anywhere. Deleting is the exception: every delete — a work entry, a task, feedback, an
+  employee, a mentor or a project — sets the record aside rather than destroying it, and **Recently
+  deleted** stamps who did it and when. An employee, mentor or project can still only be deleted
+  while no live work references it, which is a rule about deleting rather than about the bin.
 - **No attachments, and no general comments** — feedback is attached to a task, and that is the
   only conversation the application holds.

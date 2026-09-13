@@ -11,9 +11,13 @@
     font-size: $font-size-sm;
   }
 
-  /// Which of the three tables a row came from, as a quiet label rather than a
+  /// Which of the six tables a row came from, as a quiet label rather than a
   /// status badge: it is a category, not a state, and it should not compete with
   /// the two buttons at the end of the row.
+  ///
+  /// Only the kinds that benefit from a colour have one. Tinting all six would turn
+  /// the column into a rainbow and stop the tint meaning anything; these three are
+  /// the ones somebody scans for.
   &__kind {
     display: inline-block;
     padding: $space-1 $space-2;
@@ -33,6 +37,21 @@
       color: $color-brand;
       background: $color-brand-light;
     }
+
+    &--employee,
+    &--mentor,
+    &--project {
+      color: $color-text;
+      background: $color-surface-subtle;
+    }
+  }
+
+  /// The project under the developer, or the client under the name: a second line
+  /// that identifies the row without being the row.
+  &__secondary {
+    display: block;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
   }
 
   /// The one column of free text. Capped so a comment cannot stretch the table

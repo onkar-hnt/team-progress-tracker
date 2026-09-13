@@ -11,6 +11,7 @@ import {
   toDeveloperUpdate,
 } from './developer.mappers'
 import { assertProjectExists } from './references'
+import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
 /**
@@ -28,6 +29,17 @@ import { mapPostgrestError, parseRows } from './supabase-errors'
  * Two independent limits, neither relying on the other.
  */
 
+/**
+ * Every employee the caller may see, including the ones in the bin.
+ *
+ * The deleted rows are here on purpose, and this is the one read where that is
+ * true. `WorkTrackerService` drops them from the roster and from every picker, and
+ * keeps them in the lookup it resolves names from — so an entry logged by somebody
+ * whose record was deleted this morning still reads as their work rather than as
+ * `Unknown (4f6c…)`. Filtering them out here would take that away from every screen
+ * at once, and `deletedAt` on the record is what lets one caller make the
+ * distinction the other does not need.
+ */
 export async function selectDevelopers(client: AppSupabaseClient): Promise<Developer[]> {
   const { data, error } = await client.from('developers').select(DEVELOPER_COLUMNS).order('code')
 
@@ -91,6 +103,10 @@ export async function updateDeveloperRow(
     .from('developers')
     .update(payload)
     .eq('id', id)
+    // A record in the bin is not editable until it is restored. Matching no row
+    // reports it as missing below, which is what a stale screen still offering an
+    // Edit button on a deleted employee should be told.
+    .is('deleted_at', null)
     .select(DEVELOPER_COLUMNS)
     .maybeSingle()
 
@@ -104,30 +120,32 @@ export async function updateDeveloperRow(
 }
 
 /**
- * Removes an employee, if nothing depends on them.
+ * Puts an employee in the bin, if nothing depends on them.
  *
- * A deliberate change of behaviour from the Excel provider, which deleted the
- * person's mentor-mapping rows along with them. Every foreign key into this
- * table is `RESTRICT` — tasks, daily updates, feedback and mentor assignments
- * alike — so the delete is refused instead, and reported as `RecordInUseError`.
+ * Both halves of that sentence are older than this function. The refusal is the
+ * `RESTRICT` foreign keys — tasks, daily updates, feedback and mentor assignments
+ * alike — which is the point of the constraint rather than an obstacle to it: the
+ * records that would be swept away are the work history this application exists to
+ * keep, and the mapping saying who mentored whom is part of it. Deactivating the
+ * employee keeps all of it and stops their access; deleting is for a row created by
+ * mistake, and now that row can be recovered.
  *
- * That is the point of the constraint rather than an obstacle to it. The
- * records that would have been swept away are the work history this
- * application exists to keep, and the mapping saying who mentored whom is
- * part of it. Deactivating the employee keeps all of it and stops their
- * access; deleting is for a row created by mistake.
+ * A soft delete is an UPDATE, which a `RESTRICT` does not see, so the refusal is
+ * restated by `guard_roster_deletion` and reaches here as the same
+ * `RecordInUseError` it always did.
  */
 export async function deleteDeveloperRow(client: AppSupabaseClient, id: string): Promise<void> {
-  const { data, error } = await client.from('developers').delete().eq('id', id).select('id')
-
-  if (error !== null) {
-    throw mapPostgrestError(error, { table: 'Developers', operation: 'delete', recordId: id })
-  }
-
-  if ((data ?? []).length === 0) throw new RecordNotFoundError('Developers', id)
+  return softDeleteRow(client, 'developers', id)
 }
 
-/** Reads one employee, or reports that there is none to read. */
+/**
+ * Reads one employee, or reports that there is none to read.
+ *
+ * Deleted rows are not read here, unlike in `selectDevelopers`. The two are asked
+ * different questions: this one stands behind an edit, and a record in the bin is
+ * not editable until it is restored, while the list is what display names are
+ * resolved from and must still know who wrote last month's entries.
+ */
 export async function requireDeveloper(
   client: AppSupabaseClient,
   id: string,
@@ -136,6 +154,7 @@ export async function requireDeveloper(
     .from('developers')
     .select(DEVELOPER_COLUMNS)
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error !== null) {

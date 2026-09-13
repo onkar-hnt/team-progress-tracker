@@ -7,12 +7,19 @@ import { mapPostgrestError } from './supabase-errors'
 /**
  * Deleting, by setting a column instead of removing a row.
  *
- * The three tables that can lose something irreplaceable — a daily update, a
- * task, a piece of feedback — mark it deleted rather than destroying it, and the
- * Recently deleted screen hands it back. `20260913200000_soft_delete.sql` carries
- * the reasoning, including why this needs no authorization of its own: for all
- * three, the UPDATE policy admits exactly the people the DELETE policy admits, so
+ * Six tables mark a row deleted rather than destroying it, and the Recently
+ * deleted screen hands it back: the three that hold written work — a daily update,
+ * a task, a piece of feedback — and the three the roster is made of.
+ * `20260913200000_soft_delete.sql` and `20260913220000_soft_delete_roster.sql`
+ * carry the reasoning, including why this needs no authorization of its own: for
+ * all six, the UPDATE policy admits exactly the people the DELETE policy admits, so
  * this is the same act as before with a different statement.
+ *
+ * What a roster row does keep is the refusal. An employee with logged work could
+ * not be deleted before, because the foreign keys said so, and a `RESTRICT` is not
+ * consulted by an UPDATE — so a trigger says it instead, and reports it as the same
+ * error. Deleting is still for a record entered by mistake; deactivating is still
+ * how somebody with a history leaves.
  *
  * Only the Supabase provider does this. The Excel and fixture providers still
  * delete outright, which is honest rather than a gap: a spreadsheet has no
@@ -23,9 +30,12 @@ import { mapPostgrestError } from './supabase-errors'
 /** The tables that keep what they delete, and the name each reports errors under. */
 const SOFT_DELETABLE = {
   daily_updates: 'DailyWork',
+  developers: 'Developers',
   // `Comments` rather than `Feedback`: the taxonomy names it after the domain
   // model, `MentorComment`, and the table after the sheet it came from.
   feedback: 'Comments',
+  mentors: 'Mentors',
+  projects: 'Projects',
   tasks: 'Tasks',
 } as const satisfies Record<string, DataSourceTable>
 

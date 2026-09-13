@@ -31,6 +31,7 @@ import {
 import { useTableSort } from '@hooks/use-table-sort'
 import { PROJECT_STATUSES } from '@models/project.model'
 import type { Project, ProjectStatus } from '@models/index'
+import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import { formatShortDate } from '@utils/date.utils'
 import { compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
@@ -122,7 +123,10 @@ export function ProjectsPage() {
   const requestDelete = async (project: Project) => {
     const isDeleted = await confirm({
       title: 'Delete this project?',
-      message: `“${project.name}” will be removed from the roster. Developer assignments for it will be cleared. This cannot be undone.`,
+      // The team list is only cleared when the project is destroyed for good —
+      // `project_developers` cascades on a real delete and is untouched by this one —
+      // so the sentence says what happens now and leaves the rest to the bin.
+      message: `“${project.name}” will be removed from the roster, and stop being offered when work is logged. Its team and its history are kept. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete project',
       isDestructive: true,
       action: () => deleteProject.mutateAsync(project.id),

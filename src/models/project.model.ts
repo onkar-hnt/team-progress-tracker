@@ -47,8 +47,12 @@ export interface Project {
    * hand.
    */
   assignedDeveloperIds: readonly string[]
+
+  /** When this record was deleted. See the same field on `Developer`. */
+  deletedAt?: string
 }
 
-export type CreateProjectRequest = Omit<Project, 'id'>
+/** `deletedAt` is excluded: deleting is its own operation, not a field to write. */
+export type CreateProjectRequest = Omit<Project, 'deletedAt' | 'id'>
 
 export type UpdateProjectRequest = Partial<CreateProjectRequest>

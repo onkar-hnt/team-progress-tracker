@@ -66,8 +66,19 @@ export interface Developer {
 
   /** ISO date the record was added. */
   createdDate?: string
+
+  /**
+   * When this record was deleted, for the few readers that see deleted records.
+   *
+   * Present only under the Supabase data source, where deleting sets a column
+   * instead of removing the row. Every list a screen shows is already free of
+   * these — `WorkTrackerService` drops them — so a caller finding this set is
+   * either resolving a name for historical work or is the Recently deleted screen.
+   */
+  deletedAt?: string
 }
 
-export type CreateDeveloperRequest = Omit<Developer, 'id'>
+/** `deletedAt` is excluded: deleting is its own operation, not a field to write. */
+export type CreateDeveloperRequest = Omit<Developer, 'deletedAt' | 'id'>
 
 export type UpdateDeveloperRequest = Partial<CreateDeveloperRequest>

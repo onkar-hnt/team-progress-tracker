@@ -11,6 +11,11 @@ import { mapPostgrestError } from './supabase-errors'
  * database refuses it, and — while the migration is part-way through — an id
  * can arrive from the fixtures, where it is `PRJ001` rather than a uuid. A
  * malformed-input failure is a poor way to say "no such project".
+ *
+ * Each check also requires the row not to be in the bin, and that part the foreign
+ * keys genuinely would not catch: a soft-deleted row is still a row, so the key
+ * accepts it and the result is new work attached to something waiting to be
+ * destroyed. "No such project" is the right answer for a project nobody can see.
  */
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
@@ -37,6 +42,7 @@ export async function assertProjectExists(
     .from('projects')
     .select('id')
     .eq('id', projectId)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error !== null) throw mapPostgrestError(error, { table: 'Projects', operation: 'read' })
@@ -51,7 +57,12 @@ export async function assertMentorExists(
 ): Promise<void> {
   if (!isSupabaseUuid(mentorId)) throw new ReferentialIntegrityError('mentorId', mentorId)
 
-  const { data, error } = await client.from('mentors').select('id').eq('id', mentorId).maybeSingle()
+  const { data, error } = await client
+    .from('mentors')
+    .select('id')
+    .eq('id', mentorId)
+    .is('deleted_at', null)
+    .maybeSingle()
 
   if (error !== null) throw mapPostgrestError(error, { table: 'Mentors', operation: 'read' })
 
@@ -113,7 +124,11 @@ export async function assertDevelopersExist(
     }
   }
 
-  const { data, error } = await client.from('developers').select('id').in('id', [...developerIds])
+  const { data, error } = await client
+    .from('developers')
+    .select('id')
+    .in('id', [...developerIds])
+    .is('deleted_at', null)
 
   if (error !== null) throw mapPostgrestError(error, { table: 'Developers', operation: 'read' })
 

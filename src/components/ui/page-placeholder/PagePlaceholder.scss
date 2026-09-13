@@ -1,26 +1,53 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
+/// Fills the area it is given and centres the card in it, both ways. The shell's
+/// content area is a grid track of a known height, so `100%` here is the screen
+/// the placeholder is standing in for.
 .page-placeholder {
-  @include card;
+  @include flex($justify: center);
 
-  max-width: 50rem;
-  padding: $space-8;
+  min-height: 100%;
 
-  h1 {
-    margin: 0 0 $space-3;
-    color: $color-text;
-    font-size: $font-size-2xl;
-    font-weight: $font-weight-semibold;
-    line-height: $line-height-tight;
+  /// Centred text, unlike every panel on a working screen.
+  ///
+  /// This is one short statement with at most one control under it, and centring
+  /// it is what stops a 50rem card looking like an empty table. It is also the
+  /// same shape as the waiting screen and the login card, which are the other two
+  /// times the application is one card on an empty page.
+  &__card {
+    @include card;
+
+    max-width: 34rem;
+    padding: $space-8;
+    text-align: center;
+
+    h1 {
+      margin: 0 0 $space-3;
+      color: $color-text;
+      font-size: $font-size-2xl;
+      font-weight: $font-weight-semibold;
+      line-height: $line-height-tight;
+    }
+
+    p {
+      margin: 0;
+      color: $color-text-muted;
+    }
   }
 
-  p {
-    margin: 0;
-    color: $color-text-muted;
-  }
-
+  /// Centred with the text above it, and given room to clear it: a button flush
+  /// against a paragraph reads as part of the sentence.
   &__action {
-    margin-top: $space-5;
+    @include flex-center($gap: $space-3);
+
+    margin-top: $space-6;
+    flex-wrap: wrap;
+  }
+
+  @include respond-to-mobile {
+    &__card {
+      padding: $space-6;
+    }
   }
 }

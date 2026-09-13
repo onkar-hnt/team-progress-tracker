@@ -10,6 +10,7 @@ import {
   toMentorInsert,
   toMentorUpdate,
 } from './mentor.mappers'
+import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
 /**
@@ -26,6 +27,13 @@ import { mapPostgrestError, parseRows } from './supabase-errors'
  * here would only duplicate one of those and eventually disagree with it.
  */
 
+/**
+ * Every mentor the caller may see, including the ones in the bin.
+ *
+ * Deliberate, and the same arrangement as `selectDevelopers`: the roster lists drop
+ * deleted rows, the name lookup does not, so feedback written by a mentor whose
+ * record was deleted is still attributed to them.
+ */
 export async function selectMentors(client: AppSupabaseClient): Promise<Mentor[]> {
   const { data, error } = await client.from('mentors').select(MENTOR_COLUMNS).order('code')
 
@@ -75,6 +83,9 @@ export async function updateMentorRow(
     .from('mentors')
     .update(payload)
     .eq('id', id)
+    // A record in the bin is not editable until it is restored, and matching no row
+    // is reported as missing below — see the same line in the employee repository.
+    .is('deleted_at', null)
     .select(MENTOR_COLUMNS)
     .maybeSingle()
 
@@ -91,31 +102,29 @@ export async function updateMentorRow(
 }
 
 /**
- * Removes a mentor, with the database deciding whether that is allowed.
+ * Puts a mentor in the bin, with the database deciding whether that is allowed.
  *
- * The Excel provider had to count comments and projects itself before
- * deleting, because a spreadsheet has no foreign keys. Here the keys say it:
- * `mentor_assignments` cascades, `projects.mentor_id` and `tasks.mentor_id`
- * fall to null, and `feedback.mentor_id` restricts — so a mentor who has
- * given feedback cannot be deleted, and the resulting violation is reported
- * as `RecordInUseError`, exactly as before.
+ * The Excel provider had to count comments and projects itself before deleting,
+ * because a spreadsheet has no foreign keys. Here the keys say it, and
+ * `guard_roster_deletion` says the one that a soft delete would otherwise slip
+ * past: a mentor who has given feedback cannot be removed, and the refusal is
+ * reported as `RecordInUseError`, exactly as before.
+ *
+ * Their assignments and the tasks naming them are untouched while they sit in the
+ * bin — those cascade and fall to null on a real delete, which is what destroying
+ * them from the bin still does.
  */
 export async function deleteMentorRow(client: AppSupabaseClient, id: string): Promise<void> {
-  const { data, error } = await client.from('mentors').delete().eq('id', id).select('id')
-
-  if (error !== null) {
-    throw mapPostgrestError(error, { table: 'Mentors', operation: 'delete', recordId: id })
-  }
-
-  if ((data ?? []).length === 0) throw new RecordNotFoundError('Mentors', id)
+  return softDeleteRow(client, 'mentors', id)
 }
 
-/** Reads one mentor, or reports that there is none to read. */
+/** Reads one mentor that is not in the bin, or reports that there is none to read. */
 export async function requireMentor(client: AppSupabaseClient, id: string): Promise<Mentor> {
   const { data, error } = await client
     .from('mentors')
     .select(MENTOR_COLUMNS)
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error !== null) {

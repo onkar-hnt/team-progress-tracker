@@ -178,7 +178,10 @@ export class WorkTrackerService {
   /** Employees the signed-in person may see. */
   async getDevelopers(scope: AccessScope): Promise<Developer[]> {
     const developers = await this.developerLookup.get()
-    return developers.filter((developer) => canViewDeveloper(scope, developer.id))
+
+    return developers.filter(
+      (developer) => onTheRoster(developer) && canViewDeveloper(scope, developer.id),
+    )
   }
 
   async getActiveDevelopers(scope: AccessScope): Promise<Developer[]> {
@@ -201,17 +204,23 @@ export class WorkTrackerService {
    */
   async getRosterDevelopers(scope: AccessScope): Promise<Developer[]> {
     if (!scope.readsRoster) return this.getDevelopers(scope)
-    return this.developerLookup.get()
+
+    const developers = await this.developerLookup.get()
+    return developers.filter(onTheRoster)
   }
 
   async getRosterMentors(scope: AccessScope): Promise<Mentor[]> {
     if (!scope.readsRoster) return this.getMentors(scope)
-    return this.mentorLookup.get()
+
+    const mentors = await this.mentorLookup.get()
+    return mentors.filter(onTheRoster)
   }
 
   async getRosterProjects(scope: AccessScope): Promise<Project[]> {
     if (!scope.readsRoster) return this.getProjects(scope)
-    return this.projectLookup.get()
+
+    const projects = await this.projectLookup.get()
+    return projects.filter(onTheRoster)
   }
 
   async getActiveRosterProjects(scope: AccessScope): Promise<Project[]> {
@@ -219,12 +228,18 @@ export class WorkTrackerService {
     return projects.filter((project) => project.active)
   }
 
-  /** `null` when the id does not exist *or* is out of scope, which are the same answer to the caller. */
+  /**
+   * `null` when the id does not exist *or* is out of scope, which are the same
+   * answer to the caller — and now also when the record is in the bin, for the same
+   * reason: a deleted employee has no details screen until somebody restores them.
+   */
   async getDeveloperById(scope: AccessScope, id: string): Promise<Developer | null> {
     if (!canViewDeveloper(scope, id)) return null
 
     const developers = await this.developerLookup.get()
-    return developers.find((developer) => developer.id === id) ?? null
+    const developer = developers.find((candidate) => candidate.id === id)
+
+    return developer !== undefined && onTheRoster(developer) ? developer : null
   }
 
   /**
@@ -235,7 +250,7 @@ export class WorkTrackerService {
    * else's mentor.
    */
   async getMentors(scope: AccessScope): Promise<Mentor[]> {
-    const mentors = await this.mentorLookup.get()
+    const mentors = (await this.mentorLookup.get()).filter(onTheRoster)
     if (scope.visibleDeveloperIds === null) return mentors
 
     if (scope.role === 'mentor') {
@@ -297,7 +312,7 @@ export class WorkTrackerService {
   }
 
   private async readInvolvedProjects(scope: AccessScope): Promise<Project[]> {
-    const projects = await this.projectLookup.get()
+    const projects = (await this.projectLookup.get()).filter(onTheRoster)
     if (scope.visibleDeveloperIds === null) return projects
 
     const visibleIds = scope.visibleDeveloperIds
@@ -615,10 +630,33 @@ function narrowToDevelopers<TRecord extends { developerId: string }>(
 }
 
 /**
+ * Whether a roster record is still on the roster.
+ *
+ * The one place the two halves of soft-deleted roster data are told apart, and it
+ * is a filter on the *lists* only. Under Supabase, deleting an employee, a mentor
+ * or a project sets `deletedAt` and leaves the row where it is, so the read behind
+ * the three lookups returns it — which is what `resolveName` below needs, and why
+ * it does not call this. A task written for somebody whose record was deleted this
+ * morning still says who it was for.
+ *
+ * Every list that is offered to somebody — the roster tables, the pickers, a
+ * developer's own details screen — goes through this instead. Nothing under the
+ * other data sources is affected: they delete the row, so `deletedAt` is never set
+ * and this is always true.
+ */
+function onTheRoster(record: { deletedAt?: string }): boolean {
+  return record.deletedAt === undefined
+}
+
+/**
  * Resolves a display name, tolerating ids with no matching lookup row.
  *
  * A missing lookup is surfaced in the UI rather than hidden, because a blank
  * name would conceal the fact that the workbook has an orphaned row.
+ *
+ * Reads the unfiltered lookup on purpose — see `onTheRoster`. A deleted record is
+ * still the answer to "whose work was this", and `Unknown (4f6c…)` against last
+ * month's entries would be a worse answer than a name that is no longer current.
  */
 function resolveName(
   records: readonly { id: string; name: string }[],

@@ -25,6 +25,7 @@ import { useTableSort } from '@hooks/use-table-sort'
 import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer, UserRole } from '@models/index'
 import { isAdmin } from '@services/auth/index'
+import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
 import { appConfig } from '@config/app.config'
 import { AdminPageLayout } from '../components/AdminPageLayout'
@@ -178,10 +179,11 @@ export function EmployeesPage() {
       title: 'Delete this employee?',
       // Every table that names a developer — tasks, daily updates, feedback,
       // project and mentor assignments — points at this row with `on delete
-      // restrict`, so the database refuses to remove anybody with a history.
-      // Saying so up front is better than offering a delete that will be
-      // refused, and better than implying the history goes with them.
-      message: `“${developer.name}” will be removed from the employee list. This is only possible while they have no tasks, updates or feedback recorded, and it cannot be undone.`,
+      // restrict`, and `guard_roster_deletion` says the same for a soft delete,
+      // so the database refuses to remove anybody with a history. Saying so up
+      // front is better than offering a delete that will be refused, and better
+      // than implying the history goes with them.
+      message: `“${developer.name}” will be removed from the employee list. This is only possible while they have no tasks, updates or feedback recorded. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete employee',
       isDestructive: true,
       action: () => deleteDeveloper.mutateAsync(developer.id),

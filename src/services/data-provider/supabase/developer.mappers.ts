@@ -18,7 +18,7 @@ import { USER_ROLES } from '@models/user.model'
  */
 
 export const DEVELOPER_COLUMNS =
-  'id, code, name, employee_id, role, location, active, email, access_role, primary_project_id, created_date, profile_id' as const
+  'id, code, name, employee_id, role, location, active, email, access_role, primary_project_id, created_date, profile_id, deleted_at' as const
 
 export const developerRowSchema = z.object({
   id: z.string().min(1),
@@ -36,6 +36,11 @@ export const developerRowSchema = z.object({
   // Read so the admin screen can tell who already has a login. Never written
   // from here: the provisioning function owns it.
   profile_id: z.string().nullable(),
+
+  // Set by a delete and cleared by a restore, both server-side. Read so that the
+  // rows in the bin can be told from the rest of the list — this read returns
+  // both, deliberately, so historical names still resolve.
+  deleted_at: z.string().nullable(),
 })
 
 export type DeveloperRow = z.infer<typeof developerRowSchema>
@@ -68,6 +73,7 @@ export function toDeveloper(row: DeveloperRow): Developer {
     ...optional('primaryProjectId', row.primary_project_id),
     ...optional('createdDate', row.created_date),
     ...optional('profileId', row.profile_id),
+    ...optional('deletedAt', row.deleted_at),
   }
 }
 

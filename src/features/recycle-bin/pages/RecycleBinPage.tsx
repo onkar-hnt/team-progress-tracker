@@ -28,8 +28,9 @@ import './RecycleBinPage.scss'
  *
  * Everybody has one, and it holds what they may see: a developer's own deleted
  * entries, the ones belonging to a mentor's developers, everything for an
- * administrator. That is not decided here — the three select policies decide it,
- * and this screen simply lists what came back. See `recycle-bin.service.ts`.
+ * administrator. That is not decided here — the select policies on the six tables
+ * decide it, and this screen simply lists what came back. See
+ * `recycle-bin.service.ts`.
  *
  * Two actions, deliberately unequal. Restore is one click, because it undoes
  * something and cannot lose anything. Destroy asks first, in the same words the
@@ -65,9 +66,26 @@ export function RecycleBinPage() {
 
     return {
       developer: (id: string) => developers.get(id) ?? id,
-      project: (id: string | undefined) => (id === undefined ? '—' : projects.get(id) ?? id),
+      project: (id: string) => projects.get(id) ?? id,
     }
   }, [developersQuery.data, projectsQuery.data])
+
+  /**
+   * The second and third things worth knowing about a record, after what it is.
+   *
+   * One column for both halves of the bin, because they answer the same question in
+   * different vocabularies: a deleted work entry belongs to a person and a project,
+   * while a deleted project *is* the thing and what identifies it is its client. Two
+   * columns would leave one of them empty on every row.
+   */
+  const detailsOf = (record: DeletedRecord): { primary: string; secondary?: string } => {
+    if (record.developerId === undefined) return { primary: record.detail ?? '—' }
+
+    return {
+      primary: nameOf.developer(record.developerId),
+      ...(record.projectId === undefined ? {} : { secondary: nameOf.project(record.projectId) }),
+    }
+  }
 
   const compare = (left: DeletedRecord, right: DeletedRecord, key: SortKey): number => {
     switch (key) {
@@ -76,7 +94,7 @@ export function RecycleBinPage() {
       case 'title':
         return compareText(left.title, right.title)
       case 'who':
-        return compareText(nameOf.developer(left.developerId), nameOf.developer(right.developerId))
+        return compareText(detailsOf(left).primary, detailsOf(right).primary)
       case 'date':
         return compareText(left.date, right.date)
       case 'deleted':
@@ -93,12 +111,10 @@ export function RecycleBinPage() {
   )
 
   const visible = sortRows(
-    records.filter((record) =>
-      matchesSearch(
-        [record.title, nameOf.developer(record.developerId), nameOf.project(record.projectId)],
-        search,
-      ),
-    ),
+    records.filter((record) => {
+      const details = detailsOf(record)
+      return matchesSearch([record.title, details.primary, details.secondary], search)
+    }),
     sort,
     compare,
     (left, right) => compareText(right.deletedAt, left.deletedAt),
@@ -143,15 +159,16 @@ export function RecycleBinPage() {
   return (
     <div className="recycle-bin">
       <Panel
-        description="Deleted work entries, tasks and feedback, and how to put them back."
+        description="Everything you have deleted, and how to put it back."
         isPageHeading
         title="Recently deleted"
       >
         <p className="recycle-bin__note">
-          Deleting a work entry, task or comment no longer destroys it: it stops appearing anywhere
-          and waits here instead. Nothing leaves this list on a schedule, so what is here stays until
-          it is restored or destroyed. You see what you could delete in the first place, which for a
-          developer is their own work entries.
+          Deleting no longer destroys: a work entry, task or comment — and an employee, mentor or
+          project — stops appearing anywhere and waits here instead, with everything it had.
+          Nothing leaves this list on a schedule, so what is here stays until it is restored or
+          destroyed. You see what you could delete in the first place, which for a developer is
+          their own work entries.
         </p>
       </Panel>
 
@@ -165,13 +182,13 @@ export function RecycleBinPage() {
           <Skeleton label="Looking in the bin…" rows={4} />
         ) : records.length === 0 ? (
           <p className="recycle-bin__empty">
-            Your bin is empty. Anything you delete from a work entry, task or feedback list appears
-            here instead of being destroyed.
+            Your bin is empty. Anything you delete — a work entry, a task, a comment, or a record
+            from the roster — appears here instead of being destroyed.
           </p>
         ) : (
           <>
             <TableSearch
-              hint="Title, developer or project"
+              hint="Name, title, developer or project"
               matchCount={visible.length}
               noun="records"
               onChange={setSearch}
@@ -190,8 +207,7 @@ export function RecycleBinPage() {
                     <tr>
                       <SortableHeader columnKey="kind" label="What" onSort={toggle} sort={sort} />
                       <SortableHeader columnKey="title" label="Record" onSort={toggle} sort={sort} />
-                      <SortableHeader columnKey="who" label="Developer" onSort={toggle} sort={sort} />
-                      <th scope="col">Project</th>
+                      <SortableHeader columnKey="who" label="Details" onSort={toggle} sort={sort} />
                       <SortableHeader columnKey="date" label="Dated" onSort={toggle} sort={sort} />
                       <SortableHeader
                         columnKey="deleted"
@@ -204,47 +220,59 @@ export function RecycleBinPage() {
                   </thead>
 
                   <tbody>
-                    {visible.map((record) => (
-                      <tr key={`${record.kind}-${record.id}`}>
-                        <td>
-                          <span className={`recycle-bin__kind recycle-bin__kind--${record.kind}`}>
-                            {DELETED_RECORD_LABELS[record.kind]}
-                          </span>
-                        </td>
-                        <td className="recycle-bin__title">{record.title}</td>
-                        <td className="data-table__nowrap">{nameOf.developer(record.developerId)}</td>
-                        <td>{nameOf.project(record.projectId)}</td>
-                        <td className="data-table__nowrap">{formatShortDate(record.date)}</td>
-                        {/* Relative, with the exact moment on hover: "2 hours ago"
-                            is what answers "was this just now or last month", and
-                            the timestamp is what somebody quotes. */}
-                        <td className="data-table__nowrap">
-                          <span title={formatTimestamp(record.deletedAt)}>
-                            {formatRelativeTime(record.deletedAt)}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="row-actions">
-                            <Button
-                              disabled={isBusy}
-                              onClick={() => void putBack(record)}
-                              size="small"
-                              variant="secondary"
+                    {visible.map((record) => {
+                      const details = detailsOf(record)
+
+                      return (
+                        <tr key={`${record.kind}-${record.id}`}>
+                          <td>
+                            <span
+                              className={`recycle-bin__kind recycle-bin__kind--${record.kind}`}
                             >
-                              Restore
-                            </Button>
-                            <Button
-                              disabled={isBusy}
-                              onClick={() => void askThenDestroy(record)}
-                              size="small"
-                              variant="danger"
-                            >
-                              Destroy
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              {DELETED_RECORD_LABELS[record.kind]}
+                            </span>
+                          </td>
+                          <td className="recycle-bin__title">{record.title}</td>
+                          <td>
+                            <span className="data-table__nowrap">{details.primary}</span>
+                            {details.secondary === undefined ? null : (
+                              <span className="recycle-bin__secondary">{details.secondary}</span>
+                            )}
+                          </td>
+                          <td className="data-table__nowrap">
+                            {record.date === undefined ? '—' : formatShortDate(record.date)}
+                          </td>
+                          {/* Relative, with the exact moment on hover: "2 hours ago"
+                              is what answers "was this just now or last month", and
+                              the timestamp is what somebody quotes. */}
+                          <td className="data-table__nowrap">
+                            <span title={formatTimestamp(record.deletedAt)}>
+                              {formatRelativeTime(record.deletedAt)}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="row-actions">
+                              <Button
+                                disabled={isBusy}
+                                onClick={() => void putBack(record)}
+                                size="small"
+                                variant="secondary"
+                              >
+                                Restore
+                              </Button>
+                              <Button
+                                disabled={isBusy}
+                                onClick={() => void askThenDestroy(record)}
+                                size="small"
+                                variant="danger"
+                              >
+                                Destroy
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

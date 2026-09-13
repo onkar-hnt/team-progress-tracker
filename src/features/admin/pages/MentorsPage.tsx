@@ -27,6 +27,7 @@ import {
 import { useTableSort } from '@hooks/use-table-sort'
 import type { Mentor } from '@models/index'
 import { canManageMentorAssignments } from '@services/auth/index'
+import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
 import { appConfig } from '@config/app.config'
 
@@ -169,11 +170,14 @@ export function MentorsPage() {
   const requestDelete = async (mentor: Mentor) => {
     const isDeleted = await confirm({
       title: 'Delete this mentor?',
-      // Their assignments go with them — `mentor_assignments.mentor_id`
-      // cascades — and any developer or task naming them is set back to
-      // unassigned. Feedback they have written is the exception that restricts
-      // the delete, which the error message covers if it happens.
-      message: `“${mentor.name}” will be removed, and the developers assigned to them will be left without a mentor. This cannot be undone.`,
+      // Feedback they have written is the exception that restricts the delete,
+      // which the error message covers if it happens.
+      //
+      // Their assignments are not mentioned as lost, because under a soft delete
+      // they are not: the rows stay while the mentor sits in the bin and come back
+      // with them, and only destroying applies the cascade. What is true either way
+      // is that the developers stop having a mentor, which is what this says.
+      message: `“${mentor.name}” will be removed, and the developers assigned to them will be left without a mentor. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete mentor',
       isDestructive: true,
       action: () => deleteMentor.mutateAsync(mentor.id),

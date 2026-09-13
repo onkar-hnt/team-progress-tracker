@@ -2,23 +2,21 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@components/ui/button/Button'
+import { SortableHeader } from '@components/ui/data-table/SortableHeader'
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
+import { useTableSort } from '@hooks/use-table-sort'
 import type { AppUser } from '@models/user.model'
 import { canDeleteEntry, canEditEntry } from '@services/auth/index'
 import type { DailyWorkEntryView } from '@services/work-tracker.service'
 import { formatShortDate } from '@utils/date.utils'
+import { sortRows } from '@utils/table.utils'
 import { comparePriority, compareStatus } from '@utils/task.utils'
 
 import './ActivityTable.scss'
 
 type SortKey = 'date' | 'developer' | 'hours' | 'priority' | 'progress' | 'project' | 'status'
-
-interface SortState {
-  key: SortKey
-  direction: 'asc' | 'desc'
-}
 
 const COLUMNS: readonly { key: SortKey; label: string; isNumeric?: boolean }[] = [
   { key: 'date', label: 'Date' },
@@ -58,13 +56,6 @@ interface ActivityTableProps {
 }
 
 /**
- * Sortable table of work entries.
- *
- * A semantic table with button-based headers is used instead of a data-grid
- * dependency: for one team the row count never justifies the bundle cost, and
- * this keeps sorting, focus order and screen-reader output predictable.
- */
-/**
  * How many rows are drawn before the rest are offered.
  *
  * The whole point of the filters above this table is that the answer is usually
@@ -79,21 +70,35 @@ interface ActivityTableProps {
  */
 const ROWS_PER_PAGE = 100
 
+/**
+ * Sortable table of work entries.
+ *
+ * A semantic table with button headings rather than a data-grid dependency: for one
+ * team the row count never justifies the bundle, and this keeps sorting, focus
+ * order and screen-reader output predictable. The headings are `SortableHeader`,
+ * which started here and now serves five other tables — this one kept its own copy
+ * for a while after that, with its own `aria-sort` ternary to get wrong.
+ */
 export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: ActivityTableProps) {
-  const [sort, setSort] = useState<SortState>({ key: 'date', direction: 'desc' })
-  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  // Dates, counts and hours read newest-and-largest first; names and statuses read
+  // alphabetically. The hook holds that rule for every table that sorts.
+  const { sort, toggle } = useTableSort<SortKey>({ key: 'date', direction: 'desc' }, [
+    'date',
+    'hours',
+    'progress',
+  ])
+
   const [extraPages, setExtraPages] = useState(0)
 
-  const sorted = useMemo(() => {
-    const factor = sort.direction === 'asc' ? 1 : -1
-
-    return [...entries].sort((left, right) => {
-      const primary = compareEntries(left, right, sort.key) * factor
-      // Ties fall back to the work date so the order never jitters between
-      // renders for rows that are otherwise equal.
-      return primary !== 0 ? primary : right.date.localeCompare(left.date)
-    })
-  }, [entries, sort])
+  const sorted = useMemo(
+    () =>
+      // Ties fall back to the work date so the order never jitters between renders
+      // for rows that are otherwise equal.
+      sortRows(entries, sort, compareEntries, (left, right) =>
+        right.date.localeCompare(left.date),
+      ),
+    [entries, sort],
+  )
 
   if (entries.length === 0) {
     return (
@@ -102,14 +107,6 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
         title="No entries match these filters"
         variant="filtered"
       />
-    )
-  }
-
-  const toggleSort = (key: SortKey) => {
-    setSort((current) =>
-      current.key === key
-        ? { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
-        : { key, direction: key === 'date' ? 'desc' : 'asc' },
     )
   }
 
@@ -122,31 +119,14 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
         <thead>
           <tr>
             {COLUMNS.map((column) => (
-              <th
-                aria-sort={
-                  sort.key === column.key
-                    ? sort.direction === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : 'none'
-                }
-                className={column.isNumeric === true ? 'data-table__numeric' : undefined}
+              <SortableHeader
+                columnKey={column.key}
+                isNumeric={column.isNumeric ?? false}
                 key={column.key}
-                scope="col"
-              >
-                <button
-                  className="data-table__sort"
-                  onClick={() => toggleSort(column.key)}
-                  type="button"
-                >
-                  {column.label}
-                  {sort.key === column.key ? (
-                    <span aria-hidden="true" className="data-table__sort-indicator">
-                      {sort.direction === 'asc' ? '▲' : '▼'}
-                    </span>
-                  ) : null}
-                </button>
-              </th>
+                label={column.label}
+                onSort={toggle}
+                sort={sort}
+              />
             ))}
             <th scope="col">Task</th>
             <th scope="col">
@@ -157,7 +137,6 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
 
         <tbody>
           {sorted.slice(0, shown).map((entry) => {
-            const isConfirming = confirmingId === entry.id
             const isDeleting = deletingId === entry.id
 
             return (
@@ -218,40 +197,21 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
                       </Button>
                     ) : null}
 
+                    {/* One Delete, which opens the confirmation dialog every other
+                        delete in the application opens. This row used to hold its
+                        own two-click confirm — press Delete, press Confirm — from
+                        before there was a dialog, and once the screen grew one the
+                        two stacked up: three presses to remove one entry, the
+                        second of them a button that looked like the deed itself. */}
                     {canDeleteEntry(user, entry) ? (
-                      // Deleting takes two clicks rather than a modal: the
-                      // confirmation is right where the pointer already is, and
-                      // there is no undo behind it.
-                      isConfirming ? (
-                        <>
-                          <Button
-                            disabled={isDeleting}
-                            onClick={() => {
-                              setConfirmingId(null)
-                              onDelete(entry)
-                            }}
-                            size="small"
-                            variant="danger"
-                          >
-                            {isDeleting ? 'Deleting…' : 'Confirm'}
-                          </Button>
-                          <Button
-                            onClick={() => setConfirmingId(null)}
-                            size="small"
-                            variant="secondary"
-                          >
-                            Cancel
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          onClick={() => setConfirmingId(entry.id)}
-                          size="small"
-                          variant="danger"
-                        >
-                          Delete
-                        </Button>
-                      )
+                      <Button
+                        isLoading={isDeleting}
+                        onClick={() => onDelete(entry)}
+                        size="small"
+                        variant="danger"
+                      >
+                        {isDeleting ? 'Deleting…' : 'Delete'}
+                      </Button>
                     ) : null}
                   </div>
                 </td>

@@ -17,7 +17,7 @@ import { PROJECT_STATUSES } from '@models/project.model'
  */
 
 export const PROJECT_COLUMNS =
-  'id, code, name, client, description, status, active, start_date, end_date, mentor_id' as const
+  'id, code, name, client, description, status, active, start_date, end_date, mentor_id, deleted_at' as const
 
 /** With the membership rows embedded, which is how a project is read. */
 export const PROJECT_WITH_MEMBERS = `${PROJECT_COLUMNS}, project_developers(developer_id)` as const
@@ -33,6 +33,11 @@ export const projectRowSchema = z.object({
   start_date: z.string().nullable(),
   end_date: z.string().nullable(),
   mentor_id: z.string().nullable(),
+
+  // Non-null for a project in the bin, which this read returns so that the work
+  // logged against it still resolves the project's name.
+  deleted_at: z.string().nullable(),
+
   // Absent when the caller selected the project without its members.
   project_developers: z.array(z.object({ developer_id: z.string() })).optional(),
 })
@@ -64,6 +69,7 @@ export function toProject(row: ProjectRow): Project {
     ...optional('startDate', row.start_date),
     ...optional('endDate', row.end_date),
     ...optional('mentorId', row.mentor_id),
+    ...optional('deletedAt', row.deleted_at),
   }
 }
 

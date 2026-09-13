@@ -11,16 +11,17 @@ import {
   restoreRecord,
 } from '@services/recycle-bin/recycle-bin.service'
 import type { DeletedRecord, DeletedRecordKind } from '@services/recycle-bin/recycle-bin.service'
+import { getWorkTrackerService } from '@services/work-tracker.service'
 
 import { queryKeys } from './query-keys'
 
 /**
  * Reading and emptying the bin.
  *
- * Unscoped, unlike the work-tracker hooks. The three select policies decide what
- * comes back — a developer's own deleted entries, a mentor's developers', an
- * administrator's everything — so there is nothing here for an access scope to
- * narrow and no id for a caller to pass.
+ * Unscoped, unlike the work-tracker hooks. The select policies on the six tables
+ * decide what comes back — a developer's own deleted entries, a mentor's
+ * developers', an administrator's everything — so there is nothing here for an
+ * access scope to narrow and no id for a caller to pass.
  */
 
 export function useDeletedRecords(): UseQueryResult<DeletedRecord[]> {
@@ -46,11 +47,17 @@ export interface BinAction {
  * and the bin has no way to know which of those are mounted. The root key covers
  * all of it in one call, which for a screen used this rarely is the right trade
  * against enumerating five families and forgetting the sixth.
+ *
+ * The lookup memos are dropped first, for the same reason every other write drops
+ * them: the roster reads behind them return deleted rows and the service filters on
+ * `deletedAt`, so a refetch through a memo taken before the restore would rebuild
+ * the same list without the record that has just come back.
  */
 function useRefreshEverything(): () => Promise<void> {
   const queryClient = useQueryClient()
 
   return async () => {
+    getWorkTrackerService().forgetLookups()
     await queryClient.invalidateQueries({ queryKey: queryKeys.root })
   }
 }

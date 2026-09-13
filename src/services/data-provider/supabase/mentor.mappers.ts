@@ -18,7 +18,8 @@ import type {
 
 /** The columns read for a mentor. Listed rather than `*`, so a schema change
  * that drops one fails here instead of arriving as a silent `undefined`. */
-export const MENTOR_COLUMNS = 'id, code, name, email, active, created_date, profile_id' as const
+export const MENTOR_COLUMNS =
+  'id, code, name, email, active, created_date, profile_id, deleted_at' as const
 
 /**
  * `date` columns arrive as `YYYY-MM-DD` strings and `boolean` as real
@@ -34,6 +35,10 @@ export const mentorRowSchema = z.object({
   active: z.boolean(),
   created_date: z.string().nullable(),
   profile_id: z.string().nullable(),
+
+  // Non-null for a mentor in the bin. This read returns those too, so that
+  // feedback they wrote is still attributed to them by name.
+  deleted_at: z.string().nullable(),
 })
 
 export type MentorRow = z.infer<typeof mentorRowSchema>
@@ -49,6 +54,7 @@ export function toMentor(row: MentorRow): Mentor {
     // having the property, and `createdDate?: string` cannot hold null.
     ...(row.created_date === null ? {} : { createdDate: row.created_date }),
     ...(row.profile_id === null ? {} : { profileId: row.profile_id }),
+    ...(row.deleted_at === null ? {} : { deletedAt: row.deleted_at }),
   }
 }
 

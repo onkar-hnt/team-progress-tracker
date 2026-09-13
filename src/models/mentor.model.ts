@@ -40,10 +40,16 @@ export interface Mentor {
 
   /** ISO date the record was added. */
   createdDate?: string
+
+  /** When this record was deleted. See the same field on `Developer`. */
+  deletedAt?: string
 }
 
-/** `profileId` is excluded: the link is the server's to make, not a caller's. */
-export type CreateMentorRequest = Omit<Mentor, 'id' | 'profileId'>
+/**
+ * `profileId` is excluded: the link is the server's to make, not a caller's.
+ * `deletedAt` is excluded: deleting is its own operation, not a field to write.
+ */
+export type CreateMentorRequest = Omit<Mentor, 'deletedAt' | 'id' | 'profileId'>
 
 export type UpdateMentorRequest = Partial<CreateMentorRequest>
 

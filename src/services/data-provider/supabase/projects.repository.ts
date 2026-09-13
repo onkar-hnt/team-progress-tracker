@@ -10,6 +10,7 @@ import {
   toProjectUpdate,
 } from './project.mappers'
 import { assertDevelopersExist, assertMentorExists } from './references'
+import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
 /**
@@ -29,6 +30,14 @@ import { mapPostgrestError, parseRows } from './supabase-errors'
  * team that is neither.
  */
 
+/**
+ * Every project the caller may see, including the ones in the bin.
+ *
+ * As with the other two roster reads: the lists and the pickers drop deleted rows
+ * in `WorkTrackerService`, and the lookup a project *name* is resolved from does
+ * not, so last month's entries do not start reading `Unknown (…)` because somebody
+ * tidied up a duplicate project this morning.
+ */
 export async function selectProjects(client: AppSupabaseClient): Promise<Project[]> {
   const { data, error } = await client.from('projects').select(PROJECT_WITH_MEMBERS).order('code')
 
@@ -104,6 +113,10 @@ export async function updateProjectRow(
       .from('projects')
       .update(payload)
       .eq('id', id)
+      // Belt and braces with the `requireProject` above, which has already refused a
+      // project in the bin: this is the statement that would write, and a check on
+      // the row it writes cannot be raced by a delete arriving in between.
+      .is('deleted_at', null)
       .select('id')
       .maybeSingle()
 
@@ -125,7 +138,7 @@ export async function updateProjectRow(
 }
 
 /**
- * Removes a project, with the schema deciding what that takes with it.
+ * Puts a project in the bin, with the schema deciding what may go in.
  *
  * The delete actions differ per table, and each was chosen deliberately:
  * `project_developers` cascades because the team list is the project's own
@@ -134,25 +147,23 @@ export async function updateProjectRow(
  * project; `tasks` and `daily_updates` restrict, because they are the work
  * history and deleting a project must not erase it.
  *
- * The restriction is therefore reported as `RecordInUseError` rather than
- * worked around — the same answer the Excel provider reached by counting
- * rows itself.
+ * That last restriction is the one a soft delete would have walked past, so
+ * `guard_roster_deletion` restates it and it still arrives as `RecordInUseError`
+ * — the same answer the Excel provider reached by counting rows itself. The other
+ * two are unchanged and still apply when the project is destroyed from the bin,
+ * which is the only real DELETE left here.
  */
 export async function deleteProjectRow(client: AppSupabaseClient, id: string): Promise<void> {
-  const { data, error } = await client.from('projects').delete().eq('id', id).select('id')
-
-  if (error !== null) {
-    throw mapPostgrestError(error, { table: 'Projects', operation: 'delete', recordId: id })
-  }
-
-  if ((data ?? []).length === 0) throw new RecordNotFoundError('Projects', id)
+  return softDeleteRow(client, 'projects', id)
 }
 
+/** Reads one project that is not in the bin, or reports that there is none. */
 export async function requireProject(client: AppSupabaseClient, id: string): Promise<Project> {
   const { data, error } = await client
     .from('projects')
     .select(PROJECT_WITH_MEMBERS)
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error !== null) {
