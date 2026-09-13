@@ -63,7 +63,7 @@ inspects the key and refuses to start if it finds one.
 The Excel modes are not a second production path. They came first, they still exercise the same
 mappers and structure checks, and they remain useful for import, export and working offline — but
 several features exist only under `supabase` and say so rather than pretending: notifications,
-login provisioning, password resets and the Logins screen all check
+login provisioning, password resets, the Logins screen and the Usage screen all check
 `appConfig.dataSource === 'supabase'` and hide themselves otherwise.
 
 ### Who signs in — `VITE_AUTH_MODE`
@@ -300,3 +300,12 @@ Kept honest rather than aspirational:
   general, which is what a note after a one-to-one actually is. What is still missing is a reply:
   feedback is written and read, not discussed, so a developer answering a point has to do it
   somewhere else.
+- **Usage is measured for the two limits that bite, and named for the three it cannot reach.**
+  **Usage**, under Administration, reads `public.resource_usage()` and shows the database against
+  500 MB, files against 1 GB, a per-table breakdown of where the bytes are, the accounts, and how
+  long it has been since anything was written — that last one because a free project with a week of
+  no activity is paused, which is worse than being full. Egress, Edge Function invocations and
+  realtime messages are not there: the platform meters them and the only way in is the Management
+  API with a token that has rights over the entire project, which is not a credential to put behind
+  a browser screen. Those three are listed with their allowances and a link to the project's own
+  report instead of being quietly left out.

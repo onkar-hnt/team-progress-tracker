@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { appConfig } from '@config/app.config'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
+import { formatBytes } from '@utils/bytes.utils'
 
 /**
  * Files attached to a piece of work.
@@ -329,10 +330,3 @@ export async function deleteAttachment(attachment: Attachment): Promise<void> {
   }
 }
 
-/** Bytes as somebody would say them: "4 KB", "1.2 MB". */
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${String(bytes)} B`
-  if (bytes < 1024 * 1024) return `${String(Math.round(bytes / 1024))} KB`
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}

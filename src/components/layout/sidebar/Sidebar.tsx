@@ -20,6 +20,7 @@ import {
 } from '@services/auth/index'
 import { isHistoryAvailable } from '@services/history/history.service'
 import { isRecycleBinAvailable } from '@services/recycle-bin/recycle-bin.service'
+import { isUsageAvailable } from '@services/usage/usage.service'
 
 import './Sidebar.scss'
 
@@ -59,6 +60,19 @@ function readsOwnFeedbackOnly(user: AppUser | null): boolean {
  */
 function canAdministerLogins(user: AppUser | null): boolean {
   return isAdmin(user) && areAccountsAvailable()
+}
+
+/**
+ * Whether there is a plan to report usage against.
+ *
+ * The same two conditions as the Logins screen, and the second is what makes it a pair
+ * rather than a role test: a workbook deployment has no database size, no storage
+ * bucket and no plan, so the screen would have nothing to measure. Administrators only,
+ * because `resource_usage()` refuses everybody else — this is the project's bill rather
+ * than the team's work.
+ */
+function canReadUsage(user: AppUser | null): boolean {
+  return isAdmin(user) && isUsageAvailable()
 }
 
 /**
@@ -136,6 +150,7 @@ const navigationGroups: readonly NavigationGroup[] = [
       { label: 'Projects', path: '/admin/projects', icon: 'projects', isVisible: canManageTeam },
       { label: 'Tasks', path: '/admin/tasks', icon: 'tasks', isVisible: canManageTeam },
       { label: 'Logins', path: '/admin/accounts', icon: 'key', isVisible: canAdministerLogins },
+      { label: 'Usage', path: '/admin/usage', icon: 'database', isVisible: canReadUsage },
 
       /* Moved out of the personal group, where it sat while everybody had one. It is now
          shown to the people who can delete something, and what they can delete is mostly

@@ -147,6 +147,31 @@
     /// on a page that had a summary panel and three more sections below the table. See
     /// `_reset.scss` for the rule this follows and the one case that goes the other way.
     overscroll-behavior: auto;
+
+    /// Sideways only, for a table whose length is fixed by something other than the data.
+    ///
+    /// The cap above exists because a list of records grows without limit: a hundred work
+    /// entries would otherwise be a hundred-row table. A table with one row per table in
+    /// the database schema is not that — it grows when somebody writes a migration, which
+    /// is a handful of rows a year — so capping it buys nothing and costs the thing every
+    /// nested scroller costs.
+    ///
+    /// That cost is why this modifier exists rather than a slightly taller cap. Even with
+    /// chaining allowed, a browser latches a wheel gesture to the scroller it started in
+    /// and only releases it after a pause, so an inner scroller in the middle of a page
+    /// stops the reader on their way down to whatever is below it. Where the height is
+    /// bounded anyway, the honest answer is to have no inner scroller at all and leave the
+    /// page as the only thing that scrolls.
+    ///
+    /// Horizontal scrolling stays, because narrow windows are not bounded by anything.
+    /// `overflow-y` goes back to `visible`, which pairs with `auto` by becoming `auto`
+    /// itself — harmless, because without a height there is no vertical overflow to
+    /// scroll, and the sticky header simply sits at the top of a scrollport that never
+    /// moves vertically.
+    &--uncapped {
+      max-height: none;
+      overflow: auto visible;
+    }
   }
 }
 

@@ -146,6 +146,25 @@ export function formatTimestamp(isoTimestamp: string): string {
 }
 
 /**
+ * Whole days since a timestamp, or `null` if it cannot be read.
+ *
+ * For the one question a relative phrase cannot answer: not "how long ago does this
+ * read" but "how many days is that, against a limit of seven". Truncated rather than
+ * rounded, so six days and twenty hours is six — a threshold crossed early is a warning
+ * that arrives while it is still a warning.
+ *
+ * Takes `now` for the same reason `formatRelativeTime` does: the clock stays a
+ * parameter, so a caller in a render can read the time through a function instead of
+ * reading it in the render.
+ */
+export function daysSince(isoTimestamp: string, now: Date = new Date()): number | null {
+  const parsed = new Date(isoTimestamp)
+  if (Number.isNaN(parsed.getTime())) return null
+
+  return Math.floor((now.getTime() - parsed.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+/**
  * How long ago something happened, as "5 minutes ago".
  *
  * For a list read newest-first, where the interval matters more than the clock

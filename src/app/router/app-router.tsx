@@ -52,6 +52,9 @@ const AdminEmployeesPage = lazy(async () => ({
 const AdminAccountsPage = lazy(async () => ({
   default: (await import('@features/admin/pages/AccountsPage')).AccountsPage,
 }))
+const AdminUsagePage = lazy(async () => ({
+  default: (await import('@features/admin/pages/UsagePage')).UsagePage,
+}))
 const AdminProjectsPage = lazy(async () => ({
   default: (await import('@features/admin/pages/ProjectsPage')).ProjectsPage,
 }))
@@ -187,9 +190,13 @@ function LazyRoutes() {
       </Route>
 
       {/* Inside the administration area but not inside `RequireTeamManagement`:
-          disabling a login is the one thing there that mentors do not do. */}
+          disabling a login and reading the project's usage are the two things there
+          that mentors do not do. The second is not about the team at all — it is
+          about the deployment they happen to be recorded in — and the function
+          behind it refuses anybody who is not an administrator. */}
       <Route element={<RequireAdmin />}>
         <Route path="admin/accounts" element={<AdminAccountsPage />} />
+        <Route path="admin/usage" element={<AdminUsagePage />} />
       </Route>
 
       <Route path="*" element={<Navigate replace to="/dashboard" />} />

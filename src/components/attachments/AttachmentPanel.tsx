@@ -9,10 +9,10 @@ import {
   MAX_ATTACHMENT_BYTES,
   areAttachmentsAvailable,
   createAttachmentUrl,
-  formatBytes,
 } from '@services/attachments/attachment.service'
 import type { Attachment, AttachmentOwner } from '@services/attachments/attachment.service'
 import { useAttachments, useDeleteAttachment, useUploadAttachment } from '@hooks/use-attachments'
+import { formatBytes } from '@utils/bytes.utils'
 import { formatShortDate } from '@utils/date.utils'
 
 import './AttachmentPanel.scss'

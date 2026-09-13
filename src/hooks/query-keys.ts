@@ -67,6 +67,16 @@ export const queryKeys = {
     [ROOT, 'change-log', 'record', kind, recordId] as const,
 
   /**
+   * What the Supabase project is using of its plan.
+   *
+   * One key for the whole answer, because it arrives as one measurement: sizes taken a
+   * second apart would not disagree usefully, and splitting them would only mean two
+   * scans of the same tables. Unscoped, like the keys above — only an administrator
+   * asks, and the answer is the project's rather than anybody's.
+   */
+  resourceUsage: () => [ROOT, 'resource-usage'] as const,
+
+  /**
    * The files on one record.
    *
    * Keyed by the record and not by the screen, so the same list serves wherever that

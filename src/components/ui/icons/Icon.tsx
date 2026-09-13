@@ -22,6 +22,7 @@ export type IconName =
   | 'close'
   | 'comments'
   | 'dashboard'
+  | 'database'
   | 'download'
   | 'eye'
   | 'eye-off'
@@ -110,6 +111,17 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
     <>
       <rect height="16" rx="2" width="18" x="3" y="4" />
       <path d="M3 9h18M9 9v11" />
+    </>
+  ),
+
+  /// Stacked discs, the way a database has been drawn since the disc pack. The two
+  /// lower arcs are half-ellipses rather than full ones, because the top of each is
+  /// hidden by the disc above it — drawing them whole reads as three rings.
+  database: (
+    <>
+      <ellipse cx="12" cy="6" rx="8" ry="3" />
+      <path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
+      <path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
     </>
   ),
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,

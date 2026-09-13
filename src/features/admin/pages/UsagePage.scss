@@ -1,0 +1,95 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.usage-page {
+  @include page-stack;
+
+  &__note {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  /// The exact moment, under the cards that state it relatively. Smaller and quieter
+  /// than a note, because it is a footnote to the row above rather than a sentence
+  /// anybody reads first.
+  &__measured {
+    margin: $space-3 0 0;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  /// Postgres table names, shown as code because that is what they are: `daily_updates`
+  /// rather than "Work entries". This screen is about the database, and the reader who
+  /// needs it is the one who will go and look at that table.
+  &__table-name {
+    font-family: $font-family-mono;
+    font-size: $font-size-xs;
+  }
+
+  /// Each table against the largest one. The track is the same tint as a stat card's
+  /// meter, so the two read as the same device at two sizes.
+  &__bar {
+    display: block;
+    width: 100%;
+    min-width: 4rem;
+    height: 6px;
+    border-radius: $radius-pill;
+    overflow: hidden;
+    background: $color-surface-subtle;
+  }
+
+  &__bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: $color-brand;
+
+    @include motion-safe {
+      transition: width $duration-slow $ease-out;
+    }
+  }
+
+  /// The three figures this screen cannot count, as a definition list in all but name:
+  /// what it is, what the plan allows, and what in this application spends it.
+  &__unmeasured {
+    @include grid($gap: $space-3);
+
+    margin: 0 0 $space-4;
+    padding: 0;
+    list-style: none;
+
+    li {
+      @include grid($gap: $space-1);
+
+      padding-left: $space-3;
+      border-left: 2px solid $color-border;
+    }
+  }
+
+  &__unmeasured-name {
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+  }
+
+  &__unmeasured-limit {
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__unmeasured-note {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  &__link {
+    color: $color-brand;
+    font-weight: $font-weight-medium;
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+}
