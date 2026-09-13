@@ -17,6 +17,7 @@ import {
 } from '@hooks/use-work-tracker'
 import type { MentorComment } from '@models/index'
 import { canEditComment, canWriteFeedback } from '@services/auth/index'
+import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import { formatLongDate } from '@utils/date.utils'
 
 import { CommentTimeline } from '../components/CommentTimeline'
@@ -134,7 +135,7 @@ function FeedbackWorkspace() {
   const requestDelete = async (comment: MentorComment) => {
     const isDeleted = await confirm({
       title: 'Delete this feedback?',
-      message: `The feedback recorded on ${formatLongDate(comment.date)} will be removed from the developer's history. This cannot be undone.`,
+      message: `The feedback recorded on ${formatLongDate(comment.date)} will be removed from the developer's history. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete feedback',
       isDestructive: true,
       action: () => deleteComment.mutateAsync(comment.id),

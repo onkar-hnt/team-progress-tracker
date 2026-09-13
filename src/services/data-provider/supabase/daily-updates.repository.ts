@@ -16,6 +16,7 @@ import {
 } from './daily-update.mappers'
 import { assertDeveloperExists, assertProjectExists, assertTaskExists } from './references'
 import { filterList } from './rpc-params'
+import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
 /**
@@ -88,7 +89,14 @@ export async function selectDailyUpdates(
   return parseRows('DailyWork', dailyUpdateRowSchema, data ?? [], toDailyWorkEntry)
 }
 
-/** Resolves to `null` when no entry carries that id, as the interface states. */
+/**
+ * Resolves to `null` when no entry carries that id, as the interface states.
+ *
+ * A deleted entry is one of those. It exists as a row, but the only screen that
+ * may see it is the bin, which reads it by a different path — so everything else
+ * asking for it by id is told there is nothing there, which is what the person who
+ * deleted it asked for.
+ */
 export async function selectDailyUpdateById(
   client: AppSupabaseClient,
   id: string,
@@ -97,6 +105,7 @@ export async function selectDailyUpdateById(
     .from('daily_updates')
     .select(DAILY_UPDATE_COLUMNS)
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error !== null) {
@@ -152,17 +161,18 @@ export async function updateDailyUpdateRow(
   return parseRows('DailyWork', dailyUpdateRowSchema, [data], toDailyWorkEntry)[0]!
 }
 
+/**
+ * Puts an entry aside rather than destroying it.
+ *
+ * The row keeps its place and stops being read; the Recently deleted screen hands
+ * it back. See `soft-delete.ts`, and the migration it points at, for why this is
+ * an UPDATE and why that needs no authorization the DELETE did not already have.
+ */
 export async function deleteDailyUpdateRow(
   client: AppSupabaseClient,
   id: string,
 ): Promise<void> {
-  const { data, error } = await client.from('daily_updates').delete().eq('id', id).select('id')
-
-  if (error !== null) {
-    throw mapPostgrestError(error, { table: 'DailyWork', operation: 'delete', recordId: id })
-  }
-
-  if ((data ?? []).length === 0) throw new RecordNotFoundError('DailyWork', id)
+  await softDeleteRow(client, 'daily_updates', id)
 }
 
 async function requireDailyUpdate(

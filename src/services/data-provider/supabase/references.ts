@@ -71,7 +71,15 @@ export async function assertTaskExists(
 ): Promise<void> {
   if (!isSupabaseUuid(taskId)) throw new ReferentialIntegrityError('taskId', taskId)
 
-  const { data, error } = await client.from('tasks').select('id').eq('id', taskId).maybeSingle()
+  // A deleted task cannot be linked to. The row is still there, so the foreign
+  // key would accept it, and the result would be new work attached to something
+  // sitting in the bin waiting to be destroyed.
+  const { data, error } = await client
+    .from('tasks')
+    .select('id')
+    .eq('id', taskId)
+    .is('deleted_at', null)
+    .maybeSingle()
 
   if (error !== null) throw mapPostgrestError(error, { table: 'Tasks', operation: 'read' })
 

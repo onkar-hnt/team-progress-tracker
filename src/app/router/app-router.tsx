@@ -64,6 +64,9 @@ const ReportsPage = lazy(async () => ({
 const ProfilePage = lazy(async () => ({
   default: (await import('@features/profile/pages/ProfilePage')).ProfilePage,
 }))
+const RecycleBinPage = lazy(async () => ({
+  default: (await import('@features/recycle-bin/pages/RecycleBinPage')).RecycleBinPage,
+}))
 const TeamActivityPage = lazy(async () => ({
   default: (await import('@features/team-activity/pages/TeamActivityPage')).TeamActivityPage,
 }))
@@ -148,6 +151,12 @@ function LazyRoutes() {
           render, and the Edge Function behind it asks the database rather than
           trusting either. */}
       <Route path="profile" element={<ProfilePage />} />
+
+      {/* Open to everybody too, and for a similar reason: the bin holds what the
+          person may see, and the three select policies decide that rather than a
+          guard here. A developer restoring their own deleted entry is the case
+          this exists for, so putting it behind a role would defeat it. */}
+      <Route path="recently-deleted" element={<RecycleBinPage />} />
 
       <Route element={<RequireTeamAccess />}>
         <Route path="team-activity" element={<TeamActivityPage />} />

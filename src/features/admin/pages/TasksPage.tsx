@@ -25,6 +25,7 @@ import {
 } from '@hooks/use-work-tracker'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { AssignedTask } from '@models/index'
+import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import { todayIsoDate } from '@utils/date.utils'
 import { matchesSearch } from '@utils/table.utils'
 
@@ -101,7 +102,7 @@ export function TasksPage() {
   const requestDelete = async (task: AssignedTask) => {
     const isDeleted = await confirm({
       title: 'Delete this task?',
-      message: `“${task.name}” will be removed from the developer's task list. This cannot be undone.`,
+      message: `“${task.name}” will be removed from the developer's task list. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete task',
       isDestructive: true,
       action: () => deleteTask.mutateAsync(task.id),

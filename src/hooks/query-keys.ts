@@ -45,6 +45,15 @@ export const queryKeys = {
    */
   accounts: () => [ROOT, 'accounts'] as const,
 
+  /**
+   * What has been deleted, for the Recently deleted screen.
+   *
+   * Unscoped for the same reason as the accounts above: three select policies
+   * already answer it differently per person, and there is no id in the request
+   * for a scope identity to keep apart.
+   */
+  deletedRecords: () => [ROOT, 'deleted-records'] as const,
+
   /** `null` rather than `undefined` so the key serialises consistently. */
   dailyWork: (scopeId: string, query?: DailyWorkQuery) =>
     [ROOT, 'daily-work', scopeId, query ?? null] as const,

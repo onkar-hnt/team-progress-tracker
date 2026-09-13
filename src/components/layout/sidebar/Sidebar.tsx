@@ -17,6 +17,7 @@ import {
   canWriteFeedback,
   isAdmin,
 } from '@services/auth/index'
+import { isRecycleBinAvailable } from '@services/recycle-bin/recycle-bin.service'
 
 import './Sidebar.scss'
 
@@ -59,6 +60,18 @@ function canAdministerLogins(user: AppUser | null): boolean {
 }
 
 /**
+ * Whether there is a bin to look in.
+ *
+ * Everybody who signs in, and no role test: the bin holds what the person may
+ * already see, so a developer finds their own deleted entries and an administrator
+ * finds everybody's. Only the data source is asked, because the offline providers
+ * delete a row outright and the screen would have nothing to list.
+ */
+function canRestoreDeletedRecords(): boolean {
+  return isRecycleBinAvailable()
+}
+
+/**
  * Navigation grouped by who it is for.
  *
  * Team-wide and administrative areas are kept in labelled groups so it is
@@ -81,6 +94,12 @@ const navigationGroups: readonly NavigationGroup[] = [
         path: '/feedback',
         icon: 'comments',
         isVisible: readsOwnFeedbackOnly,
+      },
+      {
+        label: 'Recently Deleted',
+        path: '/recently-deleted',
+        icon: 'trash',
+        isVisible: canRestoreDeletedRecords,
       },
     ],
   },

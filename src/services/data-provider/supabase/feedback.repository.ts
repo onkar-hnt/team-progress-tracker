@@ -16,6 +16,7 @@ import {
 } from './feedback.mappers'
 import { assertDeveloperExists, assertMentorExists, assertProjectExists, assertTaskExists } from './references'
 import { filterList } from './rpc-params'
+import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
 /**
@@ -121,14 +122,15 @@ export async function updateCommentRow(
   return parseRows('Comments', feedbackRowSchema, [data], toMentorComment)[0]!
 }
 
+/**
+ * Puts a comment aside rather than destroying it.
+ *
+ * Feedback is somebody's considered writing about somebody else's work, and it is
+ * the one thing here a developer cannot recreate for themselves. See
+ * `soft-delete.ts`.
+ */
 export async function deleteCommentRow(client: AppSupabaseClient, id: string): Promise<void> {
-  const { data, error } = await client.from('feedback').delete().eq('id', id).select('id')
-
-  if (error !== null) {
-    throw mapPostgrestError(error, { table: 'Comments', operation: 'delete', recordId: id })
-  }
-
-  if ((data ?? []).length === 0) throw new RecordNotFoundError('Comments', id)
+  await softDeleteRow(client, 'feedback', id)
 }
 
 async function requireComment(
@@ -139,6 +141,8 @@ async function requireComment(
     .from('feedback')
     .select(FEEDBACK_COLUMNS)
     .eq('id', id)
+    // Deleted comments are readable only by the bin, which has its own path.
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error !== null) {

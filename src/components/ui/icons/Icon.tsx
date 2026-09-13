@@ -36,6 +36,7 @@ export type IconName =
   | 'sign-out'
   | 'table'
   | 'tasks'
+  | 'trash'
   | 'users'
   | 'warning'
 
@@ -166,6 +167,18 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
     <>
       <rect height="14" rx="2" width="18" x="3" y="5" />
       <path d="M3 13h5l1.2 2h5.6L16 13h5" />
+    </>
+  ),
+
+  // A bin with a lid, and the two lines that make it read as one rather than as a
+  // cup: the same shape every application uses for this, which is the point —
+  // nothing about "the things you deleted" is worth being inventive with.
+  trash: (
+    <>
+      <path d="M4 7.5h16" />
+      <path d="M9.5 7.5V5.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2" />
+      <path d="M6 7.5 6.9 19a1.5 1.5 0 0 0 1.5 1.4h7.2A1.5 1.5 0 0 0 17.1 19L18 7.5" />
+      <path d="M10.5 11.5v5M13.5 11.5v5" />
     </>
   ),
 

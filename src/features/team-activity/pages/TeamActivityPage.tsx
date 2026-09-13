@@ -9,6 +9,7 @@ import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { DailyUpdateForm } from '@features/daily-update/components/DailyUpdateForm'
 import { useDailyWorkEntries, useDeleteDailyWorkEntry, useDevelopers, useProjects } from '@hooks/use-work-tracker'
+import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import type { DailyWorkEntryView } from '@services/work-tracker.service'
 import { formatLongDate } from '@utils/date.utils'
 import { calculateCompletionRate, summariseStatuses, sumHoursLogged } from '@utils/work-summary.utils'
@@ -61,7 +62,7 @@ export function TeamActivityPage() {
   const requestDelete = async (entry: DailyWorkEntryView) => {
     const isDeleted = await confirm({
       title: 'Delete this update?',
-      message: `The update logged for ${formatLongDate(entry.date)} will be removed from the activity list and from the totals. This cannot be undone.`,
+      message: `The update logged for ${formatLongDate(entry.date)} will be removed from the activity list and from the totals. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete update',
       isDestructive: true,
       action: () => deleteEntry.mutateAsync(entry.id),

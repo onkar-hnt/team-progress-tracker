@@ -179,8 +179,8 @@ Four seams are worth knowing before changing anything:
 
 - **`services/data-provider`** is the interface that makes the record store replaceable, and it is
   implemented three times over — Supabase, Excel and fixtures. Anything a spreadsheet cannot do
-  does not belong on it; that is why notifications and accounts sit beside it instead, gated on the
-  data source.
+  does not belong on it; that is why notifications, accounts and the recycle bin sit beside it
+  instead, gated on the data source.
 - **`services/auth/permissions.ts`** answers every "may they?" in the interface. Screens ask it
   rather than checking `role === 'admin'` inline, so the policy can be read in one place.
 - **`hooks/query-keys.ts`** declares every cache key once, so a write cannot fail to refresh a
@@ -205,7 +205,8 @@ Kept honest rather than aspirational:
   a time — the notification panel is the one exception, and asks the database for its pages. That is
   the right trade for a team and the wrong one for a company: the fix is `range()` on the reads,
   which means the query interface the three data providers share has to grow a limit.
-- **No audit trail, and deletes are permanent.** The database refuses to delete anything with
-  history attached, which is a backstop rather than a policy.
+- **No audit trail.** Who changed a task's status yesterday, and what it was before, is not
+  recorded anywhere. Deleting is the exception: work entries, tasks and feedback are set aside
+  rather than destroyed, and **Recently deleted** stamps who did it and when.
 - **No attachments, and no general comments** — feedback is attached to a task, and that is the
   only conversation the application holds.

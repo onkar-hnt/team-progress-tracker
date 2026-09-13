@@ -1,0 +1,47 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.recycle-bin {
+  @include page-stack;
+
+  &__note,
+  &__empty {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  /// Which of the three tables a row came from, as a quiet label rather than a
+  /// status badge: it is a category, not a state, and it should not compete with
+  /// the two buttons at the end of the row.
+  &__kind {
+    display: inline-block;
+    padding: $space-1 $space-2;
+    border-radius: $radius-sm;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    white-space: nowrap;
+    background: $color-surface-subtle;
+
+    &--entry {
+      color: $color-info;
+      background: $color-info-surface;
+    }
+
+    &--feedback {
+      color: $color-brand;
+      background: $color-brand-light;
+    }
+  }
+
+  /// The one column of free text. Capped so a comment cannot stretch the table
+  /// past the width of the panel, and cut off rather than wrapped so every row
+  /// stays one line tall and the list can be scanned down.
+  &__title {
+    max-width: 24rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

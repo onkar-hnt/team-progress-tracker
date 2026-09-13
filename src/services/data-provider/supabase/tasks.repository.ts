@@ -9,6 +9,7 @@ import type { AppSupabaseClient } from '@services/supabase/index'
 import { RecordNotFoundError } from '../data-provider.errors'
 import { assertDeveloperExists, assertMentorExists, assertProjectExists } from './references'
 import { filterList } from './rpc-params'
+import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 import { TASK_COLUMNS, taskRowSchema, toAssignedTask, toTaskInsert, toTaskUpdate } from './task.mappers'
 
@@ -87,6 +88,9 @@ export async function selectTaskById(
     .from('tasks')
     .select(TASK_COLUMNS)
     .eq('id', id)
+    // A deleted task is not readable by id either. Only the bin sees those, by a
+    // path of its own.
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error !== null) {
@@ -185,14 +189,16 @@ async function setTaskStatus(
   return parseRows('Tasks', taskRowSchema, [data], toAssignedTask)[0]!
 }
 
+/**
+ * Puts a task aside rather than destroying it.
+ *
+ * The daily updates logged against it are left exactly as they are, still naming
+ * it. They are a record of work that happened, and they still resolve the task's
+ * title — a report of last month must not develop gaps because somebody tidied up
+ * afterwards. See `soft-delete.ts`.
+ */
 export async function deleteTaskRow(client: AppSupabaseClient, id: string): Promise<void> {
-  const { data, error } = await client.from('tasks').delete().eq('id', id).select('id')
-
-  if (error !== null) {
-    throw mapPostgrestError(error, { table: 'Tasks', operation: 'delete', recordId: id })
-  }
-
-  if ((data ?? []).length === 0) throw new RecordNotFoundError('Tasks', id)
+  await softDeleteRow(client, 'tasks', id)
 }
 
 async function requireTask(client: AppSupabaseClient, id: string): Promise<AssignedTask> {
