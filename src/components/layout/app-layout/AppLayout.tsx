@@ -21,9 +21,11 @@ function readStoredCollapsed(): boolean {
 /**
  * Fixed application shell.
  *
- * The shell fills the viewport and never scrolls: the header and sidebar stay
- * put, and the content region is the only scroll container. That keeps long
- * tables and reports reachable without the header sliding away.
+ * The shell fills the viewport and never scrolls: the rail down the left and the
+ * bar over the content stay put, and the content region is the only scroll
+ * container of the three. That keeps long tables and reports reachable without the
+ * bar sliding away. The rail's navigation scrolls within itself, which is a
+ * separate matter handled there.
  */
 export function AppLayout() {
   const [isCollapsed, setIsCollapsed] = useState(readStoredCollapsed)
@@ -43,11 +45,11 @@ export function AppLayout() {
         isDrawerOpen ? ' app-layout--drawer-open' : ''
       }`}
     >
-      <Header
-        isSidebarCollapsed={isCollapsed}
-        onToggleDrawer={() => setIsDrawerOpen((open) => !open)}
-        onToggleSidebar={() => setIsCollapsed((collapsed) => !collapsed)}
-      />
+      {/* The bar keeps the application's name and the drawer toggle, which is the
+          one control here that belongs only to a screen too narrow for the rail to
+          be on. The collapse preference went to the rail, since that is what it
+          acts on and where there is now room for it. */}
+      <Header onToggleDrawer={() => setIsDrawerOpen((open) => !open)} />
 
       {/* On small screens the rail is a drawer over the content, so following
           a link has to dismiss it or it would cover the page just opened. */}
@@ -55,6 +57,7 @@ export function AppLayout() {
         isCollapsed={isCollapsed}
         isDrawerOpen={isDrawerOpen}
         onNavigate={() => setIsDrawerOpen(false)}
+        onToggleSidebar={() => setIsCollapsed((collapsed) => !collapsed)}
       />
 
       {/* Tapping the dimmed content is the expected way to dismiss a drawer.

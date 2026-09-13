@@ -1,11 +1,21 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
+/// The shell: a rail down the left, a bar over the content, the content under it.
+///
+/// The rail spans both rows, so the bar begins where the rail ends rather than
+/// running over the top of it. That is what puts the collapse control in the head
+/// of the rail: with the corner belonging to the rail, there is no strip above it
+/// for the control to sit in.
 .app-layout {
   @include grid;
+
   height: 100%;
   overflow: hidden;
   grid-template-rows: $header-height minmax(0, 1fr);
+  grid-template-areas:
+    'rail bar'
+    'rail content';
   grid-template-columns: $sidebar-width minmax(0, 1fr);
 
   /// Animating the track width keeps the content edge attached to the rail as
@@ -20,6 +30,7 @@
   /// the grid: without it a wide table would expand the track and hand the
   /// scrollbar back to the page.
   &__content {
+    grid-area: content;
     padding: $space-8;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -38,9 +49,15 @@
     display: none;
   }
 
-  /// Below the tablet breakpoint the rail becomes a drawer over the content,
-  /// so the single column belongs entirely to the content.
+  /// Below the tablet breakpoint the rail becomes a drawer over the content, so
+  /// the single column belongs entirely to the bar and the content. The rail is
+  /// `position: fixed` there and out of the grid, so it needs no track — and the
+  /// `rail` area disappearing from the template is what widens the bar to the
+  /// full window.
   @include respond-to-tablet {
+    grid-template-areas:
+      'bar'
+      'content';
     grid-template-columns: minmax(0, 1fr);
 
     &--collapsed {

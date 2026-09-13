@@ -180,7 +180,10 @@ $z-snackbar: 50;
 /// Layout
 /// ---------------------------------------------------------------------------
 
-$header-height: 4.5rem;
-$sidebar-width: 15rem;
+$header-height: 3.5rem;
+/// Set by the longest label on it — "Team Activity" — plus the icon, the gaps and
+/// the two paddings around it, and nothing more. It was three rems wider, which
+/// bought empty space on the right of every row and took it from the tables.
+$sidebar-width: 13rem;
 /// Wide enough for an icon plus its focus ring, with nothing else on the rail.
 $sidebar-width-collapsed: 4.5rem;

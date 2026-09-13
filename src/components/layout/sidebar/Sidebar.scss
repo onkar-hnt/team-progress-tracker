@@ -1,21 +1,54 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// A column rather than a block, so the profile link can be pushed to the foot of
-/// the rail by `margin-top: auto` instead of by a height nobody can maintain. It
-/// still scrolls: when the navigation is taller than the viewport the footer
-/// simply follows it down, which is better than a pinned bar eating rows on a
-/// short window.
+/// The rail, running the full height of the window.
+///
+/// Three bands in a column: the workspace line and the collapse control, the
+/// navigation, and the signed-in person. Only the middle one scrolls — the other two are
+/// fixed points a reader can return to, and a rail that scrolled as one would
+/// take the profile link off the bottom of a short window.
+///
+/// It owns the top left corner of the layout, which is why the head below is held
+/// to the height of the bar beside it.
 .sidebar {
   /// `$align: null` matters: the mixin centres by default, which would shrink
-  /// every group to the width of its widest label.
+  /// every band to the width of its widest label.
   @include flex($direction: column, $align: null);
 
-  padding: $space-6 $space-4;
-  overflow-x: hidden;
-  overflow-y: auto;
+  grid-area: rail;
+
+  /// Each band pads itself, so the borders between them can reach both edges.
+  padding: 0;
+  overflow: hidden;
   border-right: 1px solid $color-border;
   background: $color-white;
+
+  &__head {
+    @include flex($justify: space-between, $gap: $space-2);
+
+    flex-shrink: 0;
+    min-height: $header-height;
+    padding-inline: $space-4;
+    border-bottom: 1px solid $color-border;
+  }
+
+  /// Quiet, and it stays quiet: it says which workspace the navigation under it
+  /// belongs to, and the application is named in the bar beside it.
+  &__workspace {
+    overflow: hidden;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__nav {
+    flex: 1;
+    padding: $space-5 $space-4;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 
   &__group+&__group {
     margin-top: $space-5;
@@ -45,6 +78,11 @@
     padding: $space-3 $space-4;
     border-radius: $radius-md;
     color: $color-text-muted;
+
+    /// A rem was too wide for the rail once it was cut to the width of its
+    /// longest label: "Team Activity" at the inherited size left nothing for the
+    /// padding to sit in.
+    font-size: $font-size-sm;
     font-weight: $font-weight-semibold;
     text-decoration: none;
     white-space: nowrap;
@@ -76,11 +114,12 @@
   /// The profile link
   /// ---------------------------------------------------------------------------
 
-  /// `margin-top: auto` is what puts it at the bottom; the border is what stops
-  /// it reading as one more navigation row.
+  /// At the bottom because the navigation above it takes the free space, not
+  /// because of anything set here. The border is what stops it reading as one
+  /// more navigation row.
   &__footer {
-    margin-top: auto;
-    padding-top: $space-4;
+    flex-shrink: 0;
+    padding: $space-3 $space-4;
     border-top: 1px solid $color-border;
   }
 
@@ -127,10 +166,25 @@
     font-weight: $font-weight-medium;
   }
 
-  /// Collapsed rail: icons only, centred, labels removed from the layout so
-  /// they cannot force the rail wider.
+  /// Collapsed rail: icons only, centred, labels and the workspace line removed
+  /// from the layout so they cannot force the rail wider.
   &--collapsed {
-    padding-inline: $space-3;
+
+    .sidebar__head,
+    .sidebar__nav,
+    .sidebar__footer {
+      padding-inline: $space-3;
+    }
+
+    /// Nothing left in the head but the button, which centres in a square the
+    /// width of the rail.
+    .sidebar__head {
+      justify-content: center;
+    }
+
+    .sidebar__workspace {
+      display: none;
+    }
 
     .sidebar__link {
       justify-content: center;
@@ -166,10 +220,20 @@
       transform: translateX(0);
     }
 
+    /// The head belongs to the rail, and there is no rail here: the bar above the
+    /// drawer names the application itself, and a drawer has nothing to collapse.
+    &__head {
+      display: none;
+    }
+
     /// A collapsed drawer would be a rail with no room for a tooltip, so the
     /// desktop collapse preference is ignored here.
     &--collapsed {
-      padding-inline: $space-4;
+
+      .sidebar__nav,
+      .sidebar__footer {
+        padding-inline: $space-4;
+      }
 
       .sidebar__link {
         justify-content: flex-start;

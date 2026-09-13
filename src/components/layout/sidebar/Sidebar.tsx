@@ -1,9 +1,12 @@
 import { NavLink } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
+import { Button } from '@components/ui/button/Button'
 import { Icon } from '@components/ui/icons/Icon'
 import type { IconName } from '@components/ui/icons/Icon'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
+import { APP_EYEBROW } from '@constants/app.constants'
+import { USER_ROLE_LABELS } from '@models/user.model'
 import type { AppUser } from '@models/user.model'
 import {
   canManageTeam,
@@ -92,6 +95,8 @@ interface SidebarProps {
   isDrawerOpen: boolean
   /** Lets the shell dismiss the mobile drawer once a link is followed. */
   onNavigate: () => void
+  /** Collapses the rail to icons on desktop. */
+  onToggleSidebar: () => void
 }
 
 /**
@@ -128,9 +133,13 @@ function initialsFrom(name: string, email: string): string {
  * screen behind it is now mostly a person's own account, so everybody has one and
  * it is reached through their own name.
  *
+ * The name and role were a caption in the bar until this existed, stated and not
+ * linked to anything. Here they are the label of the link to the screen they
+ * describe, which is one fewer thing on the bar and one less place to explain.
+ *
  * Rendered here rather than added to `navigationGroups`, because it is the one
  * entry drawn from data instead of from a fixed list: an avatar of initials in
- * place of an icon, and the person's name in place of a label.
+ * place of an icon, and the person in place of a label.
  */
 function ProfileLink({
   isCollapsed,
@@ -141,29 +150,31 @@ function ProfileLink({
   onNavigate: () => void
   user: AppUser
 }) {
+  const role = USER_ROLE_LABELS[user.role]
+
   return (
     <div className="sidebar__footer">
-      <Tooltip label={isCollapsed ? `${user.name} — Profile` : ''} side="right">
+      <Tooltip label={isCollapsed ? `${user.name} — your profile` : ''} side="right">
         <NavLink
+          // The visible text says who, not where, so the name is spelled out
+          // again here with the destination in front of it — both because the
+          // collapsed rail has nothing but two letters to be named by, and
+          // because "Shubham Deshmukh, Developer" is not on its own a link
+          // anybody can predict.
+          aria-label={`Your profile: ${user.name}, ${role}`}
           className={({ isActive }) =>
             `sidebar__link sidebar__link--profile${isActive ? ' sidebar__link--active' : ''}`
           }
           onClick={onNavigate}
           to="/profile"
-          // Collapsed, the name and the word Profile are both out of the layout,
-          // so the link would otherwise be named by two hidden letters.
-          {...(isCollapsed ? { 'aria-label': `Profile: ${user.name}` } : {})}
         >
           <span aria-hidden="true" className="sidebar__avatar">
             {initialsFrom(user.name, user.email)}
           </span>
 
-          {/* Two lines: who, then where the link goes. The name alone would leave
-              the destination to be guessed from an avatar, and "Profile" alone
-              would waste the one place the rail can say who is signed in. */}
           <span className="sidebar__label sidebar__label--profile">
             <span className="sidebar__person">{user.name}</span>
-            <span className="sidebar__caption">Profile</span>
+            <span className="sidebar__caption">{role}</span>
           </span>
         </NavLink>
       </Tooltip>
@@ -171,7 +182,59 @@ function ProfileLink({
   )
 }
 
-export function Sidebar({ isCollapsed, isDrawerOpen, onNavigate }: SidebarProps) {
+/**
+ * Which workspace this is, and the control that collapses the rail.
+ *
+ * The collapse control was in the bar across the top until the rail was given the
+ * full height of the window. The bar now starts where the rail ends, so it has no
+ * strip above the rail to sit in — and a control that collapses this thing reads
+ * better attached to it than beside an application name.
+ *
+ * Only the workspace line, not the application's name: the rail is a fixed fifteen
+ * rems and truncated the name to "Team Progress Trac…", so the name is in the bar,
+ * which has the width for it. Collapsed, this line goes too and the button centres
+ * itself in what is left, which is a square the width of the rail.
+ *
+ * Held to the same height as the bar beside it, so the two agree along one line
+ * across the top of the window.
+ *
+ * Absent below the tablet breakpoint: the rail is a drawer under the bar there,
+ * the bar names the application itself, and there is no rail to collapse.
+ */
+function SidebarHead({
+  isCollapsed,
+  onToggleSidebar,
+}: {
+  isCollapsed: boolean
+  onToggleSidebar: () => void
+}) {
+  const label = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
+
+  return (
+    <div className="sidebar__head">
+      <span className="sidebar__workspace">{APP_EYEBROW}</span>
+
+      <Tooltip label={isCollapsed ? label : ''} side="right">
+        <Button
+          aria-pressed={isCollapsed}
+          icon={isCollapsed ? 'chevron-right' : 'chevron-left'}
+          isIconOnly
+          onClick={onToggleSidebar}
+          variant="ghost"
+        >
+          {label}
+        </Button>
+      </Tooltip>
+    </div>
+  )
+}
+
+export function Sidebar({
+  isCollapsed,
+  isDrawerOpen,
+  onNavigate,
+  onToggleSidebar,
+}: SidebarProps) {
   const { user } = useAuth()
 
   // Hiding a link is presentation only; the route guards do the real blocking.
@@ -191,7 +254,11 @@ export function Sidebar({ isCollapsed, isDrawerOpen, onNavigate }: SidebarProps)
         isDrawerOpen ? ' sidebar--drawer-open' : ''
       }`}
     >
-      <nav>
+      <SidebarHead isCollapsed={isCollapsed} onToggleSidebar={onToggleSidebar} />
+
+      {/* The only part of the rail that scrolls. The head and the profile link
+          stay put, so a long list of projects cannot push either off the end. */}
+      <nav className="sidebar__nav">
         {visibleGroups.map((group, index) => (
           <div className="sidebar__group" key={group.heading ?? `group-${String(index)}`}>
             {/* The heading is hidden on the collapsed rail, where there is no

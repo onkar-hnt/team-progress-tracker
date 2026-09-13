@@ -1,82 +1,68 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The header bar.
+/// The bar over the content.
 ///
-/// Every control here used to be styled individually — an icon button, a
+/// Beside the rail rather than above it: the rail runs the full height of the
+/// window and takes the top left corner, so this bar begins where the rail ends.
+/// Below the tablet breakpoint the rail leaves the grid to become a drawer, and
+/// the `bar` area spans the single column that is left, so nothing here changes.
+///
+/// Every control on it used to be styled individually — an icon button, a
 /// sign-out button, a refresh button — each repeating the same white border,
 /// radius, hover tint and focus ring at a slightly different opacity. They are
 /// all `Button variant="inverse"` now, so this file describes only the bar and
 /// where things sit on it.
 .header {
-  grid-column: 1 / -1;
-  @include flex($justify: space-between, $gap: $space-4);
+  @include flex($gap: $space-4);
+
+  grid-area: bar;
   min-height: $header-height;
-  padding: $space-3 $space-8;
+  padding: $space-2 $space-8;
   color: $color-white;
   background: $color-brand-dark;
 
   &__brand {
-    @include flex($gap: $space-4);
+    @include flex($gap: $space-3);
+
     min-width: 0;
   }
 
-  &__eyebrow,
-  &__identity span {
-    display: block;
-    color: $color-brand-muted;
-    font-size: $font-size-xs;
-  }
-
+  /// The whole name, which is why it is here and not at the head of the rail: the
+  /// rail is a fixed fifteen rems and cut it short. It still ellipsizes, for the
+  /// narrow window where three icon buttons and a hamburger leave little else.
   &__title {
-    display: block;
+    overflow: hidden;
     font-size: $font-size-lg;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  &__account {
-    @include flex($gap: $space-4);
-  }
-
-  &__identity {
-    font-size: $font-size-sm;
-    text-align: right;
-  }
-
-  /// Two controls for two behaviours, each hidden where it does not apply: a
-  /// rail collapse on desktop, a drawer on small screens.
-  ///
-  /// Which one is shown is the header's business rather than the button's, so it
-  /// is decided by a wrapper here instead of by a class handed to `Button` —
-  /// the variants are the button's whole vocabulary and stay that way.
+  /// Only for the screens where the rail is a drawer. Which screens those are is
+  /// the bar's business rather than the button's, so it is decided by a wrapper
+  /// here instead of by a class handed to `Button` — the variants are the
+  /// button's whole vocabulary and stay that way.
   &__drawer-toggle {
     display: none;
   }
 
-  &__rail-toggle {
-    @include flex($align: null);
+  /// Held to the right by a margin rather than by `space-between`, which puts a
+  /// lone item at the start — and on a wide window this is the only item.
+  &__actions {
+    @include flex($gap: $space-2);
+
+    margin-left: auto;
   }
 
   @include respond-to-tablet {
     &__drawer-toggle {
       @include flex($align: null);
     }
-
-    &__rail-toggle {
-      display: none;
-    }
   }
 
   @include respond-to-mobile {
     padding-inline: $space-4;
     gap: $space-3;
-
-    &__eyebrow {
-      display: none;
-    }
-
-    &__identity span {
-      display: none;
-    }
 
     &__title {
       font-size: $font-size-md;

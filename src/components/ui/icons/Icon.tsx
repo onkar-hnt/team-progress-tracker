@@ -32,6 +32,7 @@ export type IconName =
   | 'mentors'
   | 'projects'
   | 'refresh'
+  | 'sign-out'
   | 'table'
   | 'tasks'
   | 'users'
@@ -174,6 +175,16 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M20 12a8 8 0 0 1-8 8 8 8 0 0 1-6.7-3.6" />
       <path d="M4 12a8 8 0 0 1 8-8 8 8 0 0 1 6.7 3.6" />
       <path d="M18.7 3.5v4.4h-4.4M5.3 20.5v-4.4h4.4" />
+    </>
+  ),
+  // An arrow leaving an enclosure, with the open side facing the direction of
+  // travel. A power symbol was the alternative and says something else: this ends
+  // a session, not the machine.
+  'sign-out': (
+    <>
+      <path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
+      <path d="M16.5 8.5 20 12l-3.5 3.5" />
+      <path d="M20 12h-9" />
     </>
   ),
   'chevron-down': <path d="M5.5 9.5 12 16l6.5-6.5" />,

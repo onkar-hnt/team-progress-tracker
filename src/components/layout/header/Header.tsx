@@ -5,23 +5,35 @@ import { useConfirm } from '@app/providers/confirm-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
-import { APP_EYEBROW, APP_NAME } from '@constants/app.constants'
+import { APP_NAME } from '@constants/app.constants'
 import { NotificationBell } from '@features/notifications/components/NotificationBell'
 import { useRefreshWorkTracker } from '@hooks/use-work-tracker'
-import { USER_ROLE_LABELS } from '@models/user.model'
 import { logFailure, toUserMessage } from '@services/errors/error-message'
 
 import './Header.scss'
 
 interface HeaderProps {
-  isSidebarCollapsed: boolean
-  /** Collapses the rail on desktop. */
-  onToggleSidebar: () => void
   /** Opens the sliding drawer on small screens. */
   onToggleDrawer: () => void
 }
 
-export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: HeaderProps) {
+/**
+ * The bar over the content, and only over the content.
+ *
+ * It used to span the window and carry five different things: the brand, a rail
+ * collapse, a drawer toggle, three controls, and the signed-in person's name and
+ * role in text. The rail runs the full height of the window now and begins the
+ * layout, so this bar starts where the rail ends — and the control that collapses
+ * the rail went to the rail, which is what it acts on.
+ *
+ * What is left is the application's name and what acts on the application rather
+ * than describing it: re-read the data, what has happened, end the session. All
+ * three are icons with a tooltip and a hidden label, which is what the row of
+ * mixed labelled buttons and text became. Who is signed in is at the foot of the
+ * rail, next to their initials, and is a link to their profile rather than a
+ * caption.
+ */
+export function Header({ onToggleDrawer }: HeaderProps) {
   const { signOut, user } = useAuth()
   const confirm = useConfirm()
   const snackbar = useSnackbar()
@@ -66,48 +78,41 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
 
   return (
     <header className="header">
-      <div className="header__brand">
-        {/* Two controls for two behaviours: a rail collapse on desktop and a
-            drawer on small screens. Each is hidden where it does not apply,
-            so neither has an ambiguous meaning.
+      {/* The application's name lives here rather than at the head of the rail,
+          which is only fifteen rems wide and truncated it to "Team Progress
+          Trac…". The bar has the whole width of the content to spell it out. The
+          rail keeps the workspace line above the navigation.
 
-            The label is the accessible name rather than an `aria-label`, which
-            is what `isIconOnly` means: it is rendered and hidden, so it cannot
-            be forgotten. */}
+          The drawer toggle is here because it is only for the screens where the
+          rail is not on one. Its label is the accessible name rather than an
+          `aria-label`, which is what `isIconOnly` means: it is rendered and
+          hidden, so it cannot be forgotten. */}
+      <div className="header__brand">
         <span className="header__drawer-toggle">
           <Button icon="menu" isIconOnly onClick={onToggleDrawer} variant="inverse">
             Open navigation menu
           </Button>
         </span>
 
-        <span className="header__rail-toggle">
-          <Button
-            aria-pressed={isSidebarCollapsed}
-            icon={isSidebarCollapsed ? 'chevron-right' : 'chevron-left'}
-            isIconOnly
-            onClick={onToggleSidebar}
-            variant="inverse"
-          >
-            {isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          </Button>
-        </span>
-
-        <div>
-          <span className="header__eyebrow">{APP_EYEBROW}</span>
-          <strong className="header__title">{APP_NAME}</strong>
-        </div>
+        <strong className="header__title">{APP_NAME}</strong>
       </div>
 
-      <div className="header__account">
-        {/* One refresh for the whole application rather than one per screen.
-            Every screen renders this shell, so putting it here means it is in
-            the same place on all of them — including the ones that write their
-            own heading, and the placeholders shown when a screen has nothing
-            to display, neither of which has anywhere to hang a button.
+      {/* One guard for the group. Every control in it acts on a session, so there
+          is nothing here to draw without one. */}
+      {user === null ? null : (
+        <div className="header__actions">
+          {/* One refresh for the whole application rather than one per screen.
+              Every screen renders this shell, so putting it here means it is in
+              the same place on all of them — including the ones that write their
+              own heading, and the placeholders shown when a screen has nothing
+              to display, neither of which has anywhere to hang a button.
 
-            It re-reads whatever the current screen is showing because it
-            invalidates the root, so it needs no knowledge of the route. */}
-        {user === null ? null : (
+              It re-reads whatever the current screen is showing because it
+              invalidates the root, so it needs no knowledge of the route.
+
+              `isLoading` rather than `disabled`: with the label hidden, a
+              spinner in place of the icon is the only thing left that can say a
+              refresh is in flight. It disables the control as well. */}
           <Tooltip
             label={
               refresh.error === null
@@ -116,34 +121,33 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
             }
           >
             <Button
-              collapsesLabel
-              disabled={refresh.isPending}
               icon="refresh"
+              isIconOnly
+              isLoading={refresh.isPending}
               onClick={() => refresh.mutate()}
               variant="inverse"
             >
               {refresh.isPending ? 'Refreshing…' : 'Refresh'}
             </Button>
           </Tooltip>
-        )}
 
-        {/* Beside the refresh control rather than out on its own, because both
-            are about what the application knows right now. Renders nothing at
-            all unless the data source can produce notifications, and nothing
-            when signed out. */}
-        {user === null ? null : <NotificationBell />}
+          {/* Beside the refresh control rather than out on its own, because both
+              are about what the application knows right now. Renders nothing at
+              all unless the data source can produce notifications. */}
+          <NotificationBell />
 
-        <div className="header__identity">
-          <span>{user === null ? 'Signed out' : USER_ROLE_LABELS[user.role]}</span>
-          <strong>{user?.name ?? 'Signed out'}</strong>
+          <Tooltip label="Sign out">
+            <Button
+              icon="sign-out"
+              isIconOnly
+              onClick={() => void handleSignOut()}
+              variant="inverse"
+            >
+              Sign out
+            </Button>
+          </Tooltip>
         </div>
-
-        {user === null ? null : (
-          <Button onClick={() => void handleSignOut()} variant="inverse">
-            Sign out
-          </Button>
-        )}
-      </div>
+      )}
     </header>
   )
 }
