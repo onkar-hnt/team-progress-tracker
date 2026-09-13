@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { Button } from '@components/ui/button/Button'
 import { PasswordField } from '@components/ui/field/Field'
-import { FullPageLoader } from '@components/ui/feedback/Feedback'
+import { FullPageLoader } from '@components/ui/full-page-loader/FullPageLoader'
 import { APP_NAME } from '@constants/app.constants'
 import { useAuth } from '@app/providers/auth-context'
 import { PASSWORD_MIN_LENGTH, buildPasswordSchema } from '@services/auth/password-policy'

@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { PropsWithChildren } from 'react'
 
 import { Button } from '@components/ui/button/Button'
-import { FullPageLoader } from '@components/ui/feedback/Feedback'
+import { FullPageLoader } from '@components/ui/full-page-loader/FullPageLoader'
 import { appConfig } from '@config/app.config'
 import {
   chooseWorkbook,
@@ -40,7 +40,7 @@ function LocalWorkbookGate({ children }: PropsWithChildren) {
   }, [])
 
   if (connection.status === 'connected') return <>{children}</>
-  if (connection.status === 'checking') return <FullPageLoader label="Looking for the workbook" />
+  if (connection.status === 'checking') return <FullPageLoader label="Looking for the workbook…" />
 
   async function run(action: () => Promise<void>) {
     setIsBusy(true)

@@ -165,9 +165,9 @@
   /// put and the control does not change width as it starts and finishes.
   ///
   /// `currentcolor` for the moving part and a transparent track, rather than the
-  /// two named colours the full-page spinner uses: this sits inside all six
+  /// named brand colour the waiting screen's bar uses: this sits inside all six
   /// variants, one of which is white on brand blue and another white on the dark
-  /// header, and a fixed pair of colours would disappear into one of them.
+  /// header, and a fixed colour would disappear into one of them.
   &__spinner {
     @include square(1rem);
 
@@ -179,11 +179,11 @@
   }
 }
 
-/// Declared here rather than shared with the full-page spinner in
-/// `Feedback.scss`. Stylesheets are split per component and loaded with the
-/// chunk that imports them, so a button borrowing that file's keyframe would
+/// Declared here rather than shared with the animations in `Feedback.scss` or
+/// `FullPageLoader.scss`. Stylesheets are split per component and loaded with the
+/// chunk that imports them, so a button borrowing another file's keyframe would
 /// spin or sit still depending on whether anything on the screen happened to
-/// render a loader.
+/// render a skeleton or a loader.
 @keyframes button-spin {
   to {
     transform: rotate(1turn);

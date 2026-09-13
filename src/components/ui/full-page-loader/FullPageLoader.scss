@@ -1,0 +1,126 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+/// The waiting screen.
+///
+/// Deliberately the login screen's card at a narrower width: the two are shown
+/// within a second of each other on a cold start, and a wait that looks like the
+/// application reads as progress where a bare spinner on an empty page reads as a
+/// failure. The document does not scroll, so this screen scrolls itself when a
+/// short viewport cannot fit the card.
+.full-page-loader {
+  @include flex($justify: center);
+
+  height: 100%;
+  padding: $space-6;
+  overflow-y: auto;
+  background: $color-surface-subtle;
+
+  &__card {
+    @include grid($gap: $space-4);
+
+    width: 100%;
+    max-width: 22rem;
+    padding: $space-8;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    background: $color-white;
+    box-shadow: $shadow-sm;
+    justify-items: center;
+    text-align: center;
+  }
+
+  /// A filled square rather than the tinted circle the rail uses for a person:
+  /// both are initials, and they should not be mistaken for each other.
+  &__mark {
+    @include flex-center;
+    @include square(3rem);
+
+    border-radius: $radius-lg;
+    color: $color-white;
+    font-size: $font-size-md;
+    font-weight: $font-weight-bold;
+    letter-spacing: $letter-spacing-wide;
+    background: $color-brand;
+  }
+
+  /// The two brand lines belong together, so they are spaced against each other
+  /// rather than by the card's gap.
+  &__words {
+    @include grid($gap: $space-1);
+  }
+
+  &__eyebrow {
+    @include overline($color: $color-brand);
+  }
+
+  &__title {
+    font-size: $font-size-lg;
+  }
+
+  &__track {
+    width: 100%;
+    height: 0.25rem;
+    overflow: hidden;
+    border-radius: $radius-pill;
+    background: $color-surface-sunken;
+  }
+
+  /// Sweeps across and off, rather than filling. `translateX` is a share of the
+  /// bar's own width, so 250% of a bar that is 40% of the track is exactly the
+  /// width of the track: it leaves on the right as it entered on the left.
+  &__bar {
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: $radius-pill;
+    background: $color-brand;
+    animation: full-page-loader-sweep 1.4s ease-in-out infinite;
+  }
+
+  &__status {
+    @include grid($gap: $space-2);
+  }
+
+  &__label {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+  }
+
+  &__note {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  @include respond-to-mobile {
+    padding: $space-4;
+
+    &__card {
+      padding: $space-6;
+    }
+  }
+}
+
+@keyframes full-page-loader-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+/// With the sweep off there is nothing to say the wait is still going, so the bar
+/// fills the track and holds: an inert brand rule under the name, with the message
+/// below it carrying the state on its own.
+@media (prefers-reduced-motion: reduce) {
+
+  .full-page-loader__bar {
+    width: 100%;
+    animation: none;
+  }
+}
