@@ -222,6 +222,25 @@ those rows, through `activityRangeLink`. That is a shortcut rather than the only
 drawing is hidden from assistive technology: the metric cards above are real links to the same
 views.
 
+### Scrolling
+
+The document never scrolls. `body` is `100dvh` and `overflow: hidden`, the shell fills it, and the
+content region inside `AppLayout` is the page scroller — which is what keeps the rail and the bar in
+place while a long report moves under them.
+
+Inside that, some regions scroll on their own: tables at ten rows, entry and comment lists at a
+screenful, the dashboard's two side-by-side panels, the notification popover, dropdown lists, and a
+dialog body. Whether one of those chains to its parent when it reaches its end is the only decision
+that matters, and it goes one way inside the page and the other way in an overlay. `_reset.scss`
+states the rule and the reasoning; the short version is that containment inside the page reads as
+the application freezing, because the reader was scrolling the page and the page had not ended.
+
+None of it is done in script. There are no wheel or touch handlers anywhere in the codebase and
+nothing writes to `body.style.overflow`, so there is no scroll lock that can survive the thing that
+set it. Locking the page behind an open dialog is one CSS rule — `body:has(dialog[open])` in
+`AppLayout.scss` — which stops applying the moment the dialog closes, and the mobile drawer locks
+the same way through its own class.
+
 ### Motion
 
 Animation is written inside `@include motion-safe` — a `prefers-reduced-motion: no-preference`

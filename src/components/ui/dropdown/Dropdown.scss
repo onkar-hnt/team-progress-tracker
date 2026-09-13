@@ -114,6 +114,12 @@
   /// `$space-1` of padding, which is the `LIST_PADDING` the placement subtracts.
   ///
   /// The z-index clears the modal's sticky footer, which sits at 1.
+  ///
+  /// Its scroll is contained: a long list of options is an overlay over something the
+  /// reader means to come back to, and the height is set by the placement script to what
+  /// fits, so there is no case where the list scrolls but should not. The page itself is
+  /// never locked while a list is open — scrolling it simply moves the list with the
+  /// control, which is what `place()` re-runs for.
   &__list {
     position: fixed;
     z-index: $z-popover;

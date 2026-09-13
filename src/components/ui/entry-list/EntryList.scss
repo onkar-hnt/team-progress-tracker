@@ -24,7 +24,10 @@
   list-style: none;
   max-height: 31rem;
   overflow-y: auto;
-  overscroll-behavior: contain;
+
+  /// The end of the list is not the end of the page, so the page takes over from there.
+  /// See `_reset.scss`: containment belongs to overlays, and a panel is not one.
+  overscroll-behavior: auto;
 
   /// Fades in on mount, for the same reason a table row does: it marks the entries that
   /// Show more just added, or that a changed filter just brought in, and stays quiet when

@@ -43,7 +43,11 @@
     padding: 0;
     list-style: none;
     overflow-y: auto;
-    overscroll-behavior: contain;
+
+    /// Chains outward, which here means into the dialog body this sits in — and that is
+    /// contained, so the page behind still does not move. Containment on both would have
+    /// stopped the wheel at the fortieth name with the dialog's own footer still below.
+    overscroll-behavior: auto;
 
     @include respond-to-mobile {
       grid-template-columns: minmax(0, 1fr);

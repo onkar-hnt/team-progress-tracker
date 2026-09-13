@@ -31,6 +31,12 @@
   /// Capped at roughly five rows, then scrolls. Tall enough to show that there
   /// is a list rather than a single message, short enough that the popover never
   /// runs off the bottom of a laptop screen.
+  ///
+  /// Contained, unlike the lists on a page: what is behind a popover is not being read,
+  /// and a flick that carried through to it would mean dismissing the panel to find the
+  /// dashboard somewhere else. One of the three places containment is right — see
+  /// `_reset.scss` — and the page keeps scrolling normally the moment this closes,
+  /// because nothing was locked to make this work.
   &__body {
     max-height: min(26rem, calc(100dvh - #{$header-height} - #{$space-8}));
     padding: $space-3;

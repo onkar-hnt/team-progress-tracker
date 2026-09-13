@@ -80,8 +80,16 @@
     grid-area: content;
     padding: $space-8;
     overflow-y: auto;
-    overscroll-behavior: contain;
     background: $color-surface-subtle;
+
+    /// The outermost scroller, so containment here withholds nothing: the document behind
+    /// it is `overflow: hidden` and cannot scroll whatever it is handed. What it does stop
+    /// is the viewport bounce and pull-to-refresh on a phone, which on a screen whose own
+    /// content is still scrolling reads as the layout coming loose.
+    ///
+    /// This is the one contained region that is not an overlay, and the reason it is not a
+    /// trap: there is nothing above it to trap the reader out of.
+    overscroll-behavior: contain;
 
     /// For a jump somebody asked for: the skip link at the top of the page, an anchor,
     /// a `scrollIntoView` from a control that has just revealed something below the
@@ -150,9 +158,41 @@
       z-index: $z-backdrop;
       background: $color-overlay;
     }
+
+    /// The drawer is an overlay like a dialog, and the same reasoning applies: the scrim
+    /// covers the content but cannot stop a wheel or a flick over it from reaching the
+    /// scroller behind. Released with the class, so there is nothing to clean up.
+    &--drawer-open &__content {
+      overflow: hidden;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+}
+
+/// Nothing behind an open dialog moves.
+///
+/// `showModal()` blocks scrolling of the *document*, and this application's document is not
+/// what scrolls — `__content` is, and a dialog knows nothing about it. So a wheel or a flick
+/// over the backdrop still moved the page underneath: the half of "the background is locked"
+/// that the native dialog does not give us.
+///
+/// Written against `body` rather than nested in the block above, because the dialogs are not
+/// all in the same place. A form's modal is rendered inside the screen that opened it; the
+/// confirmation dialog is one instance mounted by `ConfirmProvider`, which sits above the
+/// router and so above the shell entirely. `body:has()` covers both, and covers the next one
+/// wherever it is mounted.
+///
+/// `:has()` is the whole mechanism, and its virtue is that there is no mechanism: the rule
+/// applies while the attribute is there and stops when it goes. Nothing is stored, so there
+/// is no lock to be left behind by a navigation, an unmount, or two dialogs closing in the
+/// wrong order — which is what goes wrong with the `body.style.overflow` version of this.
+///
+/// The scroll offset survives, because a container turning `hidden` keeps it, and scrollbars
+/// are hidden application-wide so there is no track width to lose. The page is where it was,
+/// at the same width, when the dialog closes.
+body:has(dialog[open]) .app-layout__content {
+  overflow: hidden;
 }

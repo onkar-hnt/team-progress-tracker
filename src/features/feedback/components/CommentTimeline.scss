@@ -20,7 +20,9 @@
   list-style: none;
   max-height: 31rem;
   overflow-y: auto;
-  overscroll-behavior: contain;
+
+  /// Chains to the page at the ends, like the entry lists. See `_reset.scss`.
+  overscroll-behavior: auto;
 
   /// Fades in on mount, so a comment that has just arrived — from Show more, or from
   /// somebody else's feedback landing over the realtime channel — is visibly new.

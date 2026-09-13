@@ -26,13 +26,15 @@
   /// enough for three entries, which is what makes it read as a list that
   /// continues rather than one that has been cut off.
   ///
-  /// `overscroll-behavior` keeps a flick at the end of the list from carrying on
-  /// into the page behind it, which on a touchpad is the difference between
-  /// reading the last entry and losing your place on the dashboard.
+  /// This did contain its scroll, on the theory that a flick carrying into the page
+  /// behind would cost the reader their place. It costs them more the other way: these
+  /// panels are a third of the way down a long dashboard, and stopping the wheel at the
+  /// end of a three-entry list meant the charts below could not be reached from here at
+  /// all. See `_reset.scss` for where containment does belong.
   &__panel-scroll {
     height: 21rem;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior: auto;
 
     /// The list inside caps itself at a screenful elsewhere, and here that would be a
     /// scrolling box inside a scrolling box — where a flick either moves the wrong one

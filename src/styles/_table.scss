@@ -141,7 +141,12 @@
 
     max-height: calc(var(--data-table-header) + var(--data-table-row) * 10);
     overflow: auto;
-    overscroll-behavior: contain;
+
+    /// Reaching the last row hands the scroll back to the page, which is what the reader
+    /// is on their way through. This was `contain` and the wheel stopped dead at row ten,
+    /// on a page that had a summary panel and three more sections below the table. See
+    /// `_reset.scss` for the rule this follows and the one case that goes the other way.
+    overscroll-behavior: auto;
   }
 }
 

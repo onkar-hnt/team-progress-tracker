@@ -60,6 +60,30 @@ select {
     display: none;
 }
 
+/// Where a scroll ends: the one rule every scrolling region in this application follows.
+///
+/// `overscroll-behavior: contain` stops a scroll at the boundary of its own box instead of
+/// handing the rest to whatever is behind it. That is either exactly right or a trap, and
+/// which one it is depends on a single question — is the thing behind it something the
+/// reader is currently reading?
+///
+/// **Inside the page it is a trap, so chaining stays on.** A table capped at ten rows, a
+/// list of entries, a panel on the dashboard: the page continues above and below them, and
+/// containment meant that reaching the last row stopped the wheel dead. The page had not
+/// ended, the region had, and the only way onwards was to move the pointer off it and try
+/// again — a fault reported as "scrolling locks up", which is exactly what it looks like
+/// from the outside. These regions declare `overscroll-behavior: auto` explicitly rather
+/// than leaving the default unsaid, because the default here is a decision.
+///
+/// **In an overlay it is right, so containment stays.** A dialog body, the notification
+/// popover, an open dropdown list: what is behind those is not being read, and letting a
+/// flick carry through to it means closing the overlay to find the page has moved. Three
+/// containers, and they are the only three.
+///
+/// Nowhere is any of this done in script. There are no wheel or touch handlers in this
+/// codebase, and nothing writes to `body.style.overflow` — so there is no scroll lock that
+/// can be left behind by a navigation, an unmount or two overlays closing out of order.
+
 /// Reduced motion, as a floor rather than as a policy.
 ///
 /// Every animation in the application is written inside a `no-preference` query, so
