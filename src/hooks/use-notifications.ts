@@ -89,7 +89,7 @@ export function useMarkAllNotificationsRead(): UseMutationResult<void, Error, vo
  * Which notification types the signed-in person has switched off.
  *
  * An empty array is the answer for anybody who has never changed anything, and
- * it means everything is delivered — so the checkboxes on the Settings screen
+ * it means everything is delivered — so the checkboxes on the Profile screen
  * read this and show the inverse.
  */
 export function useMutedNotificationTypes(): UseQueryResult<NotificationType[]> {

@@ -1,5 +1,5 @@
 import type { AssignedTask, DailyWorkEntry, MentorComment } from '@models/index'
-import type { AppUser } from '@models/user.model'
+import type { AppUser, UserRole } from '@models/user.model'
 
 import type { AccessScope } from './access-scope'
 import { canViewDeveloper } from './access-scope'
@@ -73,6 +73,111 @@ export function canManageMentorAssignments(user: AppUser | null, mentorId: strin
   if (user === null) return false
   if (isAdmin(user)) return true
   return isMentor(user) && user.mentorId === mentorId
+}
+
+/**
+ * Whether the Profile screen offers to manage anybody else's password.
+ *
+ * Admins and mentors, which is not the same as saying they may reset any
+ * particular person — see `canResetPasswordFor`. This answers only whether the
+ * panel is worth drawing at all.
+ */
+export function canManagePasswords(user: AppUser | null): boolean {
+  return isAdmin(user) || isMentor(user)
+}
+
+/**
+ * Somebody whose password could be reset, as much of them as the decision needs.
+ *
+ * `id` is the business row — `developers.id` or `mentors.id` — and never a
+ * profile id, matching what the Edge Function accepts.
+ */
+export interface PasswordResetTarget {
+  kind: 'developer' | 'mentor'
+
+  id: string
+
+  /** Absent when there is no login yet, and so no password to reset. */
+  profileId?: string
+
+  /** The access role on their profile, where the record carries it. */
+  accessRole?: UserRole
+
+  /**
+   * Whether this developer also holds a mentor record.
+   *
+   * One person can be both. The database refuses a mentor against anybody with a
+   * mentor record whatever their profile role says, so the interface has to know
+   * the same thing or it would offer a button the server declines.
+   */
+  isAlsoMentor?: boolean
+}
+
+/**
+ * Whether `user` may set the password of one particular person.
+ *
+ * The mirror of `public.may_reset_password`, which is the authority: this decides
+ * what to draw, that decides what happens. Both are written out in full rather
+ * than one deriving from the other, because they answer at different moments —
+ * this one against a list already on screen, that one against the database at the
+ * instant of the write.
+ *
+ * An admin may reset any developer or mentor. A mentor may reset a developer
+ * assigned to them, and only somebody who is a developer and nothing else.
+ * Nobody resets an administrator, and nobody resets themselves from here: your
+ * own password is changed on the password screen, which proves the session
+ * belongs to you rather than proving anything about a role.
+ */
+export function canResetPasswordFor(
+  user: AppUser | null,
+  scope: AccessScope | null,
+  target: PasswordResetTarget,
+): boolean {
+  // No login, nothing to reset. That person needs Create login, which issues a
+  // password of its own — a separate act, on a separate screen.
+  if (target.profileId === undefined) return false
+
+  return isPasswordResetCandidate(user, scope, target)
+}
+
+/**
+ * The same question, leaving aside whether a login exists yet.
+ *
+ * Split out so a screen can list everybody it is responsible for and say why two
+ * of them have no Reset control, rather than silently omitting them and leaving a
+ * mentor wondering where somebody went. Only `canResetPasswordFor` decides
+ * whether the control is offered.
+ */
+export function isPasswordResetCandidate(
+  user: AppUser | null,
+  scope: AccessScope | null,
+  target: PasswordResetTarget,
+): boolean {
+  if (user === null) return false
+
+  if (target.accessRole === 'admin') return false
+
+  // Yourself, by whichever record you are looking at. `AppUser` carries the two
+  // business ids rather than a profile id, and comparing those is the same
+  // question the database asks of the profiles behind them.
+  const isSelf =
+    target.kind === 'developer' ? target.id === user.developerId : target.id === user.mentorId
+
+  if (isSelf) return false
+
+  if (isAdmin(user)) return true
+  if (!isMentor(user)) return false
+
+  // Somebody who is a developer and nothing else, by all three of the things
+  // that can say otherwise: the record they are listed through, a mentor record
+  // under the same login, and the access role on their profile — which is what
+  // the database compares, so a developer row carrying `mentor` there is one this
+  // would otherwise offer and the server would refuse.
+  if (target.kind !== 'developer') return false
+  if (target.isAlsoMentor === true) return false
+  if (target.accessRole !== undefined && target.accessRole !== 'developer') return false
+
+  return scope !== null && canViewDeveloper(scope, target.id)
 }
 
 /** Mentors record feedback; an admin can too, on anyone's behalf. */

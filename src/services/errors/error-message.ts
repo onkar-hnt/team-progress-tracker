@@ -9,6 +9,7 @@ import {
   SchemaMismatchError,
 } from '@services/data-provider/data-provider.errors'
 import type { ReferenceField } from '@services/data-provider/data-provider.errors'
+import { ProvisioningError } from '@services/provisioning/provision-login'
 
 /**
  * The one place a failure is turned into a sentence for the person who caused
@@ -86,6 +87,13 @@ export function toUserMessage(error: unknown, fallback: string): string {
   // `DataSourceUnavailableError`, `ReadOnlyDataSourceError` and
   // `WorkbookRowNotFoundError` explain a situation rather than a fault.
   if (error instanceof DataProviderError || error instanceof AuthError) return error.message
+
+  // The same criterion, applied to the privileged Edge Function calls. Every one
+  // of these messages is composed for whoever pressed the button — "the function
+  // is not deployed", "you may not reset this password" — and each names what did
+  // not happen as a result. Replacing that with a caller's fallback would throw
+  // away the only sentence that says what to do next.
+  if (error instanceof ProvisioningError) return error.message
 
   return fallback
 }

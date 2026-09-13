@@ -1,7 +1,7 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-.settings {
+.profile {
   @include page-stack;
 
   &__facts {
@@ -23,14 +23,6 @@
       margin: $space-1 0 0;
       font-weight: $font-weight-semibold;
     }
-  }
-
-  &__value--positive {
-    color: $color-success;
-  }
-
-  &__value--attention {
-    color: $color-warning;
   }
 
   &__actions {

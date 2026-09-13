@@ -75,6 +75,57 @@
     grid-column: 1 / -1;
   }
 
+  /// A password input and the control that reveals it.
+  ///
+  /// The button is positioned over the input rather than placed beside it in a
+  /// flex row, so the field keeps the width, height, border and focus ring every
+  /// other control in `__field` has: a two-item row would have needed its own
+  /// border around the pair, and then an invalid password would have marked the
+  /// input inside instead of the field you can see.
+  ///
+  /// The input's right padding is what stops the text running under the button.
+  /// It is the button's width plus the gap, and both are stated here rather than
+  /// eyeballed, so a larger icon cannot quietly start overlapping the value.
+  &__password {
+    position: relative;
+    display: grid;
+
+    input {
+      padding-right: calc(#{$space-3} + 2.25rem);
+    }
+  }
+
+  &__password-toggle {
+    position: absolute;
+    top: 50%;
+    right: $space-2;
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: $radius-sm;
+    color: $color-text-muted;
+    background: none;
+    place-items: center;
+    transform: translateY(-50%);
+    cursor: pointer;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-text;
+    }
+
+    /// Inset, because the control sits on top of the input's own border: an
+    /// outline drawn outside would trace the button and the border together and
+    /// read as one thick smudge.
+    &:focus-visible {
+      outline: 2px solid $color-brand;
+      outline-offset: -2px;
+      color: $color-text;
+    }
+  }
+
   &__hint {
     margin: 0;
     color: $color-text-muted;

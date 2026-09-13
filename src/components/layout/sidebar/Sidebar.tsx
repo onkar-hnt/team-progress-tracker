@@ -83,7 +83,6 @@ const navigationGroups: readonly NavigationGroup[] = [
       { label: 'Employees', path: '/admin/employees', icon: 'users', isVisible: canManageTeam },
       { label: 'Projects', path: '/admin/projects', icon: 'projects', isVisible: canManageTeam },
       { label: 'Tasks', path: '/admin/tasks', icon: 'tasks', isVisible: canManageTeam },
-      { label: 'Settings', path: '/settings', icon: 'settings', isVisible: canManageTeam },
     ],
   },
 ]
@@ -93,6 +92,83 @@ interface SidebarProps {
   isDrawerOpen: boolean
   /** Lets the shell dismiss the mobile drawer once a link is followed. */
   onNavigate: () => void
+}
+
+/**
+ * Somebody's initials, for the avatar at the foot of the rail.
+ *
+ * The first letter of the first word and of the last, so "Shubham Deshmukh" gives
+ * SD and a one-word name gives one letter rather than two from the same word. Two
+ * is the limit because the circle is sized for two: a third would either shrink
+ * the text below legibility or widen the rail.
+ *
+ * Falls back to the local part of the address, and then to a dash, so the circle
+ * is never empty. It is decorative in any case — the link is named by the text
+ * beside it, which is why this is `aria-hidden` at the call site.
+ */
+function initialsFrom(name: string, email: string): string {
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word !== '')
+
+  const first = words[0]?.[0] ?? email.trim()[0] ?? '-'
+  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : ''
+
+  return `${first}${last}`.toUpperCase()
+}
+
+/**
+ * The signed-in person, and the way to their own profile.
+ *
+ * At the foot of the rail rather than in a group, which is where an account
+ * control is looked for, and separated from the navigation above it because it is
+ * about the reader rather than about the work. It replaced a "Settings" link
+ * under Administration that only administrators and mentors could see — the
+ * screen behind it is now mostly a person's own account, so everybody has one and
+ * it is reached through their own name.
+ *
+ * Rendered here rather than added to `navigationGroups`, because it is the one
+ * entry drawn from data instead of from a fixed list: an avatar of initials in
+ * place of an icon, and the person's name in place of a label.
+ */
+function ProfileLink({
+  isCollapsed,
+  onNavigate,
+  user,
+}: {
+  isCollapsed: boolean
+  onNavigate: () => void
+  user: AppUser
+}) {
+  return (
+    <div className="sidebar__footer">
+      <Tooltip label={isCollapsed ? `${user.name} — Profile` : ''} side="right">
+        <NavLink
+          className={({ isActive }) =>
+            `sidebar__link sidebar__link--profile${isActive ? ' sidebar__link--active' : ''}`
+          }
+          onClick={onNavigate}
+          to="/profile"
+          // Collapsed, the name and the word Profile are both out of the layout,
+          // so the link would otherwise be named by two hidden letters.
+          {...(isCollapsed ? { 'aria-label': `Profile: ${user.name}` } : {})}
+        >
+          <span aria-hidden="true" className="sidebar__avatar">
+            {initialsFrom(user.name, user.email)}
+          </span>
+
+          {/* Two lines: who, then where the link goes. The name alone would leave
+              the destination to be guessed from an avatar, and "Profile" alone
+              would waste the one place the rail can say who is signed in. */}
+          <span className="sidebar__label sidebar__label--profile">
+            <span className="sidebar__person">{user.name}</span>
+            <span className="sidebar__caption">Profile</span>
+          </span>
+        </NavLink>
+      </Tooltip>
+    </div>
+  )
 }
 
 export function Sidebar({ isCollapsed, isDrawerOpen, onNavigate }: SidebarProps) {
@@ -153,6 +229,14 @@ export function Sidebar({ isCollapsed, isDrawerOpen, onNavigate }: SidebarProps)
           </div>
         ))}
       </nav>
+
+      {/* Outside the `<nav>`: it is an account control rather than one of the
+          places the application goes, and `nav` landmarks are read out as a list
+          of destinations. Absent only where there is no session to describe,
+          which is a state this shell is never mounted in. */}
+      {user === null ? null : (
+        <ProfileLink isCollapsed={isCollapsed} onNavigate={onNavigate} user={user} />
+      )}
     </aside>
   )
 }

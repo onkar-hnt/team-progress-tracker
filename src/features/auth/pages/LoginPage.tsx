@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
-import { TextField } from '@components/ui/field/Field'
+import { PasswordField, TextField } from '@components/ui/field/Field'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { APP_NAME } from '@constants/app.constants'
 import { bootstrapAdmin } from '@services/auth/bootstrap-admin'
@@ -196,12 +196,14 @@ function PasswordForm({
         {...register('email')}
       />
 
-      <TextField
+      {/* No minimum length checked here, deliberately. This field takes a
+          password that already exists, and refusing a short one would only
+          replace "that was wrong" with a rule the account may predate. */}
+      <PasswordField
         autoComplete="current-password"
         error={errors.password?.message}
         id="login-password"
         label="Password"
-        type="password"
         {...register('password')}
       />
 

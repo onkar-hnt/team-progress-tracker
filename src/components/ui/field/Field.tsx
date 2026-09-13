@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import type { ComponentPropsWithRef, ReactNode } from 'react'
+
+import { Icon } from '@components/ui/icons/Icon'
 
 /**
  * A labelled form control.
@@ -90,6 +93,68 @@ export function TextField({ error, hint, id, isWide, label, ...input }: TextFiel
   return (
     <Field error={error} hint={hint} htmlFor={id} isWide={isWide} label={label}>
       <input id={id} {...invalidProps(id, error)} {...input} />
+    </Field>
+  )
+}
+
+type PasswordFieldProps = ControlOwnProps &
+  Omit<
+    ComponentPropsWithRef<'input'>,
+    'aria-describedby' | 'aria-invalid' | 'className' | 'id' | 'type'
+  >
+
+/**
+ * A password input with a control to reveal what has been typed.
+ *
+ * One implementation for every password on every screen — signing in, choosing
+ * a password, confirming it, and an administrator setting somebody else's. Each
+ * instance holds its own visibility, so a form with New and Confirm side by side
+ * reveals them independently: seeing one while the other stays masked is how you
+ * check a mismatch without putting both on screen.
+ *
+ * Masked on arrival, always. The state is local and starts `false`, so nothing
+ * can arrive revealed — there is no prop to ask for that, deliberately.
+ *
+ * `type` is not accepted from the caller, because it is the one prop this
+ * component exists to own.
+ *
+ * A real `<button>` rather than an icon with a click handler, so it is reachable
+ * by Tab and operated by Enter or Space without any of that being written here.
+ * `type="button"` keeps it from submitting the form it sits in — the same
+ * mistake `Button` defends against, repeated here because this is a bare element.
+ */
+export function PasswordField({ error, hint, id, isWide, label, ...input }: PasswordFieldProps) {
+  const [isVisible, setIsVisible] = useState(false)
+
+  return (
+    <Field error={error} hint={hint} htmlFor={id} isWide={isWide} label={label}>
+      <div className="form__password">
+        <input
+          id={id}
+          type={isVisible ? 'text' : 'password'}
+          {...invalidProps(id, error)}
+          {...input}
+        />
+
+        {/* Named by `aria-label` rather than by visible text, and the name
+            changes with the state: a control called "Show password" that is
+            already showing it would describe the wrong thing. No `aria-pressed`
+            alongside, because the two would announce the same state twice and
+            could contradict each other. */}
+        <button
+          aria-label={isVisible ? 'Hide password' : 'Show password'}
+          className="form__password-toggle"
+          onClick={() => {
+            setIsVisible(!isVisible)
+          }}
+          // Left out of the tab order after the field it belongs to would be
+          // wrong, but so would interrupting a Tab from New to Confirm. It sits
+          // where the DOM puts it: immediately after its own input.
+          type="button"
+        >
+          <Icon name={isVisible ? 'eye-off' : 'eye'} size={18} />
+        </button>
+      </div>
     </Field>
   )
 }

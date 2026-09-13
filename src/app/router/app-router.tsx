@@ -56,8 +56,8 @@ const AdminTasksPage = lazy(async () => ({
 const ReportsPage = lazy(async () => ({
   default: (await import('@features/reports/pages/ReportsPage')).ReportsPage,
 }))
-const SettingsPage = lazy(async () => ({
-  default: (await import('@features/settings/pages/SettingsPage')).SettingsPage,
+const ProfilePage = lazy(async () => ({
+  default: (await import('@features/profile/pages/ProfilePage')).ProfilePage,
 }))
 const TeamActivityPage = lazy(async () => ({
   default: (await import('@features/team-activity/pages/TeamActivityPage')).TeamActivityPage,
@@ -131,6 +131,14 @@ function LazyRoutes() {
       <Route path="my-tasks" element={<MyTasksPage />} />
       <Route path="developers/:developerId" element={<DeveloperDetailsPage />} />
 
+      {/* Open to everybody, because it holds each person's own account and their
+          own notification choices. It was `settings`, behind
+          `RequireTeamManagement`, while all it held was workbook diagnostics. The
+          panel that manages other people's passwords decides for itself whether to
+          render, and the Edge Function behind it asks the database rather than
+          trusting either. */}
+      <Route path="profile" element={<ProfilePage />} />
+
       <Route element={<RequireTeamAccess />}>
         <Route path="team-activity" element={<TeamActivityPage />} />
         <Route path="developers" element={<DevelopersPage />} />
@@ -146,7 +154,6 @@ function LazyRoutes() {
         <Route path="admin/employees" element={<AdminEmployeesPage />} />
         <Route path="admin/projects" element={<AdminProjectsPage />} />
         <Route path="admin/tasks" element={<AdminTasksPage />} />
-        <Route path="settings" element={<SettingsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate replace to="/dashboard" />} />

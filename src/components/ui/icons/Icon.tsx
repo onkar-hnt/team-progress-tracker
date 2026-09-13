@@ -23,6 +23,8 @@ export type IconName =
   | 'comments'
   | 'dashboard'
   | 'download'
+  | 'eye'
+  | 'eye-off'
   | 'filter'
   | 'inbox'
   | 'info'
@@ -30,7 +32,6 @@ export type IconName =
   | 'mentors'
   | 'projects'
   | 'refresh'
-  | 'settings'
   | 'table'
   | 'tasks'
   | 'users'
@@ -91,14 +92,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M7 20v-7M12 20V6M17 20v-10" />
     </>
   ),
-  settings: (
-    <>
-      <path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h9M17 17h3" />
-      <circle cx="16" cy="7" r="2" />
-      <circle cx="10" cy="12" r="2" />
-      <circle cx="15" cy="17" r="2" />
-    </>
-  ),
   table: (
     <>
       <rect height="16" rx="2" width="18" x="3" y="4" />
@@ -143,6 +136,24 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M12 4v10.5" />
       <path d="M7.5 10.5 12 15l4.5-4.5" />
       <path d="M5 19h14" />
+    </>
+  ),
+
+  // The pair on the password toggle. Drawn as one lens shape so the two read as
+  // the same object with and without a line through it, which is what makes the
+  // state legible at a glance rather than only from the label.
+  eye: (
+    <>
+      <path d="M2.5 12C4.8 8 8.1 6 12 6s7.2 2 9.5 6c-2.3 4-5.6 6-9.5 6s-7.2-2-9.5-6z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  'eye-off': (
+    <>
+      <path d="M10.6 6.2A9.7 9.7 0 0 1 12 6c3.9 0 7.2 2 9.5 6a15.6 15.6 0 0 1-2.7 3.5" />
+      <path d="M6.4 8C4.7 9 3.4 10.3 2.5 12c2.3 4 5.6 6 9.5 6a9.4 9.4 0 0 0 3.2-.5" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+      <path d="M3.5 3.5l17 17" />
     </>
   ),
 

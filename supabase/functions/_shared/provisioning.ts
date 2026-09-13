@@ -130,7 +130,7 @@ interface TargetRow {
  * supplied as a secret even deliberately — the `SUPABASE_` prefix is
  * reserved, so `secrets set` refuses those names.
  */
-function readPrivilegedKey(): { key: string | undefined; source: string } {
+export function readPrivilegedKey(): { key: string | undefined; source: string } {
   // The legacy variable first, despite being the deprecated path, because it
   // holds exactly one key and so cannot be read wrongly. The dictionary can:
   // it may carry several keys, and picking by position means a platform-side
@@ -169,7 +169,7 @@ function readPrivilegedKey(): { key: string | undefined; source: string } {
   return { key: undefined, source: 'none' }
 }
 
-function corsHeaders(origin: string | null, request?: Request): Record<string, string> {
+export function corsHeaders(origin: string | null, request?: Request): Record<string, string> {
   if (origin === null || !ALLOWED_ORIGINS.has(origin)) return {}
 
   // Reflected rather than listed. `supabase-js` attaches its own headers to
@@ -196,7 +196,7 @@ function corsHeaders(origin: string | null, request?: Request): Record<string, s
   }
 }
 
-function json(body: unknown, status: number, origin: string | null): Response {
+export function json(body: unknown, status: number, origin: string | null): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
@@ -209,7 +209,7 @@ function json(body: unknown, status: number, origin: string | null): Response {
  * `code` is what the frontend switches on; `message` is what it shows. Both
  * are written for an administrator, not a developer reading logs.
  */
-function failure(
+export function failure(
   code: string,
   message: string,
   status: number,
@@ -227,7 +227,7 @@ function failure(
  * when the real problem is a misconfigured key on this side — and from the
  * browser the two are indistinguishable.
  */
-type CallerRejection =
+export type CallerRejection =
   /** No bearer token on the request at all. */
   | 'missing-header'
   /** The auth server would not resolve the token to a user. */
@@ -250,7 +250,7 @@ type CallerRejection =
  * developer and mentor, and an address already belonging to an administrator
  * is turned away below.
  */
-async function resolvePrivilegedCaller(
+export async function resolvePrivilegedCaller(
   admin: SupabaseClient,
   request: Request,
   supabaseUrl: string,
@@ -325,8 +325,18 @@ async function resolvePrivilegedCaller(
   return { user: { id: user.id } }
 }
 
-/** Each rejection gets the status and the wording that actually fits it. */
-function describeRejection(rejection: CallerRejection): { status: number; message: string } {
+/**
+ * Each rejection gets the status and the wording that actually fits it.
+ *
+ * `action` names what was being attempted, because these messages are read by
+ * whoever pressed the button and "may provision logins" is the wrong sentence in
+ * front of somebody who was resetting a password. Defaulted so the provisioning
+ * entry points read exactly as they did.
+ */
+export function describeRejection(
+  rejection: CallerRejection,
+  action = 'provision logins',
+): { status: number; message: string } {
   switch (rejection) {
     case 'missing-header':
       return { status: 401, message: 'The request carried no sign-in token. Sign in again.' }
@@ -344,7 +354,7 @@ function describeRejection(rejection: CallerRejection): { status: number; messag
     case 'not-privileged':
       return {
         status: 403,
-        message: 'Only an active administrator or mentor may provision logins.',
+        message: `Only an active administrator or mentor may ${action}.`,
       }
   }
 }

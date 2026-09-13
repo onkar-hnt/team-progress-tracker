@@ -51,12 +51,18 @@ export interface ProvisionResult {
 }
 
 /**
- * A provisioning attempt that failed, carrying enough to act on.
+ * A privileged account operation that failed, carrying enough to act on.
  *
  * `authUserId` is present only for the one failure worth separating: the
  * account was created but could not be attached to the record. Retrying is
  * safe — the function finds the existing account instead of making a second
  * one — but an administrator should know an account is out there.
+ *
+ * Named for provisioning because that is what it was written for, and kept as
+ * one class now that password resets travel the same road: same transport, same
+ * session handling, same structured failure body, and the same `code` for a
+ * screen to switch on. `toUserMessage` passes its message through, because these
+ * are written for whoever pressed the button.
  */
 export class ProvisioningError extends Error {
   readonly code: string
@@ -94,7 +100,11 @@ interface FailureBody {
  * likeliest outcome and the one worth naming rather than describing as a
  * failure to try again.
  */
-async function describeFailure(error: unknown, functionName: string): Promise<ProvisioningError> {
+async function describeFailure(
+  error: unknown,
+  functionName: string,
+  nothingHappened: string,
+): Promise<ProvisioningError> {
   const context = (error as { context?: unknown }).context
 
   if (context instanceof Response) {
@@ -116,13 +126,13 @@ async function describeFailure(error: unknown, functionName: string): Promise<Pr
 
     if (context.status === 404) {
       return new ProvisioningError(
-        `The provisioning service is not deployed, so no login could be created. Deploy the ${functionName} function, then retry.`,
+        `The ${functionName} function is not deployed, so ${nothingHappened}. Deploy it, then retry.`,
         'not-deployed',
       )
     }
 
     return new ProvisioningError(
-      `The provisioning service refused the request (HTTP ${context.status}).`,
+      `The server refused the request (HTTP ${context.status}), so ${nothingHappened}.`,
       'http-error',
     )
   }
@@ -131,7 +141,7 @@ async function describeFailure(error: unknown, functionName: string): Promise<Pr
   // with a 404 that carries no CORS headers, so the browser blocks it and the
   // status never arrives — indistinguishable here from being offline.
   return new ProvisioningError(
-    'The provisioning service could not be reached, so no login was created. If it has not been deployed yet that is the cause; otherwise check the network connection and the function logs.',
+    `The ${functionName} function could not be reached, so ${nothingHappened}. If it has not been deployed yet that is the cause; otherwise check the network connection and the function logs.`,
     'unreachable',
   )
 }
@@ -145,7 +155,35 @@ function isResult(value: unknown): value is ProvisionResult {
 }
 
 /**
- * Invokes a provisioning function with the administrator's own token.
+ * A call to one of the privileged Edge Functions.
+ *
+ * Parameterised rather than written twice: provisioning a login and resetting a
+ * password differ in the function they reach and the answer they expect, and in
+ * nothing else. Everything below — the bearer token, the pre-emptive refresh, the
+ * one retry behind a revoked session, and the diagnosis of a function that is not
+ * deployed — applies identically to both, and is the part that took the longest
+ * to get right.
+ */
+export interface PrivilegedCall<TResult> {
+  functionName: string
+
+  body: Record<string, string>
+
+  /**
+   * Completes "…, so X." — "no login was created", "no password was changed".
+   *
+   * Every failure message here has to say what did *not* happen, because that is
+   * the thing the reader needs to know before deciding whether to retry. The
+   * phrase belongs to the caller, since only the caller knows what it was doing.
+   */
+  nothingHappened: string
+
+  /** What a successful answer looks like, checked rather than assumed. */
+  isExpected: (value: unknown) => value is TResult
+}
+
+/**
+ * Invokes a privileged function with the caller's own token.
  *
  * `functions.invoke` starts from the client's default headers, which already
  * carry `Authorization: Bearer <publishable key>`, and the auth-aware fetch
@@ -155,10 +193,12 @@ function isResult(value: unknown): value is ProvisionResult {
  * cannot identify the caller at all, which is indistinguishable from an
  * expired session. Hence the header by hand.
  */
-export async function invokeProvisioning(
-  functionName: string,
-  body: Record<string, string>,
-): Promise<ProvisionResult> {
+export async function invokePrivilegedFunction<TResult>({
+  body,
+  functionName,
+  isExpected,
+  nothingHappened,
+}: PrivilegedCall<TResult>): Promise<TResult> {
   const client = getSupabaseClient()
 
   const {
@@ -167,7 +207,7 @@ export async function invokeProvisioning(
 
   if (session === null) {
     throw new ProvisioningError(
-      'Your session has expired, so the login could not be created. Sign in again and retry.',
+      `Your session has expired, so ${nothingHappened}. Sign in again and retry.`,
       'no-session',
     )
   }
@@ -187,7 +227,7 @@ export async function invokeProvisioning(
 
     if (renewError !== null || renewed.session === null) {
       throw new ProvisioningError(
-        'Your session could not be renewed, so the login was not created. Sign out, sign in again, and retry.',
+        `Your session could not be renewed, so ${nothingHappened}. Sign out, sign in again, and retry.`,
         'session-expired',
       )
     }
@@ -213,7 +253,7 @@ export async function invokeProvisioning(
   // that refuses. Left alone this persists until the token expires an hour
   // later, and no amount of retrying the action helps.
   if (error !== null) {
-    const failure = await describeFailure(error, functionName)
+    const failure = await describeFailure(error, functionName, nothingHappened)
 
     if (failure.code !== 'invalid-token') throw failure
 
@@ -221,17 +261,17 @@ export async function invokeProvisioning(
 
     if (renewError !== null || renewed.session === null) {
       throw new ProvisioningError(
-        'Your sign-in is no longer valid on the server, so no login was created. This happens when a session is ended elsewhere. Sign out, sign in again, and retry.',
+        `Your sign-in is no longer valid on the server, so ${nothingHappened}. This happens when a session is ended elsewhere. Sign out, sign in again, and retry.`,
         'session-revoked',
       )
     }
 
     ;({ data, error } = await send(renewed.session.access_token))
 
-    if (error !== null) throw await describeFailure(error, functionName)
+    if (error !== null) throw await describeFailure(error, functionName, nothingHappened)
   }
 
-  if (!isResult(data)) {
+  if (!isExpected(data)) {
     throw new ProvisioningError(
       'The server gave an unexpected answer, so the account state is unknown. Refresh before retrying.',
       'unexpected-response',
@@ -239,4 +279,22 @@ export async function invokeProvisioning(
   }
 
   return data
+}
+
+/**
+ * Provisioning, as one of those calls.
+ *
+ * Kept as its own function so the two provisioning modules read as they did and
+ * state the expected shape once between them.
+ */
+export async function invokeProvisioning(
+  functionName: string,
+  body: Record<string, string>,
+): Promise<ProvisionResult> {
+  return invokePrivilegedFunction({
+    functionName,
+    body,
+    nothingHappened: 'no login was created',
+    isExpected: isResult,
+  })
 }

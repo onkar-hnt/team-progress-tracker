@@ -267,7 +267,7 @@ function requireSheet(workbook: Workbook, sheetName: string): Worksheet {
     const expected = WORKBOOK_TEMPLATE.map((template) => template.sheetName).join(', ')
     throw new DataSourceUnavailableError(
       `The workbook has no sheet named "${sheetName}". It must contain: ${expected}. ` +
-        'Use "Download starter workbook" in Settings to get a correctly structured file.',
+        'Choose an empty workbook instead and the application will create the sheets itself.',
     )
   }
 

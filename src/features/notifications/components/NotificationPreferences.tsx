@@ -13,10 +13,10 @@ import './NotificationPreferences.scss'
 /**
  * Which notifications somebody wants.
  *
- * Lives with the notifications feature rather than with the Settings page that
+ * Lives with the notifications feature rather than with the Profile page that
  * renders it, because the wording of each line has to stay next to the triggers
  * that produce the notification — "somebody else changes the status of your task"
- * is a claim about `notify_task_status_change`, not about a settings screen. The
+ * is a claim about `notify_task_status_change`, not about the page it appears on. The
  * page composes it the same way the header composes the bell.
  *
  * Stored as the types that are *off* and shown as the ones that are *on*, so the

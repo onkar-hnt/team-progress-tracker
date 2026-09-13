@@ -2,70 +2,19 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
-import { z } from 'zod'
 
 import { Button } from '@components/ui/button/Button'
-import { TextField } from '@components/ui/field/Field'
+import { PasswordField } from '@components/ui/field/Field'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { APP_NAME } from '@constants/app.constants'
 import { useAuth } from '@app/providers/auth-context'
-import { initialPasswordFor } from '@services/auth/initial-password'
+import { PASSWORD_MIN_LENGTH, buildPasswordSchema } from '@services/auth/password-policy'
+import type { PasswordFormValues } from '@services/auth/password-policy'
 import { clearInviteLink, readInviteLink } from '@services/auth/invite-link'
 import type { InviteLink } from '@services/auth/invite-link'
 import { getSupabaseClient } from '@services/supabase/index'
 
 import './LoginPage.scss'
-
-/**
- * Twelve rather than Supabase's default six.
- *
- * This is the one moment the application gets to insist, and the account it
- * protects can log work attributed to a named person.
- */
-const PASSWORD_MIN = 12
-
-/**
- * The schema, built around the name the temporary password was derived from.
- *
- * Taking the name as an argument rather than reading it inside keeps the
- * rejection a plain validation error shown under the field, instead of a
- * round trip that comes back as a database exception. `null` when the name is
- * not known, in which case the check is simply not made — the database
- * repeats it, and it is the authority.
- */
-function buildSchema(name: string | null) {
-  const temporary = name === null ? null : initialPasswordFor(name)
-
-  return z
-    .object({
-      password: z
-        .string()
-        .min(PASSWORD_MIN, { message: `Use at least ${PASSWORD_MIN} characters` }),
-      confirmation: z.string(),
-    })
-    .superRefine((values, ctx) => {
-      // Compared case-insensitively. The rule preserves the capitalisation of
-      // the name, so "shubham@123" is not the issued password — but it is the
-      // same guess, and letting it through would defeat the point.
-      if (temporary !== null && values.password.toLowerCase() === temporary.toLowerCase()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['password'],
-          message: 'Choose something other than the temporary password you were given',
-        })
-      }
-
-      if (values.password !== values.confirmation) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['confirmation'],
-          message: 'Both entries must match',
-        })
-      }
-    })
-}
-
-type SetPasswordValues = { password: string; confirmation: string }
 
 type Stage =
   /** Holding a link whose tokens have not yet been exchanged for a session. */
@@ -272,8 +221,8 @@ function PasswordForm({
     formState: { errors, isSubmitting },
     handleSubmit,
     register,
-  } = useForm<SetPasswordValues>({
-    resolver: zodResolver(buildSchema(name)),
+  } = useForm<PasswordFormValues>({
+    resolver: zodResolver(buildPasswordSchema(name)),
     defaultValues: { password: '', confirmation: '' },
   })
 
@@ -320,21 +269,20 @@ function PasswordForm({
 
   return (
     <form className="login__form" noValidate onSubmit={onSubmit}>
-      <TextField
+      <PasswordField
         autoComplete="new-password"
         error={errors.password?.message}
+        hint={`At least ${String(PASSWORD_MIN_LENGTH)} characters.`}
         id="new-password"
         label="New password"
-        type="password"
         {...register('password')}
       />
 
-      <TextField
+      <PasswordField
         autoComplete="new-password"
         error={errors.confirmation?.message}
         id="confirm-password"
         label="Confirm password"
-        type="password"
         {...register('confirmation')}
       />
 

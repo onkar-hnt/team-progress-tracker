@@ -1,7 +1,16 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
+/// A column rather than a block, so the profile link can be pushed to the foot of
+/// the rail by `margin-top: auto` instead of by a height nobody can maintain. It
+/// still scrolls: when the navigation is taller than the viewport the footer
+/// simply follows it down, which is better than a pinned bar eating rows on a
+/// short window.
 .sidebar {
+  /// `$align: null` matters: the mixin centres by default, which would shrink
+  /// every group to the width of its widest label.
+  @include flex($direction: column, $align: null);
+
   padding: $space-6 $space-4;
   overflow-x: hidden;
   overflow-y: auto;
@@ -63,6 +72,61 @@
     overflow: hidden;
   }
 
+  /// ---------------------------------------------------------------------------
+  /// The profile link
+  /// ---------------------------------------------------------------------------
+
+  /// `margin-top: auto` is what puts it at the bottom; the border is what stops
+  /// it reading as one more navigation row.
+  &__footer {
+    margin-top: auto;
+    padding-top: $space-4;
+    border-top: 1px solid $color-border;
+  }
+
+  /// Taller than a navigation row because it carries two lines, and the avatar
+  /// sets the height in any case.
+  &__link--profile {
+    padding-block: $space-2;
+  }
+
+  /// A circle of initials in place of an icon. Fixed size rather than padded
+  /// text, so two letters and one letter produce the same circle — a rail of
+  /// avatars that changed width by name would be worse than no avatar.
+  &__avatar {
+    @include flex-center;
+    @include square(2rem);
+
+    flex-shrink: 0;
+    border-radius: $radius-pill;
+    color: $color-brand;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    background: $color-brand-light;
+  }
+
+  &__label--profile {
+    @include grid;
+
+    min-width: 0;
+  }
+
+  /// Ellipsised rather than wrapped. A long name would otherwise push the
+  /// caption out of the rail, and the whole name is in the tooltip and on the
+  /// screen the link leads to.
+  &__person {
+    overflow: hidden;
+    font-size: $font-size-sm;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__caption {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+  }
+
   /// Collapsed rail: icons only, centred, labels removed from the layout so
   /// they cannot force the rail wider.
   &--collapsed {
@@ -114,6 +178,12 @@
 
       .sidebar__label {
         display: inline;
+      }
+
+      /// Two stacked lines, so it cannot inherit the `inline` above — which
+      /// would run the name and the caption together on one line.
+      .sidebar__label--profile {
+        display: grid;
       }
 
       .sidebar__heading {
