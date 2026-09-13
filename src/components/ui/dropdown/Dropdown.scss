@@ -1,9 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// Matches the native controls it replaces — same padding, border, radius and
-/// focus ring as `input` and `select` in `_form.scss` — so a form with one of
-/// each does not look like two different forms.
 .dropdown {
   position: relative;
 
@@ -45,15 +42,12 @@
       cursor: not-allowed;
     }
 
-    /// The chevron never shrinks, however long the value is.
     svg {
       flex-shrink: 0;
       color: $color-text-muted;
     }
   }
 
-  /// Sized for a table row or a list item, where the control is one detail of
-  /// many rather than a field of its own.
   &--compact {
     @include flex($inline: true);
 
@@ -64,14 +58,6 @@
     }
   }
 
-  /// A single cell holding two things at the same place: the label that shows,
-  /// and the hidden sizer that decides how wide the control wants to be. Both
-  /// are put in row 1, column 1, so the cell is as wide as the wider of them
-  /// and as tall as the label alone.
-  ///
-  /// `min-width: 0` so the automatic minimum does not stop a constrained parent
-  /// from squeezing it. Without it the sizer could push a form field wider than
-  /// its column.
   &__value {
     @include grid;
     min-width: 0;
@@ -81,8 +67,6 @@
     }
   }
 
-  /// One line, clipped rather than wrapped: a long project name growing the
-  /// control would shift every field beside it in the row.
   &__label {
     overflow: hidden;
     white-space: nowrap;
@@ -93,9 +77,6 @@
     }
   }
 
-  /// Never seen and never read out, but its width counts. The trailing padding
-  /// is slack for what the options have and the control does not: their own
-  /// horizontal padding, and the gutter the tick sits in.
   &__sizer {
     height: 0;
     padding-right: $space-5;
@@ -104,22 +85,7 @@
     overflow: hidden;
   }
 
-  /// `fixed`, so the list is not clipped by the modal body or the scrolling
-  /// admin tables. Placed by script, which sets the offsets and the limits on
-  /// width and height; everything here is what it looks like, not where it is.
-  ///
-  /// Exactly the control's width, so the two never disagree. The control is
-  /// what grows to fit the options, by way of `dropdown__sizer`.
-  ///
-  /// `$space-1` of padding, which is the `LIST_PADDING` the placement subtracts.
-  ///
-  /// The z-index clears the modal's sticky footer, which sits at 1.
-  ///
-  /// Its scroll is contained: a long list of options is an overlay over something the
-  /// reader means to come back to, and the height is set by the placement script to what
-  /// fits, so there is no case where the list scrolls but should not. The page itself is
-  /// never locked while a list is open — scrolling it simply moves the list with the
-  /// control, which is what `place()` re-runs for.
+  // position: fixed escapes modal/table overflow; z-index clears modal sticky footer.
   &__list {
     position: fixed;
     z-index: $z-popover;
@@ -145,16 +111,7 @@
     white-space: nowrap;
   }
 
-  /// Exactly one line and exactly one height, always. Every row being the same
-  /// height is what lets the list be cut to a whole number of rows rather than
-  /// at whatever pixel the last row happens to end on.
-  ///
-  /// The height is stated rather than left to the padding and the line box to
-  /// add up to, so a longer label, a different font or a changed `$space-2`
-  /// cannot quietly make rows taller than the placement believes they are.
-  ///
-  /// 2.25rem is `OPTION_HEIGHT` in `Dropdown.tsx`. Changing one means changing
-  /// the other.
+  // 2.25rem = OPTION_HEIGHT in Dropdown.tsx — keep in sync.
   &__option {
     position: relative;
     height: 2.25rem;
@@ -169,8 +126,6 @@
     cursor: pointer;
     transition: background-color $transition-fast;
 
-    /// Hover and keyboard share one highlight, so there is never a second
-    /// thing that also looks chosen.
     &[data-active='true'] {
       background: $color-brand-light;
     }
@@ -179,8 +134,6 @@
       font-weight: $font-weight-semibold;
     }
 
-    /// In the gutter the padding above reserves, so it never takes room from
-    /// the label and never decides how much of it gets ellipsized.
     &[aria-selected='true']::after {
       content: '✓';
       position: absolute;

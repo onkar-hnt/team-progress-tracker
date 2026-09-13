@@ -34,18 +34,7 @@ export function TeamActivityPage() {
   const snackbar = useSnackbar()
   const [editing, setEditing] = useState<DailyWorkEntryView | null>(null)
 
-  /**
-   * The filters live in the address bar rather than in state.
-   *
-   * Which makes them addressable — the dashboard's metric cards link straight to the
-   * slice they counted — and shareable, and undoable with the back button. See
-   * `activity-filters.ts` for the parameter names and how they are validated.
-   *
-   * `replace` rather than push: every keystroke in the search box is a filter change, and
-   * pushing each one would bury the previous screen twenty entries deep in the history.
-   * Replacing keeps Back meaning "the screen I came from" while the URL still describes
-   * what is on this one.
-   */
+  // replace: true keeps browser back usable while search typing updates the URL.
   const [searchParams, setSearchParams] = useSearchParams()
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
 
@@ -61,8 +50,6 @@ export function TeamActivityPage() {
   const projectsQuery = useProjects()
   const deleteEntry = useDeleteDailyWorkEntry()
 
-  // Free-text search is applied here rather than in the data layer, since the
-  // provider filters on indexed columns only.
   const visibleEntries = useMemo(
     () =>
       (entriesQuery.data ?? []).filter((entry) =>
@@ -78,13 +65,6 @@ export function TeamActivityPage() {
 
   const error = entriesQuery.error ?? developersQuery.error ?? projectsQuery.error
 
-  /**
-   * Asks before deleting, which it did not do before.
-   *
-   * A daily update is a first-hand record of somebody's work, written once and
-   * not reconstructible — the strongest case in the application for a
-   * confirmation step, and the only delete that had none.
-   */
   const requestDelete = async (entry: DailyWorkEntryView) => {
     const isDeleted = await confirm({
       title: 'Delete this update?',

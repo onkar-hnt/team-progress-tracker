@@ -87,14 +87,6 @@ export class RecordNotFoundError extends DataProviderError {
   }
 }
 
-/**
- * A write addressed a workbook row that no longer exists.
- *
- * Raised by the transport, which knows Excel table names rather than domain
- * tables, so it carries the raw table name instead of a `DataSourceTable`.
- * Usually means somebody deleted the row in Excel between the read and the
- * write.
- */
 export class WorkbookRowNotFoundError extends DataProviderError {
   readonly tableName: string
   readonly keyValue: string
@@ -140,13 +132,6 @@ export class ReferentialIntegrityError extends DataProviderError {
   }
 }
 
-/**
- * A record cannot be deleted because other rows still point at it.
- *
- * Deletes refuse rather than cascade: silently removing a developer's tasks,
- * comments and work history along with their row would destroy exactly the
- * data the application exists to keep.
- */
 export class RecordInUseError extends DataProviderError {
   readonly table: DataSourceTable
   readonly recordId: string

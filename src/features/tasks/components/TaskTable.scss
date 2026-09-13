@@ -1,8 +1,5 @@
 @use '@styles/variables' as *;
 
-/// The `max-width` sits on the lines rather than on the cell: a cell in an
-/// auto-layout table is sized from what its contents ask for, and a single
-/// unwrapped line asks for however long somebody typed.
 .task-table {
   &__name {
     display: block;

@@ -6,32 +6,8 @@ import type { AppSupabaseClient } from '@services/supabase/index'
 
 import { InactiveAccountError, MissingProfileError, SignInFailedError } from './auth.errors'
 
-/**
- * Resolves what a signed-in Supabase user may do, from the database.
- *
- * The workbook equivalent of this is `workbook-identity.ts`, and the division
- * of responsibility is the same: proving who somebody is belongs to the auth
- * provider, and deciding what they are belongs here.
- *
- * Nothing is read from the browser. The role comes from `public.profiles`,
- * which no client can insert into and only an admin can change — and the same
- * row is what every RLS policy consults, so what the UI believes and what the
- * database enforces cannot drift apart.
- *
- * `user_metadata` is specifically not consulted: it is writable by the account
- * holder through `auth.updateUser`, so a role taken from there would be
- * self-granted.
- */
-
 const PROFILE_STATUSES = ['active', 'inactive'] as const
 
-/**
- * Validated rather than cast.
- *
- * The client is not yet generated against the schema, so the rows arrive
- * untyped. Parsing them here means a column rename shows up as one clear
- * error at sign-in instead of `undefined` spreading through the app.
- */
 const profileRowSchema = z.object({
   id: z.string().min(1),
   email: z.string().min(1),
@@ -43,14 +19,6 @@ const profileRowSchema = z.object({
 
 const linkedRowSchema = z.object({ id: z.string().min(1) })
 
-/**
- * The mentor or developer record belonging to a profile, if there is one.
- *
- * Absence is legitimate and common: the administrator owns no work and
- * mentors nobody. A query *failure*, though, is not treated as absence —
- * silently returning no ids would leave the person signed in and staring at
- * empty screens, so it is reported instead.
- */
 async function findLinkedRecordId(
   client: AppSupabaseClient,
   table: 'developers' | 'mentors',
@@ -81,13 +49,6 @@ export interface SupabaseAuthUser {
   email?: string | undefined
 }
 
-/**
- * Maps an authenticated Supabase user onto the application's `AppUser`.
- *
- * Throws rather than returning a partial user: a session without a usable
- * profile must not reach the route guards, because every screen behind them
- * assumes a role.
- */
 export async function resolveSupabaseIdentity(
   client: AppSupabaseClient,
   authUser: SupabaseAuthUser,
@@ -104,8 +65,6 @@ export async function resolveSupabaseIdentity(
     })
   }
 
-  // The row is absent either because the account predates the bootstrap
-  // trigger, or because an administrator has not set the person up yet.
   if (data === null) throw new MissingProfileError(authUser.email ?? authUser.id)
 
   const parsed = profileRowSchema.safeParse(data)
@@ -123,9 +82,6 @@ export async function resolveSupabaseIdentity(
   // cost one query, not three.
   if (profile.status !== 'active') throw new InactiveAccountError()
 
-  // Someone still holding the password they were issued is going straight to
-  // the change-password screen, so their mentor and developer records are not
-  // fetched — nothing behind the guard will render to use them.
   if (profile.must_change_password) {
     return {
       email: profile.email,

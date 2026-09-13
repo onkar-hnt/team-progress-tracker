@@ -1,24 +1,9 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The daily update form.
-///
-/// It used to restate the shared form styles in full — its own `__field`,
-/// `__error`, `__hint`, `__alert` and submit button, all a little different from
-/// the originals. The fields are `Field` and `TextField` now and the button is
-/// `Button`, so what is left here is the one thing genuinely particular to this
-/// screen: its four-column grid.
 .daily-update-form {
   @include grid($gap: $space-5);
 
-  /// Four columns, which is what lets the whole form be read without
-  /// scrolling: the short answers — a date, a project, a status — take one
-  /// column each, and the two that are typed rather than picked take two.
-  ///
-  /// Counted rather than `auto-fit`, so the columns a field spans mean the same
-  /// thing at every window size. `auto-fit` decides the count from the space
-  /// available, and a field asking for two of an unknown number of columns is
-  /// either most of the row or a sliver of it.
   &__grid {
     @include grid(repeat(4, minmax(0, 1fr)), $space-4);
 
@@ -30,16 +15,10 @@
       grid-template-columns: minmax(0, 1fr);
     }
 
-    /// Fields differ in height — one carries a hint, another an error — and
-    /// without this the shorter ones stretch their controls to match the tallest
-    /// in the row.
     .form__field {
       align-content: start;
     }
 
-    /// Here a wide field means two of these four columns rather than the whole
-    /// row. Reset to one on a phone, where the grid has only one to give and a
-    /// field asking for two would add a second and push the form off the side.
     .form__field--wide {
       grid-column: span 2;
 
@@ -49,8 +28,6 @@
     }
   }
 
-  /// A value shown rather than asked for, dressed as the input it replaces so
-  /// the row of fields still reads as a row.
   &__static-value {
     margin: 0;
     padding: $space-3;

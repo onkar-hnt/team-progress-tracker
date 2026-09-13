@@ -17,14 +17,7 @@ import { WORKBOOK_TEMPLATE } from '@services/data-provider/excel/workbook-templa
 
 import './WorkbookGate.scss'
 
-/**
- * Holds the application back until a workbook is connected.
- *
- * Only applies to the `local-excel` data source, where the file is chosen by
- * the person rather than fixed by configuration. Nothing renders behind this
- * gate, because every screen — including sign-in, which reads its accounts
- * from the Employees sheet — depends on the workbook being readable.
- */
+/** Blocks the app until local-excel has a connected workbook, including sign-in. */
 export function WorkbookGate({ children }: PropsWithChildren) {
   if (appConfig.dataSource !== 'local-excel') return <>{children}</>
 

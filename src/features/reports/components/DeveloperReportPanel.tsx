@@ -20,28 +20,12 @@ import { DeveloperReportResults } from './DeveloperReportResults'
 
 import './DeveloperReportPanel.scss'
 
-/**
- * Generating and downloading one developer's activity report.
- *
- * Two pieces of filter state, not one. `draft` is what the form holds and
- * `applied` is what the report was built from, so editing a filter does not
- * silently refetch — the mentor decides when to ask, and the report on screen
- * always matches the filters that produced it. `isStale` is the difference
- * between the two, and is why the hint appears.
- *
- * The developer picker offers only developers already in the mentor's access
- * scope, but that is a convenience rather than the control: the database decides,
- * through `daily_updates_select`. See `use-developer-report.ts`.
- */
-
-/** The current month, which is what a mentor asking for a report usually means. */
 function defaultFilters(): Filters {
   const range = getMonthRange(todayIsoDate())
 
   return { developerId: '', projectId: '', from: range.from, to: range.to }
 }
 
-/** Why the filters cannot produce a report yet, in the order worth saying. */
 function findProblem(filters: Filters): string | null {
   if (filters.developerId === '') return 'Choose a developer to report on.'
   if (filters.from === '' || filters.to === '') return 'Choose both a from and a to date.'
@@ -70,8 +54,6 @@ export function DeveloperReportPanel() {
   const developerOptions = useMemo<DropdownOption[]>(
     () => [
       { value: '', label: 'Select a developer' },
-      // Inactive people are included: a report about somebody who has left the
-      // team is a normal thing to need, and their history has not gone anywhere.
       ...(developersQuery.data ?? []).map((developer) => ({
         value: developer.id,
         label: developer.active ? developer.name : `${developer.name} (inactive)`,

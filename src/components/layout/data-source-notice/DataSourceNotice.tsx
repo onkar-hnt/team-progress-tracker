@@ -9,17 +9,6 @@ import { getWorkbookConnection, subscribeToWorkbookConnection } from '@services/
 
 import './DataSourceNotice.scss'
 
-/**
- * States the application's current data source, in the application.
- *
- * Without this, "the dashboard is empty" is ambiguous: it could mean nobody
- * logged any work, or that the app is showing sample data, or that the
- * workbook connection is misconfigured. Those need very different responses,
- * so the answer is on screen rather than in a config file.
- *
- * Nothing is shown once the workbook is genuinely connected, since a banner
- * confirming normal operation would just become furniture.
- */
 export function DataSourceNotice() {
   const initialisation = useAdminWorkbookInitialisation()
 
@@ -31,16 +20,6 @@ export function DataSourceNotice() {
   )
 }
 
-/**
- * Progress of the startup workbook check, while it is worth mentioning.
- *
- * The application is usable throughout, so this is a banner rather than a
- * blocking screen: an administrator can read yesterday's data while the
- * structure of the workbook is being confirmed.
- *
- * Nothing is rendered for `not-applicable`, because that state means there is
- * no workbook to prepare and the notice below already explains why.
- */
 function WorkbookPreparationNotice({ state }: { state: AdminWorkbookInitialisation }) {
   if (state.status === 'initialising') {
     return (
@@ -69,9 +48,6 @@ function DataSourceModeNotice() {
 
   switch (appConfig.dataSource) {
     case 'local-excel':
-      // Reaching a screen at all means the gate let it through, so the file is
-      // connected and there is nothing to warn about. The exception is a file
-      // opened read-only, where saving will fail later rather than now.
       return connection.status === 'connected' ? null : (
         <p className="data-source-notice data-source-notice--error" role="status">
           <strong>Workbook disconnected.</strong> Reload the page to reconnect it.
@@ -113,10 +89,6 @@ function DataSourceModeNotice() {
       )
 
     case 'supabase':
-      // Every entity is stored in the database now that feedback has moved
-      // across, so there is nothing left to warn about. A banner confirming
-      // normal operation would just become furniture, which is the same
-      // reason a connected workbook shows none.
       return null
   }
 }

@@ -5,17 +5,6 @@ import type {
   MentorCommentQuery,
 } from '@models/index'
 
-/**
- * In-memory evaluation of the task and comment queries.
- *
- * Both providers share these so filter semantics are identical regardless of
- * where the rows came from, and so a future server-side implementation has an
- * unambiguous specification to match.
- *
- * Dates compare as plain strings, which is correct and timezone-proof for
- * zero-padded `yyyy-MM-dd` values.
- */
-
 export function matchesTaskQuery(task: AssignedTask, query: AssignedTaskQuery): boolean {
   if (query.developerIds !== undefined && !query.developerIds.includes(task.developerId)) {
     return false
@@ -30,21 +19,13 @@ export function matchesTaskQuery(task: AssignedTask, query: AssignedTaskQuery): 
   if (query.priorities !== undefined && !query.priorities.includes(task.priority)) return false
 
   if (query.dueOnOrBefore !== undefined) {
-    // A task with no due date can never be overdue, so it is excluded from a
-    // due-date-bounded query rather than treated as due immediately.
     if (task.dueDate === undefined || task.dueDate > query.dueOnOrBefore) return false
   }
 
   return true
 }
 
-/**
- * The matching tasks, and at most `query.limit` of them.
- *
- * Sorted before it slices, for the reason given at length on
- * `filterDailyWorkEntries`: the interface promises the most recently updated tasks,
- * not the ones a workbook lists first.
- */
+/** Limit implies most recently updated first. */
 export function filterTasks(
   tasks: readonly AssignedTask[],
   query: AssignedTaskQuery | undefined,
@@ -84,7 +65,7 @@ export function matchesCommentQuery(
   return true
 }
 
-/** The matching comments, newest first and at most `query.limit` of them. */
+/** Limit implies newest first by date, then id. */
 export function filterComments(
   comments: readonly MentorComment[],
   query: MentorCommentQuery | undefined,
@@ -99,12 +80,7 @@ export function filterComments(
     .slice(0, query.limit)
 }
 
-/**
- * Generates a short sequential id such as `MEN004`.
- *
- * Used for records a person will read and type in the sheet, where a UUID
- * would be unusable. Sequence gaps are fine: only uniqueness matters.
- */
+/** For Excel/fixture ids readable in sheets; sequence gaps are fine. */
 export function createSequentialId(prefix: string, existingIds: readonly string[]): string {
   const pattern = new RegExp(`^${prefix}(\\d+)$`, 'i')
 

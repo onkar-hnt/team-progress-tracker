@@ -3,19 +3,6 @@ import { z } from 'zod'
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@models/index'
 import { PROJECT_STATUSES } from '@models/project.model'
 
-/**
- * Translation between `public.projects` rows and the domain `Project`.
- *
- * `active` and `status` stay separate here as they do everywhere else:
- * `status` is where the project stands in its life cycle, `active` controls
- * whether it is still offered in pickers. A completed project usually remains
- * active for a while so late entries can still be logged against it.
- *
- * The assigned developers are not a column. In the workbook they were one
- * delimited cell; here they are rows in `project_developers`, read back
- * through an embedded select and passed in separately.
- */
-
 export const PROJECT_COLUMNS =
   'id, code, name, client, description, status, active, start_date, end_date, mentor_id, deleted_at' as const
 
@@ -34,8 +21,6 @@ export const projectRowSchema = z.object({
   end_date: z.string().nullable(),
   mentor_id: z.string().nullable(),
 
-  // Non-null for a project in the bin, which this read returns so that the work
-  // logged against it still resolves the project's name.
   deleted_at: z.string().nullable(),
 
   // Absent when the caller selected the project without its members.
@@ -58,9 +43,6 @@ export function toProject(row: ProjectRow): Project {
     name: row.name,
     active: row.active,
     status: row.status,
-    // Sorted so that two reads of the same project produce the same array.
-    // The order carries no meaning, and an unstable one would make the list
-    // look changed to anything comparing it.
     assignedDeveloperIds: (row.project_developers ?? [])
       .map((member) => member.developer_id)
       .sort((left, right) => left.localeCompare(right)),
@@ -84,14 +66,6 @@ export interface ProjectInsert {
   mentor_id: string | null
 }
 
-/**
- * Builds the insert payload.
- *
- * `id` and `code` are omitted so the column defaults assign them, and a
- * `code` on the request is ignored rather than honoured — accepting one would
- * reopen the collision the `project_code_seq` sequence exists to prevent.
- * `assignedDeveloperIds` is absent too: those are rows in another table.
- */
 export function toProjectInsert(request: CreateProjectRequest): ProjectInsert {
   return {
     name: request.name.trim(),
@@ -105,15 +79,6 @@ export function toProjectInsert(request: CreateProjectRequest): ProjectInsert {
   }
 }
 
-/**
- * Builds the update payload from the keys the caller actually supplied.
- *
- * Presence is tested with `in` rather than against `undefined`, which lets a
- * caller say two different things: omitting `mentorId` leaves the accountable
- * mentor alone, while passing it explicitly as `undefined` clears it. Against
- * `undefined` alone those two are indistinguishable, and there would be no
- * way to unset a nullable column at all.
- */
 export function toProjectUpdate(request: UpdateProjectRequest): Partial<ProjectInsert> {
   const payload: Partial<ProjectInsert> = {}
 

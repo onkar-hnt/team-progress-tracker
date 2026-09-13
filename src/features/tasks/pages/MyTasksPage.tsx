@@ -20,31 +20,12 @@ import './MyTasksPage.scss'
 
 const STATUS_FILTER_OPTIONS = [{ value: 'all', label: 'All statuses' }, ...TASK_STATUS_OPTIONS]
 
-/**
- * Assigned work for the signed-in person.
- *
- * A developer sees only their own tasks; a mentor opening the same screen sees
- * their own plus the developers assigned to them, because the scope decides
- * what the query returns rather than this page. The only thing that changes
- * here is whether the developer column is worth showing.
- */
 export function MyTasksPage() {
   const { user } = useAuth()
   const snackbar = useSnackbar()
   const { scope } = useAccessScope()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
 
-  // One read, filtered here rather than at source.
-  //
-  // The cards describe the whole workload and must not move when the filter
-  // does — counting the filtered rows made "Assigned" mean "assigned and
-  // completed" as soon as somebody picked Completed. So the unfiltered list is
-  // needed regardless, which made a second narrowed read of the same table
-  // pure duplication: it cost a request, and every lookup that assembling a
-  // task view needs, to return a subset of rows already in hand.
-  //
-  // Narrowing at source would matter for a table this screen cannot hold, but
-  // the scope has already reduced it to one person's assignments.
   const tasksQuery = useTasks()
   const updateTask = useUpdateTask()
 
@@ -59,16 +40,8 @@ export function MyTasksPage() {
 
   const loadError = tasksQuery.error
 
-  // Only one status is ever in flight, and it is the row being saved that
-  // should say so — disabling every select on the page made a single change
-  // look like the whole screen had locked up.
   const savingTaskId = updateTask.isPending ? (updateTask.variables?.id ?? null) : null
 
-  // An empty scope is not an empty task list. It means the signed-in profile
-  // is not linked to an employee row, so there is nothing it could ever be
-  // assigned, and the query short-circuits before it reaches Supabase.
-  // Rendering the ordinary zero-state here would report a setup problem as an
-  // absence of work.
   if (scope !== null && scope.visibleDeveloperIds?.length === 0) {
     return (
       <PagePlaceholder
@@ -138,12 +111,6 @@ export function MyTasksPage() {
           <Skeleton rows={5} />
         ) : (
           <TaskTable
-            // A filtered view that finds nothing and a genuinely empty list
-            // are different answers, and only one of them is worth clearing
-            // the filter over. Whose work is missing depends on who is
-            // looking: this screen shows a mentor their team as well as
-            // themselves, so telling an admin that nothing is assigned "to
-            // you" would point at the wrong thing entirely.
             emptyMessage={
               statusFilter !== 'all'
                 ? 'No tasks match this filter.'
@@ -156,10 +123,6 @@ export function MyTasksPage() {
                 isDisabled={!canUpdateTaskStatus(user, scope, task) || savingTaskId === task.id}
                 isSaving={savingTaskId === task.id}
                 onChange={(status) => {
-                  // The success message is attached to this call rather than to
-                  // the mutation, because only here is it known which task and
-                  // which status — and the mutation is shared with the admin
-                  // screen, where a save is confirmed by the dialog closing.
                   updateTask.mutate(
                     { id: task.id, changes: { status } },
                     {
@@ -183,13 +146,6 @@ export function MyTasksPage() {
   )
 }
 
-/**
- * Status is changed in place rather than through a dialog.
- *
- * Updating a status is the most frequent action on this screen and carries no
- * risk of data loss, so a select that saves on change costs one interaction
- * instead of four.
- */
 function StatusSelect({
   isDisabled,
   isSaving,
@@ -208,8 +164,6 @@ function StatusSelect({
         disabled={isDisabled}
         isCompact
         onChange={(next) => {
-          // Re-picking the value already showing is still a write, and one
-          // that would refetch every derived view to prove nothing changed.
           if (next !== task.status) onChange(next as TaskStatus)
         }}
         options={TASK_STATUS_OPTIONS}
@@ -225,14 +179,6 @@ function StatusSelect({
   )
 }
 
-/**
- * Counts for the summary cards.
- *
- * `isOverdue` is taken from the view rather than recomputed, so the cards and
- * the "· overdue" marker in the table can never disagree about what counts as
- * late. The rule lives in `WorkTrackerService.getTaskViews`: past its due date
- * and not yet completed.
- */
 function summariseTasks(tasks: readonly AssignedTaskView[]) {
   return {
     total: tasks.length,

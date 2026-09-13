@@ -1,15 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// Full width, like every other screen. It was capped at 56rem to stop the
-/// fields growing absurdly wide, which left a band of empty page down the right
-/// that only got wider when the sidebar collapsed. The fields are held to a
-/// sensible width by the form's own column count instead, which is the thing
-/// that was actually wanted.
-///
-/// Nothing here says anything about height any more. The form card is as tall as the
-/// form, and the panel of today's entries under it takes whatever the window has left —
-/// see `page-stack` and `.panel--fill`, which is where that is arranged.
 .daily-update-page {
   @include page-stack;
 

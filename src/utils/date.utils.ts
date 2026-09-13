@@ -14,16 +14,7 @@ import {
 
 import { WORKING_WEEKDAYS } from '@constants/team.constants'
 
-/**
- * Calendar-day helpers built on `yyyy-MM-dd` strings.
- *
- * The application stores work dates as plain calendar days because "the day a
- * developer logged work" has no time or timezone. Keeping them as strings and
- * only converting at the edges avoids the classic bug where a UTC conversion
- * shifts an entry into the previous day for anyone east of Greenwich.
- *
- * Zero-padded ISO days also compare and sort correctly as plain strings.
- */
+/** Calendar-day helpers on yyyy-MM-dd strings to avoid timezone shifts. */
 
 /** Monday, matching how the team reads a working week. */
 const WEEK_STARTS_ON = 1
@@ -36,7 +27,6 @@ export function todayIsoDate(): string {
   return toIsoDate(new Date())
 }
 
-/** Parses a calendar day into a local `Date`, or `null` when malformed. */
 export function parseIsoDate(isoDate: string): Date | null {
   const parsed = parseISO(isoDate)
   return isValid(parsed) ? parsed : null
@@ -48,12 +38,7 @@ export function getWeekday(isoDate: string): number | null {
   return parsed === null ? null : getISODay(parsed)
 }
 
-/**
- * Whether the team is expected to log work on this day.
- *
- * Weekends are excluded. Public holidays and leave are not modelled yet, so a
- * holiday still counts as a working day and will show as a missing update.
- */
+/** Weekends excluded; public holidays not modelled yet. */
 export function isWorkingDay(isoDate: string): boolean {
   const weekday = getWeekday(isoDate)
   return weekday !== null && WORKING_WEEKDAYS.includes(weekday)
@@ -69,7 +54,6 @@ export interface DateRange {
   to: string
 }
 
-/** Monday-to-Sunday range containing `isoDate`. */
 export function getWeekRange(isoDate: string): DateRange {
   const parsed = parseIsoDate(isoDate)
   if (parsed === null) return { from: isoDate, to: isoDate }
@@ -80,13 +64,11 @@ export function getWeekRange(isoDate: string): DateRange {
   }
 }
 
-/** Inclusive range ending on `isoDate`, spanning `days` days in total. */
 export function getTrailingRange(isoDate: string, days: number): DateRange {
   const span = Math.max(1, days)
   return { from: shiftIsoDate(isoDate, -(span - 1)), to: isoDate }
 }
 
-/** Calendar month containing `isoDate`. */
 export function getMonthRange(isoDate: string): DateRange {
   const parsed = parseIsoDate(isoDate)
   if (parsed === null) return { from: isoDate, to: isoDate }
@@ -94,7 +76,6 @@ export function getMonthRange(isoDate: string): DateRange {
   return { from: toIsoDate(startOfMonth(parsed)), to: toIsoDate(endOfMonth(parsed)) }
 }
 
-/** Single-day range, for screens that filter by one date. */
 export function getSingleDayRange(isoDate: string): DateRange {
   return { from: isoDate, to: isoDate }
 }
@@ -111,7 +92,6 @@ export function listWorkingDatesInRange(range: DateRange): string[] {
   return listDatesInRange(range).filter(isWorkingDay)
 }
 
-/** The most recent working day at or before `isoDate`. */
 export function toNearestWorkingDay(isoDate: string): string {
   let candidate = isoDate
 
@@ -139,24 +119,12 @@ export function formatWeekday(isoDate: string): string {
   return parsed === null ? '' : format(parsed, 'EEE')
 }
 
-/** Formats an audit timestamp for display, tolerating unparseable values. */
 export function formatTimestamp(isoTimestamp: string): string {
   const parsed = new Date(isoTimestamp)
   return Number.isNaN(parsed.getTime()) ? isoTimestamp : format(parsed, 'dd MMM yyyy, HH:mm')
 }
 
-/**
- * Whole days since a timestamp, or `null` if it cannot be read.
- *
- * For the one question a relative phrase cannot answer: not "how long ago does this
- * read" but "how many days is that, against a limit of seven". Truncated rather than
- * rounded, so six days and twenty hours is six — a threshold crossed early is a warning
- * that arrives while it is still a warning.
- *
- * Takes `now` for the same reason `formatRelativeTime` does: the clock stays a
- * parameter, so a caller in a render can read the time through a function instead of
- * reading it in the render.
- */
+/** Whole days since a timestamp; truncated for threshold checks. */
 export function daysSince(isoTimestamp: string, now: Date = new Date()): number | null {
   const parsed = new Date(isoTimestamp)
   if (Number.isNaN(parsed.getTime())) return null
@@ -164,16 +132,7 @@ export function daysSince(isoTimestamp: string, now: Date = new Date()): number 
   return Math.floor((now.getTime() - parsed.getTime()) / (24 * 60 * 60 * 1000))
 }
 
-/**
- * How long ago something happened, as "5 minutes ago".
- *
- * For a list read newest-first, where the interval matters more than the clock
- * time — a notification is either just now or it is history. Anything older than
- * a week falls back to the date, because "23 days ago" is a number the reader
- * then has to convert.
- *
- * `Strict` picks a single unit, so this never produces "about 1 hour".
- */
+/** Relative time for recent items; falls back to a date after one week. */
 export function formatRelativeTime(isoTimestamp: string, now: Date = new Date()): string {
   const parsed = new Date(isoTimestamp)
   if (Number.isNaN(parsed.getTime())) return isoTimestamp
@@ -183,8 +142,7 @@ export function formatRelativeTime(isoTimestamp: string, now: Date = new Date())
 
   if (elapsedMs >= weekMs) return format(parsed, 'dd MMM yyyy')
 
-  // Under a minute reads as "0 minutes ago" otherwise, which is both wrong and
-  // oddly precise about it.
+  // Under a minute reads as "0 minutes ago" otherwise.
   if (elapsedMs < 60_000) return 'Just now'
 
   return `${formatDistanceToNowStrict(parsed)} ago`

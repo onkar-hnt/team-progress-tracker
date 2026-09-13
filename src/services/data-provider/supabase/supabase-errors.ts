@@ -13,31 +13,6 @@ import {
 } from '../data-provider.errors'
 import type { DataSourceTable, ReferenceField, RowValidationIssue } from '../data-provider.errors'
 
-/**
- * Translation from PostgreSQL and PostgREST failures into the error taxonomy
- * the application already speaks.
- *
- * The taxonomy is unchanged, and deliberately so: every screen already
- * renders these errors, and the whole point of `DataProvider` is that what
- * reaches the UI does not depend on which backend produced it. So a
- * constraint violation becomes the same `RecordInUseError` the Excel provider
- * raises from counting rows, and the mentor page needs no Postgres knowledge
- * to explain it.
- *
- * The direction of the translation is worth stating plainly: with Excel, the
- * provider *enforced* integrity because a spreadsheet cannot. Here the
- * database enforces it and the provider reports what it decided. That is why
- * these mappings read constraint names rather than counting dependent rows.
- */
-
-/**
- * The SQLSTATE codes worth distinguishing.
- *
- * Anything not listed falls through to a generic `DataProviderError`, which
- * keeps the database's own message. That is the right default: an unmapped
- * code is rarer and stranger than the message it carries, so replacing that
- * message with something vaguer would lose the only useful detail.
- */
 const PG_CODES = {
   invalidTextRepresentation: '22P02',
   notNullViolation: '23502',
@@ -57,14 +32,6 @@ const POSTGREST_CODES = {
   invalidJwt: 'PGRST301',
 } as const
 
-/**
- * Which unique constraints have an explanation better than their own name.
- *
- * Postgres reports the index, not the intent: "duplicate key value violates
- * unique constraint mentors_email_key" is accurate and useless to whoever
- * typed the address. Only constraints a person can actually trip are listed;
- * the rest keep the generic wording.
- */
 const UNIQUE_CONSTRAINT_MESSAGES: Readonly<Record<string, string>> = {
   mentors_email_key: 'Another mentor already uses that email address.',
   profiles_email_key: 'Another account already uses that email address.',
@@ -81,13 +48,6 @@ const REFERENCE_COLUMNS: Readonly<Record<string, ReferenceField>> = {
   task_id: 'taskId',
 }
 
-/**
- * What to call the table blocking a delete.
- *
- * `RecordInUseError` puts this straight into a sentence read by whoever
- * pressed Delete, and `records in "mentor_assignments"` is the database's
- * vocabulary rather than theirs.
- */
 const DEPENDENT_LABELS: Readonly<Record<string, string>> = {
   daily_updates: 'daily updates',
   feedback: 'feedback',
@@ -101,15 +61,6 @@ const DEPENDENT_LABELS: Readonly<Record<string, string>> = {
 
 export type SupabaseOperation = 'read' | 'insert' | 'update' | 'delete'
 
-/**
- * What the failed statement was trying to do.
- *
- * Needed because a foreign-key violation means opposite things in the two
- * directions: on a write, the row being pointed *at* is missing; on a delete,
- * rows still point at the one being removed. Postgres reports both as 23503,
- * and the `details` text that distinguishes them is not guaranteed to be
- * present, so the caller states its intent rather than the mapper guessing.
- */
 export interface SupabaseErrorContext {
   table: DataSourceTable
   operation: SupabaseOperation
@@ -130,13 +81,6 @@ function readConstraintName(error: PostgrestError): string | null {
   return CONSTRAINT_NAME_PATTERN.exec(error.message)?.groups?.name ?? null
 }
 
-/**
- * A network failure rather than a rejected statement.
- *
- * `postgrest-js` catches `fetch` rejections and returns them in the same
- * shape as a database error, with an empty code. Without this check a dropped
- * connection would be reported as an unexplained data fault.
- */
 function isTransportFailure(error: PostgrestError): boolean {
   if (error.code !== '' && error.code !== undefined) return false
   return /fetch|network|connection|timeout/iu.test(error.message)
@@ -150,9 +94,6 @@ function mapForeignKeyViolation(
     const dependent = DEPENDENT_TABLE_PATTERN.exec(error.details ?? '')?.groups?.table
 
     return new RecordInUseError(context.table, context.recordId ?? 'unknown', [
-      // Named when Postgres says which table, and left vague when it does
-      // not — there is still something worth saying, namely that something
-      // depends on this row, so the delete does not fail silently.
       dependent === undefined
         ? 'other records'
         : (DEPENDENT_LABELS[dependent] ?? `records in "${dependent}"`),
@@ -179,8 +120,6 @@ function mapUniqueViolation(
 
   if (explained !== undefined) return new DataProviderError(explained, { cause: error })
 
-  // A collision on the primary key or a business code is a different problem:
-  // two records claiming one identity, which is what this error exists for.
   if (constraint !== null && /_pkey$|_code_key$/u.test(constraint)) {
     return new DuplicateRecordError(context.table, [context.recordId ?? 'unknown'])
   }
@@ -191,13 +130,6 @@ function mapUniqueViolation(
   )
 }
 
-/**
- * Maps a rejected statement onto the application's errors.
- *
- * Every mapped error keeps the original as `cause`, so the exact SQLSTATE and
- * constraint remain available in the console even though the message shown on
- * screen is written for whoever hit it.
- */
 export function mapPostgrestError(
   error: PostgrestError,
   context: SupabaseErrorContext,
@@ -217,17 +149,10 @@ export function mapPostgrestError(
       return mapUniqueViolation(error, context)
 
     case PG_CODES.invalidTextRepresentation:
-      // An id or value the column's type cannot hold — a `DEV001` where a
-      // uuid is expected, most likely. Reported as a missing record rather
-      // than a type error, because that is what it means to the caller: no
-      // such row can exist.
       return new RecordNotFoundError(context.table, context.recordId ?? 'unknown')
 
     case PG_CODES.notNullViolation:
     case PG_CODES.checkViolation:
-      // The database rejected the values themselves. Forms validate the same
-      // rules with Zod, so reaching here means either a rule the form does
-      // not know or a request that did not come from one.
       return new DataProviderError(
         `That change was rejected because it does not meet the rules for ${context.table}. ` +
           'Check the values and try again.',
@@ -235,8 +160,6 @@ export function mapPostgrestError(
       )
 
     case PG_CODES.insufficientPrivilege:
-      // Row-level security refused the row. Not a bug to be worked around:
-      // the database is the authorization boundary, and this is it holding.
       return new DataProviderError(
         `You do not have permission to ${describeOperation(context.operation)} this record.`,
         { cause: error },
@@ -280,15 +203,6 @@ function describeOperation(operation: SupabaseOperation): string {
   }
 }
 
-/**
- * Parses rows, reporting a failure as a row-validation error.
- *
- * The client is not generated against the schema, so rows arrive as `unknown`
- * and are validated rather than cast — the same choice as the Excel provider
- * and `supabase-identity.ts`. A renamed or retyped column then surfaces as
- * one clear error naming the table and row, instead of `undefined` spreading
- * through the UI until something unrelated breaks.
- */
 export function parseRows<TRow, TRecord>(
   table: DataSourceTable,
   schema: z.ZodType<TRow>,
@@ -313,10 +227,6 @@ export function parseRows<TRow, TRecord>(
     })
   })
 
-  // Strict, unlike the Excel provider's tolerant read. A spreadsheet is
-  // hand-edited and a bad row there is expected; a row that fails validation
-  // after passing the database's own constraints means the schema and this
-  // code disagree, and skipping it would hide that.
   if (issues.length > 0) throw new RowValidationError(table, issues)
 
   return records

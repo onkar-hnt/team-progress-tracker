@@ -96,25 +96,12 @@ import type { WorkbookGateway, WorkbookTable } from './workbook-gateway'
 export interface ExcelDataProviderOptions {
   gateway: WorkbookGateway
 
-  /**
-   * When `true`, any invalid row fails the whole read.
-   *
-   * The default tolerates bad rows so that one mistyped cell cannot blank out
-   * the dashboard for everybody. Turn it on for import validation tooling.
-   */
   strictRowValidation?: boolean
 
   /** Receives rows that were skipped, for logging or an admin warning banner. */
   onRowValidationIssues?: (table: DataSourceTable, issues: readonly RowValidationIssue[]) => void
 }
 
-/**
- * Describes one workbook table, so reads and writes share a single definition.
- *
- * Without this, each of the six tables would repeat the same sequence of
- * schema check, map, duplicate-id check and key-column lookup, and the pieces
- * would eventually drift apart.
- */
 interface TableDefinition<TRecord> {
   tableName: string
   label: DataSourceTable
@@ -126,14 +113,6 @@ interface TableDefinition<TRecord> {
   idPrefix: string
 }
 
-/**
- * Reads and writes the team workbook through a `WorkbookGateway`.
- *
- * All Excel knowledge in the application ends here. The provider owns schema
- * checking, row mapping, id assignment and referential integrity, so that
- * swapping the gateway for a Graph implementation requires no changes to this
- * file, and swapping this provider for a REST one requires no changes above it.
- */
 export class ExcelDataProvider implements DataProvider {
   private readonly gateway: WorkbookGateway
   private readonly strictRowValidation: boolean
@@ -213,13 +192,6 @@ export class ExcelDataProvider implements DataProvider {
     this.onRowValidationIssues = options.onRowValidationIssues
   }
 
-  /**
-   * Names the transport rather than the provider.
-   *
-   * The same Excel logic runs over Microsoft Graph, a local file and the
-   * in-memory stand-in, and "which one is in use" is the question diagnostics
-   * and the settings screen are actually asking.
-   */
   get name(): string {
     return this.gateway.name
   }
@@ -267,8 +239,6 @@ export class ExcelDataProvider implements DataProvider {
     ])
 
     await this.gateway.deleteRowByKey(this.developerTable.tableName, this.developerTable.keyColumn, id)
-    // Assignments are part of the mapping, not data in their own right, so
-    // they follow the employee out rather than blocking the delete.
     await this.gateway.deleteRowsByKey(
       EXCEL_TABLES.mentorMapping,
       MENTOR_MAPPING_COLUMNS.developerId,
@@ -328,8 +298,6 @@ export class ExcelDataProvider implements DataProvider {
     const mapped = mapTableRows(table.rows, mapMentorAssignmentRow, () => undefined)
     this.reportIssues('MentorMapping', mapped.issues)
 
-    // The mapping has no single-column key, so duplicates are de-duplicated
-    // rather than rejected: a repeated pair is redundant, not ambiguous.
     const seen = new Set<string>()
     return mapped.records.filter((assignment) => {
       const key = `${assignment.mentorId}|${assignment.developerId}`
@@ -355,9 +323,6 @@ export class ExcelDataProvider implements DataProvider {
 
     const unique = [...new Set(developerIds)]
 
-    // Rewriting the whole set is simpler than diffing it, and the mapping
-    // table is small. AssignedDate is therefore the date of the most recent
-    // edit to the mentor's list rather than of that individual pairing.
     const assignedDate = new Date().toISOString().slice(0, 10)
 
     const assignments = unique.map((developerId) => ({
@@ -642,13 +607,6 @@ export class ExcelDataProvider implements DataProvider {
     return result.data
   }
 
-  /**
-   * Enforces the workbook's foreign keys.
-   *
-   * Excel cannot do this itself, so it is checked before every write to stop
-   * orphaned rows that would silently disappear from developer and project
-   * views.
-   */
   private async assertReferenceExists(field: ReferenceField, value: string): Promise<void> {
     const records =
       field === 'developerId'

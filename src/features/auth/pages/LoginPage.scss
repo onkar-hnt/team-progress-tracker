@@ -1,8 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The document does not scroll, so this screen scrolls itself when a short
-/// viewport cannot fit the card.
 .login {
   @include flex($justify: center);
   height: 100%;
@@ -42,9 +40,6 @@
     font-size: $font-size-sm;
   }
 
-  /// The fields, their errors and the submit button all come from the shared
-  /// form styles and `Button` — this screen used to restate all three. The one
-  /// thing that is specific to it is that its buttons fill the card.
   &__form {
     @include grid($gap: $space-5);
 

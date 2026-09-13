@@ -9,13 +9,6 @@ import {
   todayIsoDate,
 } from '@utils/date.utils'
 
-/**
- * Filter state for the team activity screen.
- *
- * Presets and a custom range share one representation so the table, the query
- * and the reports screen all read the period the same way.
- */
-
 export const PERIOD_PRESETS = ['today', 'this-week', 'last-7-days', 'this-month', 'custom'] as const
 
 export type PeriodPreset = (typeof PERIOD_PRESETS)[number]
@@ -30,14 +23,12 @@ export const PERIOD_PRESET_LABELS: Readonly<Record<PeriodPreset, string>> = {
 
 export interface ActivityFilterState {
   preset: PeriodPreset
-  /** Only used when `preset` is `custom`; kept so switching back is lossless. */
   customRange: DateRange
   developerId: string
   projectId: string
   status: TaskStatus | ''
   priority: TaskPriority | ''
   blockedOnly: boolean
-  /** Free-text match against task title, description and remarks. */
   search: string
 }
 
@@ -73,13 +64,7 @@ export function resolvePeriod(filters: ActivityFilterState): DateRange {
   }
 }
 
-/**
- * Translates filter state into a provider query.
- *
- * Only filters the data layer can express are included; free-text search stays
- * client-side because the workbook cannot search efficiently and the result
- * set for one team is small.
- */
+// Search stays client-side; the provider only filters indexed columns.
 export function toDailyWorkQuery(filters: ActivityFilterState): DailyWorkQuery {
   const period = resolvePeriod(filters)
 
@@ -94,34 +79,7 @@ export function toDailyWorkQuery(filters: ActivityFilterState): DailyWorkQuery {
   }
 }
 
-/**
- * The filters, in the address bar.
- *
- * ## Why the URL and not `useState`
- *
- * Because something else needs to set them. The dashboard's metrics are counts of
- * exactly the rows this screen lists, and a reader whose eye stops on "Needs attention:
- * 3" wants those three — which was a card that lifted under the cursor and went nowhere,
- * or at best to an unfiltered list of everything, leaving them to reproduce the filter by
- * hand from a number they had already been shown.
- *
- * A link cannot reach into another screen's `useState`, so the filters moved to where a
- * link can address them. Two things fall out of that for free: a filtered view can be
- * sent to somebody, and the back button undoes a filter change the way it looks like it
- * should.
- *
- * ## What the parameters are called, and why they are checked
- *
- * Short names, because these appear in a link somebody may read or type: `?blocked=1`
- * rather than `?blockedOnly=true`. Every value is validated against what it is allowed to
- * be and falls back to the default when it is not — a URL is user input, and `?status=xyz`
- * should show the ordinary screen rather than an empty table filtered by a status that
- * does not exist.
- *
- * Defaults are left out when writing. The plain path is the plain screen, and a parameter
- * list holds only what somebody actually chose.
- */
-
+// Filters live in the URL so other screens can link to a slice. Values are validated; defaults are omitted.
 const PARAMS = {
   blocked: 'blocked',
   developer: 'developer',
@@ -134,7 +92,7 @@ const PARAMS = {
   to: 'to',
 } as const
 
-/** `2026-09-13`, and nothing else. The date inputs and every provider agree on this. */
+// ISO date format expected by inputs and providers.
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/u
 
 function readPreset(value: string | null): PeriodPreset | undefined {
@@ -158,26 +116,19 @@ export function filtersFromSearchParams(params: URLSearchParams): ActivityFilter
   return {
     preset,
 
-    // Held whichever preset is in force, so switching to Custom and back is lossless —
-    // the same reason the field exists at all. A link that gives dates without saying
-    // `period=custom` is treating them as the custom range it means to select.
     customRange: {
       from: from ?? defaults.customRange.from,
       to: to ?? defaults.customRange.to,
     },
 
-    // Not checked against the roster, unlike the status and the priority: the ids are only
-    // known once the developers and projects have loaded, and a filter that silently
-    // cleared itself while a request was in flight would be worse than one naming somebody
-    // who has since been removed. That case shows an empty table, which is the truth.
+    // Not validated against the roster until developers and projects have loaded.
     developerId: params.get(PARAMS.developer) ?? defaults.developerId,
     projectId: params.get(PARAMS.project) ?? defaults.projectId,
 
     status: status in TASK_STATUS_LABELS ? (status as TaskStatus) : '',
     priority: priority in TASK_PRIORITY_LABELS ? (priority as TaskPriority) : '',
 
-    // Any value at all means on, so `?blocked=1` and `?blocked=true` both work. Somebody
-    // typing one of those has said what they mean.
+    // Any value enables blocked-only (?blocked=1 or ?blocked=true).
     blockedOnly: params.get(PARAMS.blocked) !== null,
 
     search: params.get(PARAMS.search) ?? defaults.search,
@@ -190,9 +141,6 @@ export function filtersToSearchParams(filters: ActivityFilterState): URLSearchPa
 
   if (filters.preset !== defaults.preset) params.set(PARAMS.period, filters.preset)
 
-  // Only for a custom range. Written for any other preset they would be a pair of dates
-  // the screen is ignoring, which is the kind of URL that gets pasted into a chat and
-  // argued about.
   if (filters.preset === 'custom') {
     params.set(PARAMS.from, filters.customRange.from)
     params.set(PARAMS.to, filters.customRange.to)
@@ -208,12 +156,6 @@ export function filtersToSearchParams(filters: ActivityFilterState): URLSearchPa
   return params
 }
 
-/**
- * What can be picked out of a period: a status, one person, one project, or only what is
- * blocked. The same four things the activity screen's own filters offer, which is not a
- * coincidence — a link that could express more than the screen can would be a link to a view
- * nobody could then adjust.
- */
 export interface ActivitySlice {
   status?: TaskStatus
   developerId?: string
@@ -221,18 +163,6 @@ export interface ActivitySlice {
   blockedOnly?: boolean
 }
 
-/**
- * A link to this screen, showing one slice of one period.
- *
- * Here rather than on the dashboard so that the parameter names stay private to this
- * module: a screen that wants to link to a filtered activity list says what it wants in
- * domain terms, and if a parameter is ever renamed there is one place it is spelled.
- *
- * The period arrives as an explicit range rather than as a preset because the callers have one
- * — the dashboard knows the week it is showing, the reports screen the range that was chosen —
- * and translating that back into whichever preset happens to match today would be a link that
- * means something different tomorrow.
- */
 export function activityRangeLink(range: DateRange, slice: ActivitySlice = {}): string {
   const params = filtersToSearchParams({
     ...createDefaultFilters(),
@@ -247,18 +177,8 @@ export function activityRangeLink(range: DateRange, slice: ActivitySlice = {}): 
   return `/team-activity?${params.toString()}`
 }
 
-/** The same, for the common case of a single day. */
 export function activityLink(date: string, slice: ActivitySlice = {}): string {
   return activityRangeLink({ from: date, to: date }, slice)
 }
 
-/**
- * Re-exported rather than defined here any longer.
- *
- * It was this screen's own until the administration tables and the Logins screen
- * wanted the same behaviour, and it is now `@utils/table.utils`. The name stays
- * exported from this module so the two call sites on this screen read as they did
- * — and because it belongs in a list of this screen's filters even when the
- * implementation does not live here.
- */
 export { matchesSearch } from '@utils/table.utils'

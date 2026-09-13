@@ -1,16 +1,7 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The wrapper for the application-scope fallback only.
-///
-/// The screen-scope one is rendered inside the shell's content area, which
-/// provides the padding and the tint. This one replaces the shell, so it has to
-/// provide the page itself — the same scrollable, subtly tinted page the login and
-/// waiting screens use, so a failure still looks like this application rather than
-/// like the browser's own error.
-///
-/// The centring is `PagePlaceholder`'s, in both scopes. Doing it here as well
-/// would centre the card inside an already centred card.
+/// Application-scope fallback replaces the shell, so it supplies page padding and tint.
 .error-boundary {
   height: 100%;
   padding: $space-6;

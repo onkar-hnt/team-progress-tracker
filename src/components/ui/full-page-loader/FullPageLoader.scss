@@ -1,13 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The waiting screen.
-///
-/// Deliberately the login screen's card at a narrower width: the two are shown
-/// within a second of each other on a cold start, and a wait that looks like the
-/// application reads as progress where a bare spinner on an empty page reads as a
-/// failure. The document does not scroll, so this screen scrolls itself when a
-/// short viewport cannot fit the card.
 .full-page-loader {
   @include flex($justify: center);
 
@@ -30,8 +23,6 @@
     text-align: center;
   }
 
-  /// A filled square rather than the tinted circle the rail uses for a person:
-  /// both are initials, and they should not be mistaken for each other.
   &__mark {
     @include flex-center;
     @include square(3rem);
@@ -44,8 +35,6 @@
     background: $color-brand;
   }
 
-  /// The two brand lines belong together, so they are spaced against each other
-  /// rather than by the card's gap.
   &__words {
     @include grid($gap: $space-1);
   }
@@ -66,9 +55,7 @@
     background: $color-surface-sunken;
   }
 
-  /// Sweeps across and off, rather than filling. `translateX` is a share of the
-  /// bar's own width, so 250% of a bar that is 40% of the track is exactly the
-  /// width of the track: it leaves on the right as it entered on the left.
+  // 250% translateX = one track width for a 40%-wide bar.
   &__bar {
     display: block;
     width: 40%;
@@ -114,9 +101,6 @@
   }
 }
 
-/// With the sweep off there is nothing to say the wait is still going, so the bar
-/// fills the track and holds: an inert brand rule under the name, with the message
-/// below it carrying the state on its own.
 @media (prefers-reduced-motion: reduce) {
 
   .full-page-loader__bar {

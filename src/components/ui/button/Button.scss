@@ -1,17 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// Every button in the application.
-///
-/// Moved here from `_form.scss`, which is about fields: buttons appear on
-/// screens that have no form at all — a table row's actions, the workbook gate,
-/// the error boundary — and a stylesheet named for one of its callers is how a
-/// second copy eventually gets written somewhere else.
-///
-/// The variants are the whole vocabulary. Anything that needs to look different
-/// from all five belongs here as a sixth, not as a bespoke rule beside its own
-/// component, which is what the header's four near-identical controls were
-/// before `--inverse` existed.
 .button {
   @include flex-center($gap: $space-2, $inline: true);
 
@@ -27,10 +16,6 @@
   background: transparent;
   cursor: pointer;
 
-  /// Colour, border and shadow are the only things that move. A button that
-  /// also shifted or scaled under the cursor would be a moving target for
-  /// anyone aiming at it, and there are rows here with three of them side by
-  /// side.
   transition:
     color $transition-fast,
     border-color $transition-fast,
@@ -41,8 +26,6 @@
     @include focus-ring;
   }
 
-  /// Presses in by the one pixel it will not be missed at. Skipped under a
-  /// reduced-motion preference along with everything else.
   &:active:not(:disabled) {
     transform: translateY(1px);
   }
@@ -60,8 +43,6 @@
     }
   }
 
-  /// The one button on a screen that carries a shadow, so that the eye lands on
-  /// it before reading any of the labels.
   &--primary {
     color: $color-white;
     background: $color-brand;
@@ -91,8 +72,6 @@
     }
   }
 
-  /// Destructive actions are muted until hovered, so a delete control does not
-  /// draw the eye more than the primary action next to it.
   &--danger {
     color: $color-danger;
 
@@ -102,14 +81,6 @@
     }
   }
 
-  /// The filled counterpart, for the one control that carries out a destructive
-  /// act rather than offering it.
-  ///
-  /// `--danger` is right for a Delete in a table row, where it sits among other
-  /// actions and should not shout. It is wrong for the confirm button in a
-  /// dialog, which is that dialog's primary action and has to look like it —
-  /// drawn as quietly as a link, it reads as the cautious choice, which is
-  /// exactly backwards.
   &--destructive {
     color: $color-white;
     background: $color-danger;
@@ -121,8 +92,6 @@
     }
   }
 
-  /// For the dark header bar, where none of the above has any contrast to
-  /// offer. The one variant whose colours come from the inverse tokens.
   &--inverse {
     border-color: $color-inverse-border;
     color: $color-white;
@@ -137,8 +106,6 @@
     font-size: $font-size-xs;
   }
 
-  /// A square control holding an icon and nothing else. Sized to the icon plus
-  /// its focus ring rather than to text, since there is no text to size to.
   &--icon {
     @include square(2.25rem);
 
@@ -146,9 +113,6 @@
     padding: 0;
   }
 
-  /// The label is always rendered, and hidden visually where it should not be
-  /// read — so an icon-only control still has an accessible name, rather than
-  /// depending on whoever wrote the call site remembering `aria-label`.
   &__label {
     &--hidden {
       @include visually-hidden;
@@ -161,13 +125,6 @@
     }
   }
 
-  /// Takes the icon's place while a mutation is in flight, so the label stays
-  /// put and the control does not change width as it starts and finishes.
-  ///
-  /// `currentcolor` for the moving part and a transparent track, rather than the
-  /// named brand colour the waiting screen's bar uses: this sits inside all six
-  /// variants, one of which is white on brand blue and another white on the dark
-  /// header, and a fixed colour would disappear into one of them.
   &__spinner {
     @include square(1rem);
 
@@ -179,11 +136,6 @@
   }
 }
 
-/// Declared here rather than shared with the animations in `Feedback.scss` or
-/// `FullPageLoader.scss`. Stylesheets are split per component and loaded with the
-/// chunk that imports them, so a button borrowing another file's keyframe would
-/// spin or sit still depending on whether anything on the screen happened to
-/// render a skeleton or a loader.
 @keyframes button-spin {
   to {
     transform: rotate(1turn);

@@ -9,27 +9,6 @@ import type {
   WorkbookTableInfo,
 } from './workbook-gateway'
 
-/**
- * TEMPORARY: a workbook held in memory, for development only.
- *
- * TODO(sharepoint-excel): delete this gateway once the Microsoft Entra app
- * registration exists. It is not a database and makes no attempt to be one —
- * every row is lost when the tab reloads.
- *
- * It exists because a browser cannot read the SharePoint workbook without a
- * Graph token, and the registration that issues one is not available yet.
- * Rather than stub out the Admin screens, this stands in at the transport
- * boundary: the tables, column names, row mapping, validation, referential
- * integrity and structure checks above it are all the real implementations,
- * running against the real schema. Swapping it for `GraphWorkbookGateway` is
- * therefore a configuration change, and any schema mistake surfaces here
- * rather than on the day of integration.
- *
- * Its semantics deliberately copy the Graph transport rather than being
- * convenient: tables are addressed by name, a missing table is an error, rows
- * are stored in column order, and absent values become empty cells.
- */
-
 interface MemoryTable {
   sheetName: string
   columns: string[]
@@ -48,14 +27,6 @@ export class MemoryWorkbookGateway implements WorkbookGateway {
   private readonly tables = new Map<string, MemoryTable>()
   private readonly sheetNames = new Set<string>()
 
-  /**
-   * Starts as a correctly structured but empty workbook.
-   *
-   * Seeded from the same template that builds a real starter file, so the
-   * application opens onto empty states rather than onto "table not found" on
-   * every screen. No records are seeded: business data belongs in the
-   * workbook, never in the codebase.
-   */
   constructor() {
     for (const template of WORKBOOK_TEMPLATE) {
       this.sheetNames.add(template.sheetName)
@@ -182,13 +153,6 @@ export class MemoryWorkbookGateway implements WorkbookGateway {
   }
 }
 
-/**
- * Lays a record out in the table's own column order.
- *
- * Columns the record does not mention are stored as an empty string rather
- * than omitted, so a cleared value reads back as blank instead of keeping the
- * value it had — the same rule the Graph transport follows.
- */
 function toStoredRow(columns: readonly string[], row: RawExcelRow): RawExcelRow {
   const stored: RawExcelRow = {}
 
@@ -211,12 +175,6 @@ function cellText(value: unknown): string {
 
 let cachedGateway: MemoryWorkbookGateway | undefined
 
-/**
- * Shared instance, so writes are visible across screens.
- *
- * The data provider is rebuilt whenever the workbook connection changes, and
- * a new gateway each time would silently discard everything saved so far.
- */
 export function getMemoryWorkbookGateway(): MemoryWorkbookGateway {
   cachedGateway ??= new MemoryWorkbookGateway()
   return cachedGateway

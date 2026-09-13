@@ -1,18 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The bar over the content.
-///
-/// Beside the rail rather than above it: the rail runs the full height of the
-/// window and takes the top left corner, so this bar begins where the rail ends.
-/// Below the tablet breakpoint the rail leaves the grid to become a drawer, and
-/// the `bar` area spans the single column that is left, so nothing here changes.
-///
-/// Every control on it used to be styled individually — an icon button, a
-/// sign-out button, a refresh button — each repeating the same white border,
-/// radius, hover tint and focus ring at a slightly different opacity. They are
-/// all `Button variant="inverse"` now, so this file describes only the bar and
-/// where things sit on it.
 .header {
   @include flex($gap: $space-4);
 
@@ -28,9 +16,6 @@
     min-width: 0;
   }
 
-  /// The whole name, which is why it is here and not at the head of the rail: the
-  /// rail is a fixed fifteen rems and cut it short. It still ellipsizes, for the
-  /// narrow window where three icon buttons and a hamburger leave little else.
   &__title {
     overflow: hidden;
     font-size: $font-size-lg;
@@ -38,16 +23,10 @@
     white-space: nowrap;
   }
 
-  /// Only for the screens where the rail is a drawer. Which screens those are is
-  /// the bar's business rather than the button's, so it is decided by a wrapper
-  /// here instead of by a class handed to `Button` — the variants are the
-  /// button's whole vocabulary and stay that way.
   &__drawer-toggle {
     display: none;
   }
 
-  /// Held to the right by a margin rather than by `space-between`, which puts a
-  /// lone item at the start — and on a wide window this is the only item.
   &__actions {
     @include flex($gap: $space-2);
 

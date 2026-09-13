@@ -1,13 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The one column holding free text, and the one that has to be told how wide
-/// it is allowed to be.
-///
-/// The `max-width` sits on each line rather than on the cell, because a cell in
-/// an auto-layout table is sized from what its contents ask for — and a single
-/// unwrapped line asks for however long somebody typed. Capping the lines caps
-/// what the column can ask for.
 .activity-table {
   &__task {
     min-width: 16rem;
@@ -39,11 +32,6 @@
   }
 }
 
-/// Under the table, inside its scrolling wrapper.
-///
-/// `sticky` on the left so that on a window narrower than the table — where the
-/// wrapper scrolls sideways — the count and the button stay where they can be
-/// read, instead of sitting off to the right with the last column.
 .activity-table__more {
   @include flex($justify: space-between, $align: baseline, $gap: $space-3, $wrap: wrap);
 

@@ -1,17 +1,9 @@
 import { invokeProvisioning } from './provision-login'
 import type { ProvisionResult } from './provision-login'
 
-/**
- * Gives an employee a login, through the `provision-developer-user` function.
- *
- * The call, the token handling and the error translation are shared with the
- * mentor equivalent; only the endpoint and the id field differ.
- */
-
 export interface ProvisionDeveloperInput {
   developerId: string
 
-  /** Used only when the employee record carries no address of its own. */
   email?: string
 }
 

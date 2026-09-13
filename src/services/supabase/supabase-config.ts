@@ -13,24 +13,8 @@ export interface SupabaseConfig {
 /** The variable the publishable key should be set in. */
 const KEY_VARIABLE = 'VITE_SUPABASE_PUBLISHABLE_KEY'
 
-/**
- * What kind of API key we were given.
- *
- * Supabase issues two kinds, in two generations: the legacy JWTs whose `role`
- * claim is `anon` or `service_role`, and the newer `sb_publishable_…` and
- * `sb_secret_…` strings. Only the public one of each pair may appear in a
- * browser bundle, so this distinction is a security check rather than a
- * convenience.
- */
 export type SupabaseKeyKind = 'publishable' | 'secret' | 'unrecognised'
 
-/**
- * Reads the `role` claim from a Supabase JWT key.
- *
- * The signature is neither checked nor trusted: the token is being inspected
- * to catch a copy-paste mistake by the developer holding it, not to make an
- * authorisation decision. Anything unparseable yields `null`.
- */
 function readJwtRole(token: string): string | null {
   const payload = token.split('.')[1]
   if (payload === undefined) return null
@@ -62,8 +46,6 @@ export function classifySupabaseKey(key: string): SupabaseKeyKind {
 
 function isHttpUrl(value: string): boolean {
   try {
-    // `http` is allowed for the loopback address that `supabase start` serves
-    // a local stack on; every hosted project is https.
     const { protocol } = new URL(value)
     return protocol === 'https:' || protocol === 'http:'
   } catch {
@@ -71,12 +53,6 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-/**
- * Every problem with a configuration, rather than just the first.
- *
- * Reporting them together means somebody fixing their `.env.local` sees both
- * mistakes at once instead of rediscovering the second after a restart.
- */
 export function inspectSupabaseConfig(config: SupabaseConfig): SupabaseConfigProblem[] {
   const problems: SupabaseConfigProblem[] = []
 
@@ -127,12 +103,6 @@ export function inspectSupabaseConfig(config: SupabaseConfig): SupabaseConfigPro
   return problems
 }
 
-/**
- * The configured project, with the trailing slash normalised away.
- *
- * `supabase-js` composes paths onto this URL, and a trailing slash produces
- * doubled separators that some proxies reject.
- */
 export function getSupabaseConfig(): SupabaseConfig {
   return {
     url: appConfig.supabase.url.replace(/\/+$/, ''),
@@ -140,12 +110,6 @@ export function getSupabaseConfig(): SupabaseConfig {
   }
 }
 
-/**
- * Whether a Supabase client can be built at all.
- *
- * Lets callers offer a degraded experience — an explanatory notice, or the
- * in-memory workbook — instead of catching a thrown error.
- */
 export function isSupabaseConfigured(): boolean {
   return inspectSupabaseConfig(getSupabaseConfig()).length === 0
 }

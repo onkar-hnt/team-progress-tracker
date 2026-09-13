@@ -23,22 +23,6 @@ import { compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
 import './RecycleBinPage.scss'
 
-/**
- * What has been deleted, and how to get it back.
- *
- * Everybody has one, and it holds what they may see: a developer's own deleted
- * entries, the ones belonging to a mentor's developers, everything for an
- * administrator. That is not decided here — the select policies on the six tables
- * decide it, and this screen simply lists what came back. See
- * `recycle-bin.service.ts`.
- *
- * Two actions, deliberately unequal. Restore is one click, because it undoes
- * something and cannot lose anything. Destroy asks first, in the same words the
- * delete buttons used to use, because it is the act those buttons used to perform
- * silently — the whole point of this screen is that the irreversible step is now a
- * separate, deliberate one.
- */
-
 type SortKey = 'date' | 'deleted' | 'kind' | 'title' | 'who'
 
 export function RecycleBinPage() {
@@ -56,10 +40,7 @@ export function RecycleBinPage() {
   const restore = useRestoreRecord()
   const destroy = useDestroyRecord()
 
-  // The same lookup the work-tracker service does for its views, done here
-  // instead: the bin reads its rows outside `DataProvider`, so there is nothing
-  // upstream to resolve the names for it. Ids are shown when a name cannot be
-  // found rather than a blank, since an unresolvable id is worth seeing.
+  // Resolve names here; the bin query runs outside DataProvider.
   const nameOf = useMemo(() => {
     const developers = new Map((developersQuery.data ?? []).map((one) => [one.id, one.name]))
     const projects = new Map((projectsQuery.data ?? []).map((one) => [one.id, one.name]))
@@ -70,14 +51,6 @@ export function RecycleBinPage() {
     }
   }, [developersQuery.data, projectsQuery.data])
 
-  /**
-   * The second and third things worth knowing about a record, after what it is.
-   *
-   * One column for both halves of the bin, because they answer the same question in
-   * different vocabularies: a deleted work entry belongs to a person and a project,
-   * while a deleted project *is* the thing and what identifies it is its client. Two
-   * columns would leave one of them empty on every row.
-   */
   const detailsOf = (record: DeletedRecord): { primary: string; secondary?: string } => {
     if (record.developerId === undefined) return { primary: record.detail ?? '—' }
 
@@ -102,10 +75,7 @@ export function RecycleBinPage() {
     }
   }
 
-  // What this person can put back, which is narrower than what they can see: a
-  // developer reads a comment a mentor wrote about them and a task a mentor
-  // deleted, and can restore neither. `mayActOnDeletedRecord` explains why the
-  // list is cut here rather than shown with two dead buttons on the end.
+  // Restore rights are narrower than read access.
   const records = (recordsQuery.data ?? []).filter((record) =>
     mayActOnDeletedRecord(scope, record),
   )
@@ -127,8 +97,6 @@ export function RecycleBinPage() {
       () => {
         snackbar.success(`“${record.title}” is back where it was.`)
       },
-      // Reported by the hook, which knows how to phrase it. Swallowed here so the
-      // rejection does not reach the console saying nothing new.
       () => undefined,
     )
   }
@@ -242,9 +210,6 @@ export function RecycleBinPage() {
                           <td className="data-table__nowrap">
                             {record.date === undefined ? '—' : formatShortDate(record.date)}
                           </td>
-                          {/* Relative, with the exact moment on hover: "2 hours ago"
-                              is what answers "was this just now or last month", and
-                              the timestamp is what somebody quotes. */}
                           <td className="data-table__nowrap">
                             <span title={formatTimestamp(record.deletedAt)}>
                               {formatRelativeTime(record.deletedAt)}

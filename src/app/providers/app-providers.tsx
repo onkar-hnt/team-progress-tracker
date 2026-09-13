@@ -8,21 +8,7 @@ import { ConfirmProvider } from './ConfirmProvider'
 import { SnackbarProvider } from './SnackbarProvider'
 import { WorkbookGate } from './WorkbookGate'
 
-/**
- * Only a real workbook can be edited behind the application's back.
- *
- * For those two sources, returning to the tab is exactly when somebody has
- * finished editing in Excel, so that is the moment to re-read, and freshness
- * is worth measuring in seconds. None of it applies elsewhere: Supabase has
- * this application as its only writer and every write already invalidates
- * what it touched, the in-memory workbook lives inside this process, and
- * fixtures cannot change at all.
- *
- * This used to read `!== 'mock'`, which quietly handed Supabase the workbook's
- * settings — a five-second freshness window, and a refetch of every mounted
- * query each time the tab regained focus, against a database nobody else was
- * touching.
- */
+/** Refetch on focus only when the workbook can change outside the app. */
 const isSharedWorkbook =
   appConfig.dataSource === 'local-excel' || appConfig.dataSource === 'sharepoint-excel'
 
@@ -37,17 +23,12 @@ const queryClient = new QueryClient({
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
-    // Feedback is outermost so that everything below can report on itself. The
-    // query client in particular: the write mutations in `use-work-tracker`
-    // announce their own failures through the snackbar, which is what replaced
-    // the alert that used to sit on the page behind whichever dialog caused it.
     <SnackbarProvider>
       <ConfirmProvider>
         <QueryClientProvider client={queryClient}>
-          {/* The workbook is checked before authentication, because signing in
-              reads the accounts out of it. */}
+          {/* Workbook before auth: sign-in reads accounts from it. */}
           <WorkbookGate>
-            {/* Nested inside the query client so signing out can clear cached team data. */}
+            {/* Inside QueryClient so sign-out can clear cached data. */}
             <AuthSessionProvider>{children}</AuthSessionProvider>
           </WorkbookGate>
         </QueryClientProvider>

@@ -1,12 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The Logins screen.
-///
-/// Its own stylesheet rather than another modifier on `.admin-page`, because it
-/// is not one of those screens: no create button, no edit dialog, and two things
-/// none of them need — a standing warning above the table, and state written into
-/// cells rather than left as bare words.
 .accounts-page {
   @include page-stack;
 
@@ -17,10 +11,6 @@
     font-size: $font-size-sm;
   }
 
-  /// Drawn as a notice rather than a snackbar. It describes a standing condition
-  /// — somebody off the roster who can still sign in — which is true until an
-  /// administrator acts on it, and a message that dismisses itself after four
-  /// seconds is the wrong shape for that.
   &__alert {
     padding: $space-3 $space-4;
     border: 1px solid $color-warning-border;
@@ -31,11 +21,6 @@
     background: $color-warning-surface;
   }
 
-  /// The sign-in state, as a pill.
-  ///
-  /// Not `StatusBadge`: that component's vocabulary is task statuses, and its
-  /// modifiers are named after them. Two words with two meanings do not justify
-  /// widening it.
   &__state {
     display: inline-block;
     padding: $space-1 $space-2;
@@ -55,8 +40,6 @@
     }
   }
 
-  /// Sits under the pill on the one row combination worth pointing at: enabled
-  /// sign-in, inactive roster.
   &__flag {
     display: block;
     margin-top: $space-1;
@@ -75,9 +58,6 @@
     background: $color-surface-subtle;
   }
 
-  /// Where a row has no action, the reason takes the button's place — so the
-  /// column reads as deliberately empty rather than as something that failed to
-  /// render.
   &__muted {
     color: $color-text-muted;
     font-size: $font-size-xs;

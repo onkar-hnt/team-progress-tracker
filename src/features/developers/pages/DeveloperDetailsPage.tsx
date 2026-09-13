@@ -64,13 +64,9 @@ export function DeveloperDetailsPage() {
   const { scope } = useAccessScope()
   const [periodKey, setPeriodKey] = useState<PeriodKey>('this-week')
 
-  // The id arrives from the URL, so this is the point where somebody could
-  // try to open a colleague's page by editing the address bar. The check runs
-  // before any query is issued, and the wording is the same whether or not
-  // the person exists, so a refusal does not confirm who is on the team.
+  // Same refusal wording whether or not the developer exists.
   const isPermitted = canViewDeveloperProfile(scope, developerId)
 
-  // Memoised so the derived trend is not rebuilt on every unrelated render.
   const range = useMemo(() => PERIODS[periodKey].resolve(todayIsoDate()), [periodKey])
 
   const developersQuery = useDevelopers()
@@ -147,8 +143,6 @@ export function DeveloperDetailsPage() {
     )
   }
 
-  // Update consistency compares days logged against working days in the
-  // period, which is the same rule the dashboard uses for missing updates.
   const workingDays = listWorkingDatesInRange(range).length
   const daysLogged = new Set(entries.map((entry) => entry.date)).size
 

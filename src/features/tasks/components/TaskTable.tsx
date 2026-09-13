@@ -28,10 +28,6 @@ function compareTasks(left: AssignedTaskView, right: AssignedTaskView, key: Sort
     case 'status':
       return compareStatus(left.status, right.status)
     case 'due':
-      // ISO dates, so comparing the text is comparing the dates. Undated tasks
-      // sort last ascending, which is what `compareText` does with an absent
-      // value — and is right here, since a task with no deadline is not the one
-      // to look at first.
       return compareText(left.dueDate, right.dueDate)
   }
 }
@@ -39,31 +35,10 @@ function compareTasks(left: AssignedTaskView, right: AssignedTaskView, key: Sort
 interface TaskTableProps {
   tasks: readonly AssignedTaskView[]
   emptyMessage: string
-
-  /** Hidden on a single developer's page, where every row is the same person. */
   showDeveloper?: boolean
-
-  /** Rendered in the last column, for the actions a given screen allows. */
   renderActions?: (task: AssignedTaskView) => ReactNode
 }
 
-/**
- * Assigned work in a table.
- *
- * Shared by the developer's own task list, the mentor's view of their team and
- * the admin's management screen. The rows are identical in all three; only the
- * actions column differs, which is why it is a render prop rather than a set
- * of role flags inside this component.
- *
- * Sorting lives here rather than in each of those screens, for the same reason:
- * the columns are this component's, so the comparator belongs beside them, and
- * putting it here gave all three screens the same behaviour in one change.
- *
- * It opens on the due date, soonest first. Tasks arrive from the provider in no
- * particular order — `getTaskViews` resolves names and computes `isOverdue` but
- * deliberately does not sort — so before this the first row was whichever one the
- * database happened to return first, which is the one order that means nothing.
- */
 export function TaskTable({
   emptyMessage,
   renderActions,
@@ -73,8 +48,6 @@ export function TaskTable({
   const { sort, toggle } = useTableSort<SortKey>({ key: 'due', direction: 'asc' })
 
   const sorted = useMemo(
-    // Tie-broken by name so that a column of equal priorities, or a screen full
-    // of undated tasks, stays in one order between renders.
     () => sortRows(tasks, sort, compareTasks, (left, right) => compareText(left.name, right.name)),
     [sort, tasks],
   )
@@ -101,9 +74,6 @@ export function TaskTable({
         <tbody>
           {sorted.map((task) => (
             <tr key={task.id}>
-              {/* A line each, cut off rather than wrapped, so every row is the
-                  same height however much somebody typed. The whole text is a
-                  hover away. */}
               <td>
                 <span className="task-table__name">
                   <Tooltip clips label={task.name}>
@@ -132,8 +102,6 @@ export function TaskTable({
                 ) : (
                   <span className={task.isOverdue ? 'task-table__due--overdue' : undefined}>
                     {formatShortDate(task.dueDate)}
-                    {/* Marked in text as well as colour, so the warning does
-                        not depend on being able to see the difference. */}
                     {task.isOverdue ? ' · overdue' : ''}
                   </span>
                 )}

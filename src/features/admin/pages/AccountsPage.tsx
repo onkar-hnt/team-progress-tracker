@@ -20,59 +20,14 @@ import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.
 
 import './AccountsPage.scss'
 
-/**
- * The logins, and the one screen where they are turned off.
- *
- * Everything else in the administration area is about people: employees, mentors,
- * the projects they work on. This is about their accounts, which is a different
- * list even though it names the same team — a person can exist without a login, a
- * login can outlast somebody's place on the roster, and until this screen existed
- * the second of those was invisible and unfixable from inside the application.
- *
- * ## What it joins together
- *
- * Three sources, because no one of them answers the question on its own.
- * `profiles` says whether somebody can sign in and what they see. The employee
- * and mentor rosters say who they are and whether they are still with the team.
- * Reading them together is what surfaces the state worth acting on: a person
- * marked inactive on the roster whose login still works.
- *
- * That was previously left to a hint on the Employees form, which explained that
- * unticking Active does not revoke a login and left the reader with nothing to do
- * about it. The hint now points here.
- *
- * ## What it does not do
- *
- * No creating and no deleting. A login is created against a person's record, on
- * the Employees or Mentors screen, because that is where the record it attaches to
- * is; and nothing here deletes an auth account, because a deleted account takes
- * its profile with it and the roster rows that pointed at it would be left
- * claiming a login that never existed. Disabling is the reversible form of the same
- * intent, and it is what this offers.
- */
-
 type SortKey = 'created' | 'email' | 'name' | 'records' | 'roster' | 'signIn' | 'role'
 
-/** What the roster knows about the person behind a login. */
 interface RosterFacts {
-  /** As it reads in the table: "Employee", "Mentor", "Employee and mentor". */
   records: string
-
-  /**
-   * Whether every record naming them is still active.
-   *
-   * False is the interesting case, and the reason this screen exists: somebody
-   * marked as having left, whose login nobody remembered to disable.
-   */
+  // False when inactive on the roster but the login may still work.
   isOnRoster: boolean
 }
 
-/**
- * One column at a time, ascending.
- *
- * A factory, because two of the columns are about the roster rather than the
- * account, and the roster arrives from two other queries joined in the screen.
- */
 function compareAccountsBy(rosterOf: (account: Account) => RosterFacts | undefined) {
   return (left: Account, right: Account, key: SortKey): number => {
     switch (key) {
@@ -85,9 +40,7 @@ function compareAccountsBy(rosterOf: (account: Account) => RosterFacts | undefin
       case 'records':
         return compareText(rosterOf(left)?.records, rosterOf(right)?.records)
       case 'roster':
-        // Accounts attached to no record at all sort last, after both the active
-        // and the inactive: an administrator's login is not part of the question
-        // this column is being sorted to answer.
+        // Accounts with no roster row sort last.
         return compareFlag(
           rosterOf(left)?.isOnRoster ?? false,
           rosterOf(right)?.isOnRoster ?? false,
@@ -95,7 +48,6 @@ function compareAccountsBy(rosterOf: (account: Account) => RosterFacts | undefin
       case 'signIn':
         return compareFlag(left.isActive, right.isActive)
       case 'created':
-        // ISO timestamps, so text order is time order.
         return compareText(left.createdAt, right.createdAt)
     }
   }
@@ -114,9 +66,6 @@ export function AccountsPage() {
   const mentorsQuery = useRosterMentors()
   const setAccountState = useSetAccountState()
 
-  // Nothing to draw and nothing to explain away: the offline providers have no
-  // auth accounts at all, so the honest answer is that this screen does not apply
-  // rather than an empty table.
   if (!areAccountsAvailable()) {
     return (
       <PagePlaceholder
@@ -142,9 +91,7 @@ export function AccountsPage() {
 
     const existing = rosterByProfile.get(mentor.profileId)
 
-    // One person, both records. Their place on the roster is the conjunction of
-    // the two: a mentor still mentoring is still with the team even if their
-    // employee row was retired.
+    // On roster if either the employee or mentor record is active.
     rosterByProfile.set(mentor.profileId, {
       records: existing === undefined ? 'Mentor' : 'Employee and mentor',
       isOnRoster: (existing?.isOnRoster ?? false) || mentor.active,
@@ -153,14 +100,6 @@ export function AccountsPage() {
 
   const isSelf = (account: Account) => account.email === user?.email
 
-  /**
-   * The write, and what is said afterwards.
-   *
-   * Passed to the dialog as its `action`, so the dialog stays open and busy until
-   * the server has answered — a second press cannot land, and the list behind is
-   * not read back before the change has settled. A rejection is swallowed here
-   * because `useSetAccountState` has already reported it.
-   */
   const applyStateChange = async (account: Account, isActive: boolean) => {
     const result = await setAccountState
       .mutateAsync({ profileId: account.profileId, isActive })
@@ -169,8 +108,6 @@ export function AccountsPage() {
     if (result === null) return
 
     if (result.warning !== undefined) {
-      // Something did change, so this is not an error — but it is not all of what
-      // was asked for either, and it needs an instruction rather than a tick.
       snackbar.warning(result.warning, { duration: 0 })
       return
     }
@@ -211,10 +148,6 @@ export function AccountsPage() {
     return account.isActive && roster !== undefined && !roster.isOnRoster
   }).length
 
-  // Not memoised, unlike the other tables that do this. The join above is rebuilt
-  // every render anyway — it depends on two queries and is cheap for a team-sized
-  // roster — so a `useMemo` here would be a dependency on a map that is new each
-  // time, which memoises nothing and only looks like it does.
   const visible = sortRows(
     accounts.filter((account) => matchesSearch([account.name, account.email], search)),
     sort,
@@ -330,15 +263,10 @@ export function AccountsPage() {
                           </td>
                           <td className="data-table__nowrap">{account.email}</td>
                           <td>{USER_ROLE_LABELS[account.role]}</td>
-                          {/* Absent means the account is attached to no employee or
-                          mentor row — an administrator, ordinarily, since they own
-                          no work. */}
                           <td>{roster?.records ?? '—'}</td>
                           <td>
                             {roster === undefined ? '—' : roster.isOnRoster ? 'Active' : 'Inactive'}
                           </td>
-                          {/* Still holding one somebody else chose for them, which is
-                          worth seeing next to a login that has never been used. */}
                           <td>{account.mustChangePassword ? 'Temporary' : 'Their own'}</td>
                           <td className="data-table__nowrap">
                             {formatLongDate(account.createdAt)}

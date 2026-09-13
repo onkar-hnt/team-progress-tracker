@@ -65,19 +65,6 @@ import {
 } from '../excel/excel-mappers'
 import type { RawExcelRow } from '../excel/excel-schema'
 
-/**
- * In-memory provider backed by workbook-shaped fixtures.
- *
- * The fixtures in `src/data` use Excel column names and Excel cell values, and
- * they are mapped with exactly the same code as the real workbook. That means
- * development continuously exercises the mapping and validation layer, so
- * switching to SharePoint is a configuration change rather than a rewrite, and
- * a schema mistake surfaces here rather than on the day of integration.
- *
- * Writes mutate memory only and are lost on reload, which is the honest
- * behaviour for a static deployment with no backend.
- */
-
 const REFERENCE_DATE_FALLBACK = '2026-09-10'
 
 function toRawRows(rows: readonly unknown[]): RawExcelRow[] {
@@ -124,12 +111,6 @@ export class MockDataProvider implements DataProvider {
     this.latencyMs = options.latencyMs ?? 0
   }
 
-  /**
-   * The most recent date present in the fixtures.
-   *
-   * Date-filtered screens can default to this so that development always shows
-   * a populated dashboard, without the fixtures needing dates relative to now.
-   */
   get referenceDate(): string {
     return this.entries.reduce(
       (latest, entry) => (entry.date > latest ? entry.date : latest),
@@ -229,8 +210,6 @@ export class MockDataProvider implements DataProvider {
       throw new RecordNotFoundError('Mentors', id)
     }
 
-    // Comments are a mentor's own record of their feedback, so they block the
-    // delete. Assignments do not: they are the mapping itself and go with it.
     this.assertNotInUse('Mentors', id, [
       countLabel(this.comments.filter((comment) => comment.mentorId === id).length, 'comment'),
       countLabel(this.projects.filter((project) => project.mentorId === id).length, 'project'),
@@ -262,8 +241,6 @@ export class MockDataProvider implements DataProvider {
       this.assertReferenceExists('developerId', developerId)
     }
 
-    // De-duplicated, because assigning the same developer twice is meaningless
-    // and would produce two identical workbook rows.
     const unique = [...new Set(developerIds)]
     const assignedDate = new Date().toISOString().slice(0, 10)
 
@@ -511,13 +488,6 @@ export class MockDataProvider implements DataProvider {
     this.entries = remaining
   }
 
-  /**
-   * Runs a candidate through the same schema the workbook rows use.
-   *
-   * Writes are validated with the read schema on purpose: it guarantees that
-   * anything saved here could be read back, so the mock can never accept a
-   * record the real workbook would reject.
-   */
   private validate<TValue>(
     schema: z.ZodType<TValue>,
     candidate: unknown,
@@ -605,13 +575,6 @@ function countLabel(count: number, noun: string): string | null {
   return `${String(count)} ${noun}${count === 1 ? '' : 's'}`
 }
 
-/**
- * Drops the mentor reference from a task.
- *
- * The key is deleted rather than set to `undefined` so the record matches what
- * a task without a mentor looks like when it is read back from the workbook,
- * where an empty cell yields no property at all.
- */
 function omitMentor(task: AssignedTask): AssignedTask {
   const rest = { ...task }
   delete rest.mentorId

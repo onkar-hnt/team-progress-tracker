@@ -6,46 +6,22 @@ export interface AuthContextValue {
   user: AppUser | null
   isAuthenticated: boolean
 
-  /**
-   * `true` while the stored session is being re-checked against the workbook.
-   *
-   * Guards must wait for this rather than redirecting, or a refresh would
-   * bounce a signed-in person to the login page.
-   */
+  /** Guards must wait or a refresh looks like sign-out. */
   isRestoring: boolean
 
-  /** `false` when sign-in is delegated, so the form should not be shown. */
   usesCredentials: boolean
 
-  /**
-   * `true` when accounts are checked without a network round trip.
-   *
-   * Only the offline workbook provider is, and it is the only one that
-   * honours the built-in administrator credentials — so this is what the
-   * login screen uses to decide whether mentioning them is accurate.
-   */
+  /** Offline provider only; controls built-in admin hint on login. */
   isOffline: boolean
 
-  /** Throws an `AuthError` when sign-in is rejected. */
   signIn: (credentials?: SignInCredentials) => Promise<AppUser>
 
   signOut: () => Promise<void>
 
-  /**
-   * Re-reads the signed-in person's role and flags from the data source.
-   *
-   * Needed because some of what `AppUser` carries is decided in the database
-   * and can be changed by the application itself. Clearing the password-change
-   * requirement is the case that forced this: without a re-read, the guard
-   * would keep redirecting to a screen whose work is already done.
-   */
+  /** Re-read role and flags after the app changes them, e.g. password change. */
   refreshUser: () => Promise<void>
 }
 
-/**
- * `undefined` marks "no provider mounted", which is a wiring bug rather than
- * a signed-out state. Signed out is `user === null`.
- */
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function useAuth(): AuthContextValue {

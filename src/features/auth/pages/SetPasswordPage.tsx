@@ -17,34 +17,16 @@ import { getSupabaseClient } from '@services/supabase/index'
 import './LoginPage.scss'
 
 type Stage =
-  /** Holding a link whose tokens have not yet been exchanged for a session. */
   | { name: 'opening'; link: InviteLink }
-  /** No link. Someone already signed in may still be here to change it. */
   | { name: 'checking'; rejection: string | null }
-  /** The session is live and a password can be chosen. */
   | { name: 'ready'; kind: 'invite' | 'recovery' | 'change' }
-  /** No usable link and no session — arrived directly, or the link expired. */
   | { name: 'unusable'; reason: string | null }
 
-/**
- * Where an invitation email lands.
- *
- * The tokens were lifted out of the fragment by `captureInviteLink` before
- * the router started, so by the time this renders the address bar is already
- * a clean `#/set-password` and the credentials exist only in memory.
- *
- * Public, like the login screen: the person following the link has no
- * password yet, which is the entire reason they are here.
- */
 export function SetPasswordPage() {
   const navigate = useNavigate()
   const { refreshUser, user } = useAuth()
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Decided during the first render rather than in an effect. Reading the
-  // link is a pure lookup of something captured before React started, so
-  // there is nothing to synchronise and no reason to render an empty frame
-  // first. Only the token exchange, which is a network call, is an effect.
   const [stage, setStage] = useState<Stage>(() => {
     const { link, rejection } = readInviteLink()
     return link === null ? { name: 'checking', rejection } : { name: 'opening', link }
@@ -82,9 +64,6 @@ export function SetPasswordPage() {
   const rejection = stage.name === 'checking' ? stage.rejection : null
   const isChecking = stage.name === 'checking'
 
-  // Someone already signed in needs no link. `updateUser` works against any
-  // live session, so this doubles as the change-password screen — which is
-  // the only way anybody can replace an initial password they were handed.
   useEffect(() => {
     if (!isChecking) return
 
@@ -114,8 +93,6 @@ export function SetPasswordPage() {
   if (stage.name === 'opening') return <FullPageLoader label="Opening your invitation…" />
   if (stage.name === 'checking') return <FullPageLoader label="Checking your session…" />
 
-  // Sent here by the route guard rather than by choice, because the account
-  // still holds the password it was issued.
   const isForced = user?.mustChangePassword === true
 
   return (
@@ -161,9 +138,6 @@ export function SetPasswordPage() {
             onError={setSaveError}
             onSaved={async () => {
               clearInviteLink()
-              // Before navigating, not after: the guard reads the flag from
-              // the user in context, so leaving without re-reading it would
-              // bounce straight back here.
               await refreshUser()
               void navigate('/dashboard', { replace: true })
             }}
@@ -178,15 +152,7 @@ export function SetPasswordPage() {
   )
 }
 
-/**
- * Clears the password-change requirement.
- *
- * A database function rather than an update, because the column refuses to be
- * lowered by the account holder: the function re-derives the temporary
- * password and will not clear the flag while that password still opens the
- * account. So this cannot be called instead of changing the password, only
- * after.
- */
+// DB function clears must_change_password only after the temp password is gone.
 async function completePasswordChange(): Promise<string | null> {
   const { error } = await getSupabaseClient().rpc('complete_password_change')
 
@@ -202,19 +168,6 @@ function PasswordForm({
   onError: (message: string | null) => void
   onSaved: () => Promise<void>
 }) {
-  /**
-   * Set when the password changed but the flag did not clear.
-   *
-   * The two are separate calls — Supabase Auth owns one and the database owns
-   * the other — so there is a window between them. Leaving quietly would
-   * strand the account holding a password they chose while the application
-   * still believes they hold a temporary one, so the form stops and offers to
-   * finish instead.
-   *
-   * Not a dead end if they close the tab: the flag is still set, so the guard
-   * returns them here, and by then their password is the new one — which is
-   * exactly what the database checks before clearing.
-   */
   const [needsCompletion, setNeedsCompletion] = useState(false)
 
   const {
@@ -249,7 +202,6 @@ function PasswordForm({
       return
     }
 
-    // Only once Supabase has confirmed the new password, never alongside it.
     await finish()
   })
 

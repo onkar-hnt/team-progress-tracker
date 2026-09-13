@@ -1,13 +1,5 @@
 import type { ProvisioningNotice } from './provisioning-notice'
 
-/**
- * The result of a provisioning attempt, and the credentials when there are
- * any to hand over.
- *
- * Shared by the Employees and Mentors screens. The credentials block is
- * deliberately hard to miss and hard to mistake for something retrievable
- * later, because it is shown exactly once.
- */
 export function ProvisioningNoticeView({ notice }: { notice: ProvisioningNotice | null }) {
   return (
     <div aria-live="polite" role="status">

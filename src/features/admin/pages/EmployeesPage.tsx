@@ -52,36 +52,15 @@ const ACCESS_ROLE_OPTIONS = USER_ROLES.map((role) => ({
 
 type EmployeeFormValues = z.infer<typeof employeeFormSchema>
 
-/**
- * Logins only mean something against Supabase.
- *
- * The offline providers have no auth accounts to create, so the action is
- * hidden rather than offered and then refused by the server.
- */
+// Provisioning requires Supabase Auth.
 const CAN_PROVISION_LOGINS = appConfig.dataSource === 'supabase'
 
-/**
- * Why this row cannot be given a login, or null when it can.
- *
- * Provisioning creates developer accounts and nothing else. Offering it on a
- * mentor or an administrator would produce a developer profile for them,
- * which is worse than not offering it at all: the row would look provisioned
- * while granting the wrong access.
- *
- * An inactive employee is refused for a different reason. Nothing stops the
- * account working once it exists — sign-in is decided by the profile's
- * status, not by this table — so creating one for somebody marked inactive
- * would hand out access the screen appears to be withholding.
- */
 function describeUnprovisionable(developer: Developer): string | null {
   if (!developer.active) {
     return 'Inactive employees are not given logins. Mark them active first.'
   }
 
-  // Mentors are provisioned from the Mentors screen, against their mentor
-  // record, so that the profile ends up with the mentor role. Doing it here
-  // would create a second auth account for the same address, or a developer
-  // profile for somebody who should not have one.
+  // Mentor logins must be created on the Mentors screen to get the mentor role.
   if ((developer.accessRole ?? 'developer') === 'mentor') {
     return 'Mentor logins are created on the Mentors screen, against their mentor record.'
   }
@@ -98,7 +77,6 @@ function isProvisionable(developer: Developer): boolean {
   return describeUnprovisionable(developer) === null
 }
 
-/** The sortable columns, named after what they show rather than the field. */
 type SortKey = 'access' | 'email' | 'location' | 'login' | 'name' | 'role' | 'status'
 
 function compareEmployees(left: Developer, right: Developer, key: SortKey): number {
@@ -112,10 +90,7 @@ function compareEmployees(left: Developer, right: Developer, key: SortKey): numb
     case 'location':
       return compareText(left.location, right.location)
     case 'access':
-      // By the label rather than the stored value, so the order matches the
-      // column: "Administrator, Developer, Mentor" is what is on screen, and
-      // sorting by the raw role would produce a different sequence for no
-      // visible reason.
+      // Sort by display label, not the stored role value.
       return compareText(
         USER_ROLE_LABELS[left.accessRole ?? 'developer'],
         USER_ROLE_LABELS[right.accessRole ?? 'developer'],
@@ -127,16 +102,6 @@ function compareEmployees(left: Developer, right: Developer, key: SortKey): numb
   }
 }
 
-/**
- * The Employees list, and where logins are handed out.
- *
- * Two separate things happen here and the distinction matters when one of
- * them fails. The employee record is an ordinary row this screen writes
- * through the usual path. The login is an auth account, which only the
- * server may create, so it goes out to the provisioning function. A record
- * without a login is a valid state — somebody recorded before they start —
- * and the list shows which of the two each person has.
- */
 export function EmployeesPage() {
   const confirm = useConfirm()
   const snackbar = useSnackbar()
@@ -154,9 +119,6 @@ export function EmployeesPage() {
   const deleteDeveloper = useDeleteDeveloper()
   const provisionLogin = useProvisionDeveloperLogin()
 
-  // Searched over the four columns that hold words. Not the access role or the
-  // login state: those are worth sorting by and useless to type at, since one is
-  // three fixed values and the other two.
   const visible = useMemo(() => {
     const rows = (developersQuery.data ?? []).filter((developer) =>
       matchesSearch([developer.name, developer.email, developer.role, developer.location], search),
@@ -167,22 +129,10 @@ export function EmployeesPage() {
     )
   }, [developersQuery.data, search, sort])
 
-  /**
-   * Asks first, then deletes, then says so.
-   *
-   * The confirmation resolves `true` only once the delete has actually landed,
-   * so the success message cannot be shown for something that failed — and a
-   * failure has already been reported by the mutation itself.
-   */
   const requestDelete = async (developer: Developer) => {
     const isDeleted = await confirm({
       title: 'Delete this employee?',
-      // Every table that names a developer — tasks, daily updates, feedback,
-      // project and mentor assignments — points at this row with `on delete
-      // restrict`, and `guard_roster_deletion` says the same for a soft delete,
-      // so the database refuses to remove anybody with a history. Saying so up
-      // front is better than offering a delete that will be refused, and better
-      // than implying the history goes with them.
+      // DB refuses delete when the developer has related history.
       message: `“${developer.name}” will be removed from the employee list. This is only possible while they have no tasks, updates or feedback recorded. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete employee',
       isDestructive: true,
@@ -192,21 +142,7 @@ export function EmployeesPage() {
     if (isDeleted) snackbar.success(`“${developer.name}” was deleted.`)
   }
 
-  /**
-   * Asks the server for a login, and says plainly when it could not.
-   *
-   * Never throws. The employee record is already saved by the time this
-   * runs, so a failure here is a partial success to report rather than an
-   * error to unwind — and the row action retries it without writing a
-   * second employee.
-   *
-   * The row action asks before it starts. This creates a real account and shows
-   * its initial password once — no endpoint will return it again — so a press
-   * aimed at the wrong row of a long table costs a password reset in the
-   * Supabase dashboard, and there is nothing here to undo it with. `isNewRecord`
-   * skips the question for the one caller where the intent is not in doubt: the
-   * add form, which has just been filled in and submitted for this person.
-   */
+  // Initial password is shown once; row actions confirm before provisioning.
   const requestLogin = async (developer: Developer, isNewRecord = false) => {
     if (!CAN_PROVISION_LOGINS) return
 
@@ -235,8 +171,6 @@ export function EmployeesPage() {
         ...(developer.email === undefined ? {} : { email: developer.email }),
       })
 
-      // Said only on creation, where it is the next thing to do. Repeating it
-      // on every retry would train people to ignore it.
       const reminder = isNewRecord
         ? ' Assign them to an active project before they can submit daily updates.'
         : ''
@@ -337,10 +271,6 @@ export function EmployeesPage() {
                         <td>{developer.location ?? '—'}</td>
                         <td>{USER_ROLE_LABELS[developer.accessRole ?? 'developer']}</td>
                         <td>{developer.active ? 'Active' : 'Inactive'}</td>
-                        {/* Linked means an account exists and is attached. Whether
-                            the invitation has actually been accepted is not
-                            readable from here, and guessing at it would be worse
-                            than saying nothing. */}
                         {CAN_PROVISION_LOGINS ? (
                           <td>
                             {developer.profileId !== undefined
@@ -400,10 +330,6 @@ export function EmployeesPage() {
 
             if (created === null) return
 
-            // Closed and confirmed before provisioning is attempted, because the
-            // employee genuinely was created: leaving the form open would invite
-            // a duplicate, and staying silent until the login attempt returns
-            // would attribute its failure to the record.
             setIsCreating(false)
             snackbar.success(`“${values.name}” was added.`)
 
@@ -458,10 +384,7 @@ function EmployeeForm({
 }) {
   const { user } = useAuth()
 
-  // Mentors maintain every other column on this record, including whether the
-  // person is still active. This one is now the profile role — a trigger keeps
-  // `profiles.role` in step with it — so the database refuses it from anybody
-  // else, and a field that cannot be saved should not look editable.
+  // Only admins may change access role; a DB trigger syncs profiles.role.
   const canSetAccessRole = isAdmin(user)
 
   const {

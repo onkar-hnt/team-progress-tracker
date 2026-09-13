@@ -28,33 +28,6 @@ import { toUserMessage } from '@services/errors/error-message'
 
 import './PasswordManagement.scss'
 
-/**
- * Setting other people's passwords, for whoever is entitled to.
- *
- * Kept apart from the profile facts above it on the Profile screen, and from the
- * Employees and Mentors screens that maintain the same people's names and
- * addresses. Editing somebody's job title and handing out their credentials are
- * different kinds of act, and a screen that offers both in one row invites the
- * second while somebody is doing the first.
- *
- * ## What it shows, and to whom
- *
- * An administrator sees every employee and every mentor. A mentor sees the
- * employees assigned to them and nobody else — not other mentors, not employees
- * belonging to a colleague. A developer never renders this at all.
- *
- * None of that is the protection. `public.may_reset_password` is asked by the
- * Edge Function on every attempt, so a mentor who reaches past this screen with a
- * session token and a terminal is refused by the database rather than by the
- * absence of a button. This is the usability layer, and says so.
- *
- * People with no login yet are listed but have no control, because leaving them
- * out would read as somebody having gone missing from a mentor's own list. The
- * fix for those is Create login on the Employees screen, which issues a password
- * of its own.
- */
-
-/** One person, flattened to what both the decision and the list need. */
 interface Candidate {
   kind: 'developer' | 'mentor'
   id: string
@@ -66,25 +39,9 @@ interface Candidate {
   hasLogin: boolean
 }
 
-/**
- * Whether this deployment can reset a password at all.
- *
- * The same condition the provisioning controls use: the Edge Function holding the
- * service-role key exists only for the Supabase project, and on any other data
- * source there is no account to change. Offering the panel there would be
- * offering a button that cannot work.
- */
+// Password reset requires Supabase Auth.
 const CAN_MANAGE_PASSWORDS = appConfig.dataSource === 'supabase'
 
-/**
- * The gate, kept apart from the panel so that the two roster queries below are
- * never issued for somebody who manages nobody.
- *
- * A developer opening Settings would otherwise fetch both rosters — answered by
- * row-level security with their own row and nothing else — to build a list this
- * would then decline to draw. Putting the queries one component further in means
- * they are mounted only when there is something to ask about.
- */
 export function PasswordManagement() {
   const { user } = useAuth()
 
@@ -138,8 +95,6 @@ function PasswordPanel({ user }: { user: AppUser }) {
           title="Nobody to manage"
         />
       ) : (
-        // `Panel` puts no gap between its children, so the stack is this
-        // component's own — the same shape `NotificationPreferences` uses.
         <div className="password-management">
           <ul className="password-management__list">
             {candidates.map((candidate) => (
@@ -151,19 +106,12 @@ function PasswordPanel({ user }: { user: AppUser }) {
                   </span>
                 </div>
 
-                {/* Which record this person is here through, since the same name
-                    can appear as both an employee and a mentor and the two lead
-                    to different accounts. */}
                 <span className="password-management__role">
                   {candidate.kind === 'mentor'
                     ? 'Mentor record'
                     : USER_ROLE_LABELS[candidate.accessRole ?? 'developer']}
                 </span>
 
-                {/* Asked of the permission function per row rather than read off
-                    `hasLogin`, so the control appears exactly when the rule says
-                    it may. For a candidate, the missing login is the only thing
-                    that can still refuse — which is what the text says. */}
                 {canResetPasswordFor(user, scope, candidate) ? (
                   <Button
                     onClick={() => {
@@ -175,9 +123,6 @@ function PasswordPanel({ user }: { user: AppUser }) {
                     Set password
                   </Button>
                 ) : (
-                  // Not a disabled button: there is nothing to enable it, and a
-                  // control that can never be pressed is worse than a sentence
-                  // saying why.
                   <span className="password-management__detail">No login yet</span>
                 )}
               </li>
@@ -216,18 +161,6 @@ function PasswordPanel({ user }: { user: AppUser }) {
   )
 }
 
-/**
- * Both rosters, as one list.
- *
- * Mentors are included for everybody and filtered afterwards by the permission
- * check, rather than being left out here for a mentor. One list and one rule is
- * what keeps the two from disagreeing.
- *
- * `isAlsoMentor` is resolved by matching profile ids across the two rosters,
- * which is the only way to see it from here: an employee record does not say that
- * the same person also mentors. It matters because the database refuses a mentor
- * against anybody holding a mentor record, whatever their profile role says.
- */
 function buildCandidates(
   developers: readonly Developer[],
   mentors: readonly Mentor[],
@@ -265,26 +198,6 @@ function buildCandidates(
   )
 }
 
-/**
- * The form, and the question asked before it takes effect.
- *
- * Two fields rather than one, because nobody can read what they are typing: a
- * mistyped password here is not a failed sign-in for the person who typed it, it
- * is somebody else unable to get in and no way to find out why. The eye control on
- * each field is the other half of that — see `PasswordField`.
- *
- * Validation is `buildPasswordSchema`, shared with the screen where people choose
- * their own, so the minimum and the match rule cannot differ between the two. It
- * is given the person's name, which is what makes it refuse the temporary password
- * derived from that name: setting exactly that would leave the account held on the
- * change-password screen, unable to satisfy `complete_password_change`.
- *
- * The confirmation is not a formality. Nothing about this is undoable — whatever
- * they had is gone the moment it succeeds — and the person typing it is not the
- * person it happens to. It carries the `action`, so the dialog stays open with the
- * control busy until the write settles, which is what stops a second press setting
- * a second password.
- */
 function ResetPasswordForm({
   candidate,
   onDone,
@@ -306,9 +219,6 @@ function ResetPasswordForm({
   })
 
   const onSubmit = handleSubmit(async (values) => {
-    // Held here rather than read from `confirm`, which answers only whether the
-    // action succeeded. The server's own words are worth repeating when it
-    // reports the one partial success it can have.
     let outcome: ResetPasswordResult | null = null
 
     const isDone = await confirm({
@@ -325,8 +235,6 @@ function ResetPasswordForm({
       },
     })
 
-    // False covers both answers that are not "yes, and it worked": cancelled, or
-    // rejected — and a rejection has already been reported by the mutation.
     if (!isDone || outcome === null) return
 
     onDone()
@@ -338,9 +246,6 @@ function ResetPasswordForm({
         `The password for ${result.name} was set. They will be asked to replace it the next time they sign in.`,
       )
     } else {
-      // The password did change, so this is not an error — but it is not the
-      // whole of what was asked for either, and it needs an instruction rather
-      // than a tick.
       snackbar.warning(result.warning, { duration: 0 })
     }
   })

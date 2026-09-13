@@ -23,36 +23,10 @@ import type {
   UpdateProjectRequest,
 } from '@models/index'
 
-/**
- * What a backend is able to do, so the UI can disable actions instead of
- * failing at save time.
- *
- * A workbook opened through a read-only integration, or a purely static
- * deployment, will report `canWrite: false`.
- */
 export interface DataProviderCapabilities {
   canWrite: boolean
 }
 
-/**
- * The single boundary between the application and its storage.
- *
- * Everything above this interface works in domain models and knows nothing
- * about Excel, SharePoint, Microsoft Graph, HTTP or SQL. Replacing the
- * implementation is therefore the only work required to change backend.
- *
- * Implementations must:
- * - return domain models, never raw rows or provider-specific shapes
- * - throw the typed errors in `data-provider.errors.ts` rather than raw ones
- * - treat `id` values as the only record keys, never positions or names
- * - enforce referential integrity, since a spreadsheet cannot
- * - honour `limit` on the three queries that have one, newest first, so that a
- *   caller asking for a page gets the top of the list rather than an arbitrary
- *   slice of it
- *
- * Access control is deliberately *not* here. This layer answers "what does
- * the workbook contain"; who may see it is decided above, in `permissions.ts`.
- */
 export interface DataProvider {
   /** Stable identifier used in diagnostics and error messages. */
   readonly name: string
@@ -79,13 +53,6 @@ export interface DataProvider {
 
   getMentorAssignments(): Promise<MentorAssignment[]>
 
-  /**
-   * Replaces the whole set of developers assigned to one mentor.
-   *
-   * Set semantics rather than add/remove: the admin screen edits the list as
-   * a whole, and replacing it makes the write idempotent instead of
-   * depending on which rows already existed.
-   */
   setMentorAssignments(mentorId: string, developerIds: readonly string[]): Promise<MentorAssignment[]>
 
   getProjects(): Promise<Project[]>
@@ -96,11 +63,6 @@ export interface DataProvider {
 
   deleteProject(id: string): Promise<void>
 
-  /**
-   * Ordering is not guaranteed *unless* `query.limit` is set, in which case the most
-   * recently updated tasks are the ones returned. Callers that display data sort
-   * explicitly either way.
-   */
   getTasks(query?: AssignedTaskQuery): Promise<AssignedTask[]>
 
   getTaskById(id: string): Promise<AssignedTask | null>
@@ -120,13 +82,6 @@ export interface DataProvider {
 
   deleteComment(id: string): Promise<void>
 
-  /**
-   * Entries matching `query`, or all entries when omitted.
-   *
-   * Ordering is not guaranteed *unless* `query.limit` is set, in which case the
-   * newest entries are the ones returned. Callers that display data sort explicitly
-   * either way.
-   */
   getDailyWorkEntries(query?: DailyWorkQuery): Promise<DailyWorkEntry[]>
 
   /** Resolves to `null` when no entry carries that id. */

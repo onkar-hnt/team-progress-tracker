@@ -11,25 +11,14 @@ import {
   TASK_COLUMNS,
 } from './excel-schema'
 
-/**
- * The structure of the workbook, in one place.
- *
- * This drives three things that must never disagree: creating a new workbook,
- * checking that an opened one is usable, and telling somebody what is missing
- * when it is not. Deriving all three from a single definition is what stops
- * the file and the application drifting apart.
- */
-
 export interface SheetTemplate {
   sheetName: string
   tableName: string
   columns: readonly string[]
 
-  /** Shown in the UI to explain what belongs in the sheet. */
   description: string
 }
 
-/** Column order is the order they appear in a newly created workbook. */
 export const WORKBOOK_TEMPLATE: readonly SheetTemplate[] = [
   {
     sheetName: EXCEL_SHEETS.admin,

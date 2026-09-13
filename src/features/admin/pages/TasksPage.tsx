@@ -50,12 +50,6 @@ const taskFormSchema = z
 
 type TaskFormValues = z.infer<typeof taskFormSchema>
 
-/**
- * Task assignment for administrators.
- *
- * Tasks created here are what developers see on their own task list, and what
- * mentors see for the people assigned to them.
- */
 export function TasksPage() {
   const confirm = useConfirm()
   const snackbar = useSnackbar()
@@ -72,7 +66,6 @@ export function TasksPage() {
 
   const tasksQuery = useTasks(query)
 
-  // No sorting here: `TaskTable` owns that, because the columns are its own.
   const visible = useMemo(
     () =>
       (tasksQuery.data ?? []).filter((task) =>
@@ -80,10 +73,7 @@ export function TasksPage() {
       ),
     [search, tasksQuery.data],
   )
-  // Developers stay narrowed here, unlike the projects and mentors beside
-  // them. A mentor may only assign work to their own developers, and
-  // `tasks_insert` refuses anything else, so offering the whole roster would
-  // only produce a policy error at save time.
+  // `tasks_insert` RLS limits mentors to their own developers.
   const developersQuery = useActiveDevelopers()
   const projectsQuery = useActiveRosterProjects()
   const mentorsQuery = useRosterMentors()
@@ -92,13 +82,6 @@ export function TasksPage() {
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
 
-  /**
-   * Asks first, then deletes, then says so.
-   *
-   * The confirmation resolves `true` only once the delete has actually landed,
-   * so the success message cannot be shown for something that failed — and a
-   * failure has already been reported by the mutation itself.
-   */
   const requestDelete = async (task: AssignedTask) => {
     const isDeleted = await confirm({
       title: 'Delete this task?',
@@ -153,10 +136,6 @@ export function TasksPage() {
           <Skeleton label="Loading tasks…" rows={5} />
         ) : (
           <>
-            {/* Beside the developer picker rather than instead of it. The picker
-                narrows the query — the data layer fetches one person's tasks —
-                while this searches what came back, which is why one is above the
-                table and the other is in the panel header. */}
             <TableSearch
               hint="Task, description, developer or project"
               matchCount={visible.length}
@@ -200,12 +179,6 @@ export function TasksPage() {
           mentors={mentorsQuery.data ?? []}
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
-            // The rejection is swallowed rather than left to propagate: the
-            // mutation has already reported it, and react-hook-form re-throws
-            // whatever its submit handler throws, which would reach the console
-            // as an unhandled rejection saying nothing new. Returning early
-            // leaves the dialog open with the values still in it, which is what
-            // somebody who has to correct one field needs.
             const isSaved = await createTask
               .mutateAsync(toRequest(values))
               .then(() => true)

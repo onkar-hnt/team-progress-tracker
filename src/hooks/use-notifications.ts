@@ -18,17 +18,6 @@ import {
 
 import { queryKeys } from './query-keys'
 
-/**
- * Notification hooks.
- *
- * Keyed by the signed-in address rather than by an access scope, unlike the
- * work-tracker hooks. A notification belongs to one account and is filtered by
- * the database against `auth.uid()`, so there is nothing here for a scope to
- * narrow — and resolving one would mean waiting on the mentor mapping before the
- * bell could draw.
- */
-
-/** The cache identity, and the condition for asking at all. */
 function useNotificationAudience(): { isReady: boolean; scopeId: string } {
   const { isRestoring, user } = useAuth()
 
@@ -45,27 +34,12 @@ export interface NotificationInbox {
   error: Error | null
   refetch: () => void
 
-  /** Absent when everything the account has is already on screen. */
   loadMore: (() => void) | null
 
-  /** A larger page is in flight, with the smaller one still displayed. */
   isLoadingMore: boolean
 }
 
-/**
- * The signed-in person's notifications, a page at a time.
- *
- * The page size lives in state and in the query key, so pressing "Older" mounts a
- * new query rather than refetching the current one. With `placeholderData` that
- * means the thirty rows already read stay on screen while sixty are fetched, which
- * is the difference between a list growing and a panel emptying itself and filling
- * back up.
- *
- * Growing the page rather than appending a fetched page is also what keeps this
- * compatible with Realtime: there is exactly one cached answer to one query at any
- * moment, so invalidating it on a socket event cannot leave older pages behind
- * holding stale rows.
- */
+/** Growing page size in the query key keeps previous rows visible while loading more. */
 export function useNotifications(): NotificationInbox {
   const { isReady, scopeId } = useNotificationAudience()
   const [limit, setLimit] = useState(NOTIFICATION_PAGE_SIZE)
@@ -79,9 +53,6 @@ export function useNotifications(): NotificationInbox {
 
   return {
     notifications: query.data?.notifications ?? [],
-    // `isPending` is the first load only. A larger page arriving is reported
-    // separately, because the panel must not replace a list somebody is reading
-    // with a skeleton.
     isPending: query.isPending,
     error: query.error,
 
@@ -96,9 +67,6 @@ export function useNotifications(): NotificationInbox {
           }
         : null,
 
-    // `isPlaceholderData` rather than `isFetching`: a background refresh of the
-    // page already shown is not something to put a label on, and this is true
-    // only while the rows on screen belong to the previous, smaller query.
     isLoadingMore: query.isPlaceholderData,
   }
 }
@@ -113,17 +81,9 @@ export function useUnreadNotificationCount(): UseQueryResult<number> {
   })
 }
 
-/**
- * Invalidates the panel and the badge together.
- *
- * One prefix covers both because the count's key is nested under the list's, so
- * neither can be refreshed without the other and the two cannot disagree.
- */
 function useInvalidateNotifications(): () => Promise<void> {
   const queryClient = useQueryClient()
 
-  // Stable, because the realtime hook depends on it: a fresh closure each render
-  // would tear down and rebuild the websocket subscription on every render.
   return useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.allNotifications() })
   }, [queryClient])
@@ -141,13 +101,6 @@ export function useMarkAllNotificationsRead(): UseMutationResult<void, Error, vo
   return useMutation({ mutationFn: markAllNotificationsRead, onSuccess: invalidate })
 }
 
-/**
- * Which notification types the signed-in person has switched off.
- *
- * An empty array is the answer for anybody who has never changed anything, and
- * it means everything is delivered — so the checkboxes on the Profile screen
- * read this and show the inverse.
- */
 export function useMutedNotificationTypes(): UseQueryResult<NotificationType[]> {
   const { isReady, scopeId } = useNotificationAudience()
 
@@ -158,19 +111,7 @@ export function useMutedNotificationTypes(): UseQueryResult<NotificationType[]> 
   })
 }
 
-/**
- * Saves the set, moving the tickbox before the round trip finishes.
- *
- * Optimistic, which is unusual in this codebase and deliberate here: these
- * controls save on change rather than behind a button, and a tickbox that waits
- * for a server before it moves reads as one that did not register the click. The
- * previous value is kept so a rejection puts it back, and the snackbar the
- * caller shows on failure is then describing a control that has already returned
- * to where it was.
- *
- * `cancelQueries` first, so an in-flight read of the old value cannot land after
- * the optimistic write and undo it.
- */
+/** Optimistic preference toggles; cancelQueries prevents stale reads undoing them. */
 export function useSaveMutedNotificationTypes(): UseMutationResult<
   void,
   Error,
@@ -198,28 +139,12 @@ export function useSaveMutedNotificationTypes(): UseMutationResult<
       queryClient.setQueryData(queryKey, context?.previous)
     },
 
-    // Whether it succeeded or not: on success to pick up anything the database
-    // did to the value, on failure because the rollback above is a guess at
-    // what is stored, and only a read knows.
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey })
     },
   })
 }
 
-/**
- * Keeps the badge and panel current without polling.
- *
- * Realtime tells this hook only that something changed; the refetch goes through
- * the same query as the first load, so a row that arrives over the socket is
- * read, validated and shaped by exactly the same code as one that arrives over
- * HTTP. Pushing the payload straight into the cache would be one fewer request
- * and two representations of a notification.
- *
- * Mounted once, by the bell. If the socket never connects the feature degrades to
- * refetch-on-focus rather than breaking, which is why nothing here reports a
- * subscription failure to the user.
- */
 export function useNotificationRealtime(): void {
   const { isReady } = useNotificationAudience()
   const invalidate = useInvalidateNotifications()

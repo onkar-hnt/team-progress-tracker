@@ -1,9 +1,6 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// Moved here from `EntryList.scss` when the control became shared, unchanged: a
-/// rule above it separating it from the last row, the count on the left and the
-/// button on the right, and wrapping rather than crushing on a narrow panel.
 .show-more {
   @include flex($justify: space-between, $gap: $space-3, $wrap: wrap);
 

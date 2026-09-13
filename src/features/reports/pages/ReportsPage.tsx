@@ -73,21 +73,10 @@ export function ReportsPage() {
   const developersQuery = useDevelopers()
   const projectsQuery = useProjects()
 
-  /**
-   * From a chart on this screen to the rows it counted.
-   *
-   * A report answers "how much"; the next question is invariably "which ones", and until now
-   * that meant going to the activity screen and rebuilding the same period and filter by hand.
-   * The period travels with the link, so the list opens on exactly what was on show here.
-   *
-   * Unconditional, unlike the dashboard's version: this whole screen is behind team access, so
-   * anybody reading it can read the activity list too.
-   */
   const openActivity = (slice: ActivitySlice) => {
     void navigate(activityRangeLink(range, slice))
   }
 
-  // Stable identity so the summaries below are only recomputed on new data.
   const entries = useMemo(() => rangeQuery.data?.entries ?? [], [rangeQuery.data])
 
   const developerSummaries = useMemo(
@@ -103,8 +92,6 @@ export function ReportsPage() {
   const error = rangeQuery.error ?? developersQuery.error ?? projectsQuery.error
   const isLoading = rangeQuery.isPending || developersQuery.isPending
 
-  // Consistency is measured against the number of working days in the period,
-  // so a report covering a weekend does not look like everyone stopped work.
   const workingDays = listWorkingDatesInRange(range).length
   const activeDevelopers = (developersQuery.data ?? []).filter((developer) => developer.active)
   const expectedUpdates = workingDays * activeDevelopers.length
@@ -118,14 +105,6 @@ export function ReportsPage() {
     (summary) => summary.developer.active && summary.statuses.total === 0,
   )
 
-  /**
-   * One download, from what is already on screen.
-   *
-   * Nothing is fetched: the rows handed in are the rows the panel is showing, so a
-   * file cannot disagree with the table it was downloaded from. Refused while the
-   * period is still loading, which is why every caller is behind the same
-   * `isLoading` guard the tables are.
-   */
   const exportCsv = (part: string, rows: string[][]) => {
     downloadCsv(buildTeamReportFilename(part, range), toCsv(rows))
   }
@@ -146,9 +125,6 @@ export function ReportsPage() {
 
   const periodPicker = (
     <div className="reports__controls">
-      {/* Beside the period rather than in each panel heading, because what it
-          exports is the period: the file is named after the dates chosen here,
-          and the rows are every entry inside them. */}
       {exportButton('Export entries', 'entries', () => buildEntriesCsv(entries))}
 
       <FilterField label="Period">
@@ -188,9 +164,6 @@ export function ReportsPage() {
     </div>
   )
 
-  // The per-developer report is rendered here too. It reads a different query,
-  // so a failure in the period analytics is no reason to withhold it — and it is
-  // the one thing on this screen somebody may have come specifically to do.
   if (error !== null) {
     return (
       <div className="reports">
@@ -246,9 +219,6 @@ export function ReportsPage() {
               tone={(rangeQuery.data?.statuses.needsAttention ?? 0) > 0 ? 'attention' : 'neutral'}
               value={rangeQuery.data?.statuses.needsAttention ?? 0}
             />
-            {/* The two rates carry bars, and the counts around them do not. A rate is
-                a proportion of something stated, which is what a bar can draw; "Hours
-                logged" is a quantity with no ceiling to measure it against. */}
             <StatCard
               icon="chart"
               label="Completion rate"
@@ -273,10 +243,6 @@ export function ReportsPage() {
         )}
       </Panel>
 
-      {/* Above the period analytics, because generating one person's report is a
-          deliberate errand somebody arrives with, while the figures below are
-          what they read when they arrive without one. It carries its own filters
-          and is unaffected by the period picker in the heading. */}
       <DeveloperReportPanel />
 
       <Panel

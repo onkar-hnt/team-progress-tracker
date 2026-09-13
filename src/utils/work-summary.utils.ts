@@ -4,35 +4,18 @@ import type { DateRange } from './date.utils'
 import { isWorkingDay, listDatesInRange } from './date.utils'
 import { isEntryBlocked, isEntryCompleted } from './task.utils'
 
-/**
- * Pure aggregations over daily work entries.
- *
- * Every dashboard, report and developer view is derived from `tblDailyWork`
- * here rather than from pre-computed sheets, so the workbook stays a single
- * normalised source and no date-wise worksheets are ever generated.
- *
- * These functions take already-filtered entries. Callers decide the period,
- * which keeps "today", "this week" and custom ranges on one code path.
- */
+/** Aggregations over daily work entries; callers supply the filtered set. */
 
 export interface StatusBreakdown {
   total: number
 
-  /**
-   * Counts by `Status`. Mutually exclusive, so these four always sum to
-   * `total` and are safe to use in a pie or stacked chart.
-   */
+  /** Mutually exclusive; sum to total. */
   notStarted: number
   inProgress: number
   completed: number
   blocked: number
 
-  /**
-   * Entries blocked by status *or* by the `IsBlocked` flag.
-   *
-   * This is the number the mentor cares about, and it overlaps the counts
-   * above, so it must not be added to them in a chart.
-   */
+  /** Blocked by status or IsBlocked; overlaps the counts above. */
   needsAttention: number
 }
 
@@ -68,12 +51,6 @@ export function summariseStatuses(entries: readonly DailyWorkEntry[]): StatusBre
   return breakdown
 }
 
-/**
- * Completed share of the given entries, as a percentage to one decimal place.
- *
- * An empty period returns 0 rather than `NaN`, so cards can render it
- * directly without guarding.
- */
 export function calculateCompletionRate(entries: readonly DailyWorkEntry[]): number {
   if (entries.length === 0) return 0
   const completed = entries.filter(isEntryCompleted).length
@@ -90,7 +67,6 @@ export interface DeveloperSummary {
   statuses: StatusBreakdown
   completionRate: number
   hoursLogged: number
-  /** Distinct days with at least one entry, a proxy for update consistency. */
   daysLogged: number
 }
 
@@ -116,7 +92,6 @@ export interface ProjectSummary {
   statuses: StatusBreakdown
   completionRate: number
   hoursLogged: number
-  /** How many people touched the project, useful for spotting single points of knowledge. */
   contributorCount: number
 }
 
@@ -137,15 +112,7 @@ export function buildProjectSummaries(
   })
 }
 
-/**
- * Active developers with no entry for `isoDate`.
- *
- * Only active developers are considered, and only on working days: asking who
- * failed to update on a Sunday would produce noise rather than information.
- * Inactive developers are excluded so a departed colleague never appears.
- *
- * `entries` must already cover `isoDate`; anything outside it is ignored.
- */
+/** Active developers with no entry on a working day. */
 export function findDevelopersMissingUpdate(
   developers: readonly Developer[],
   entries: readonly DailyWorkEntry[],
@@ -162,13 +129,7 @@ export function findDevelopersMissingUpdate(
   )
 }
 
-/**
- * Whether a daily update is expected from this person.
- *
- * Admin and mentor rows are excluded: they exist in the Employees table so
- * they can sign in, not because they log daily work, and listing them as
- * missing an update every day would train people to ignore the panel.
- */
+/** Admins and mentors do not submit daily updates. */
 export function submitsDailyUpdates(developer: Developer): boolean {
   if (!developer.active) return false
   return developer.accessRole === undefined || developer.accessRole === 'developer'
@@ -192,16 +153,10 @@ export interface DailyTrendPoint {
   completed: number
   needsAttention: number
   hoursLogged: number
-  /** Distinct developers who logged work, for update-consistency trends. */
   developersUpdated: number
 }
 
-/**
- * One point per day across `range`, including days with no activity.
- *
- * Empty days are kept deliberately: a gap in the line is the signal, and
- * dropping those days would silently compress the x-axis.
- */
+/** One point per day in range, including days with no activity. */
 export function buildDailyTrend(
   entries: readonly DailyWorkEntry[],
   range: DateRange,
@@ -220,7 +175,6 @@ export function buildDailyTrend(
   })
 }
 
-/** Generic over the entry type so enriched view objects keep their extra fields. */
 export function findBlockedEntries<TEntry extends DailyWorkEntry>(
   entries: readonly TEntry[],
 ): TEntry[] {

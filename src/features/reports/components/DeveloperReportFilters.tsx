@@ -13,10 +13,8 @@ interface DeveloperReportFiltersProps {
   projectOptions: readonly DropdownOption[]
   isLoadingOptions: boolean
 
-  /** Why the filters cannot be used yet, or `null` when they can. */
   problem: string | null
 
-  /** Set once a report exists and the filters have since been edited. */
   isStale: boolean
 
   isGenerating: boolean
@@ -24,17 +22,6 @@ interface DeveloperReportFiltersProps {
   onClear: () => void
 }
 
-/**
- * The filter form.
- *
- * Split from the panel because it is the half with the interaction in it, and
- * keeping the two apart is what stops the panel becoming a component with two
- * unrelated reasons to re-render.
- *
- * Validation is reported by the parent rather than worked out here: the same
- * answer decides whether Generate is available and what the message says, and
- * computing it twice is how the button and the message end up disagreeing.
- */
 export function DeveloperReportFilters({
   developerOptions,
   isGenerating,
@@ -55,8 +42,6 @@ export function DeveloperReportFilters({
     <form
       className="developer-report__filters"
       onSubmit={(event) => {
-        // A form, so Enter in either date field generates the report — which is
-        // what pressing Enter in a filled-in form should do.
         event.preventDefault()
         if (problem === null) onGenerate()
       }}
@@ -82,8 +67,6 @@ export function DeveloperReportFilters({
           />
         </FilterField>
 
-        {/* `max` and `min` cross-reference the other field, so the native picker
-            refuses an impossible range before the message below has to. */}
         <FilterField label="From date">
           <input
             max={value.to === '' ? undefined : value.to}

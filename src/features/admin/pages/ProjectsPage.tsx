@@ -78,27 +78,15 @@ function compareProjects(left: Project, right: Project, key: SortKey): number {
     case 'client':
       return compareText(left.client, right.client)
     case 'status':
-      // By the lifecycle rather than the alphabet, so the order says something:
-      // planned, active, on hold, completed is how a project moves, and sorting
-      // the labels would interleave the four arbitrarily.
+      // Sort by lifecycle order, not alphabetically.
       return PROJECT_STATUSES.indexOf(left.status) - PROJECT_STATUSES.indexOf(right.status)
     case 'start':
-      // ISO dates, so comparing them as text is comparing them as dates. Undated
-      // projects sort last ascending, which `compareText` already does for a
-      // missing value.
       return compareText(left.startDate, right.startDate)
     case 'developers':
       return left.assignedDeveloperIds.length - right.assignedDeveloperIds.length
   }
 }
 
-/**
- * Project records and who works on them.
- *
- * The assigned developers here are one of the things that decide which
- * projects a person sees elsewhere, alongside the tasks and work they have
- * actually logged.
- */
 export function ProjectsPage() {
   const confirm = useConfirm()
   const snackbar = useSnackbar()
@@ -123,9 +111,6 @@ export function ProjectsPage() {
   const requestDelete = async (project: Project) => {
     const isDeleted = await confirm({
       title: 'Delete this project?',
-      // The team list is only cleared when the project is destroyed for good —
-      // `project_developers` cascades on a real delete and is untouched by this one —
-      // so the sentence says what happens now and leaves the rest to the bin.
       message: `“${project.name}” will be removed from the roster, and stop being offered when work is logged. Its team and its history are kept. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete project',
       isDestructive: true,
@@ -138,10 +123,6 @@ export function ProjectsPage() {
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
 
-  // The description is searched although it is not a column, which is the one
-  // exception to matching only what is on screen: it is where the actual subject
-  // of a project is written, and a client with four projects is otherwise four
-  // rows that all look the same.
   const visible = useMemo(() => {
     const rows = (projectsQuery.data ?? []).filter((project) =>
       matchesSearch([project.name, project.client, project.description], search),
@@ -366,10 +347,7 @@ function ProjectForm({
     },
   })
 
-  // Held as an array field rather than individual checkbox inputs, so the
-  // submitted value is the complete list in one piece. `useWatch` rather than
-  // `watch` because the latter returns a function the React compiler cannot
-  // memoise safely.
+  // useWatch, not watch: watch returns a function the React compiler cannot memoise.
   const assigned = useWatch({ control, name: 'assignedDeveloperIds' })
 
   const toggleDeveloper = (id: string) => {

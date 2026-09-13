@@ -19,28 +19,12 @@ import type { FeedbackFormValues } from '../schemas/feedback.schema'
 import './FeedbackForm.scss'
 
 interface FeedbackFormProps {
-  /** Provided when editing; omitted when recording new feedback. */
   comment?: MentorComment
-
-  /** Preselects a developer when opened from their page. */
   developerId?: string
-
-  /**
-   * `projectId` is resolved from the chosen task rather than submitted, so
-   * the stored project can never contradict the stored task.
-   */
   onSubmit: (values: FeedbackFormValues, projectId: string | undefined) => Promise<void>
-
   onCancel?: () => void
 }
 
-/**
- * Records mentor feedback, about a task or about the person's work in general.
- *
- * Both lists come from the same scoped hooks the rest of the app uses, so a
- * mentor can only ever select somebody assigned to them and only that
- * person's work — the restriction is in the data, not in a check here.
- */
 export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: FeedbackFormProps) {
   const developersQuery = useActiveDevelopers()
 
@@ -57,8 +41,6 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
       comment === undefined ? emptyFeedbackValues(developerId) : toFeedbackValues(comment),
   })
 
-  // Reset when the form is reused for a different record, since react-hook-form
-  // keeps its first default values otherwise.
   useEffect(() => {
     reset(comment === undefined ? emptyFeedbackValues(developerId) : toFeedbackValues(comment))
   }, [comment, developerId, reset])
@@ -66,17 +48,12 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
   const selectedDeveloperId = useWatch({ control, name: 'developerId' })
   const selectedTaskId = useWatch({ control, name: 'taskId' })
 
-  // An empty list is the honest query for "no developer chosen yet": the
-  // repository answers it without a request, so the task picker stays empty
-  // instead of briefly offering the whole team's work.
   const taskFilter = useMemo(
     () => ({ developerIds: selectedDeveloperId === '' ? [] : [selectedDeveloperId] }),
     [selectedDeveloperId],
   )
   const tasksQuery = useTasks(taskFilter)
 
-  // Held steady across renders so the grouping below is memoised against
-  // something that only changes when the data does.
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
   const { completed, open } = useMemo(() => groupTasksByCompletion(tasks), [tasks])
 
@@ -93,13 +70,6 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
     [developersQuery.data],
   )
 
-  // Grouped rather than flat, so finished work is still available without
-  // crowding out what is live.
-  //
-  // The first option is the general one, and it is worded as a choice rather than as
-  // an empty value: "Select a task" reads as a prompt somebody has not answered yet,
-  // and would leave a mentor writing a note about the month wondering which task to
-  // pretend it was about.
   const taskOptions = useMemo(
     () => [
       {
@@ -125,13 +95,6 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
     try {
       await onSubmit(values, task?.projectId)
     } catch {
-      // Emptied only once the save has landed. A failure leaves the paragraph
-      // that was written in place to be tried again — clearing it would lose
-      // the one thing here that cannot be reconstructed from the record.
-      //
-      // Caught rather than propagated so that react-hook-form, which re-throws
-      // whatever its handler throws, does not put an unhandled rejection in the
-      // console. The message has already been shown by the mutation.
       return
     }
 
@@ -140,9 +103,6 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
 
   const selectedTask = tasks.find((candidate) => candidate.id === selectedTaskId)
 
-  // A developer with no assigned work is no longer a dead end — general feedback can
-  // still be recorded — but it is worth saying why the list is empty, so that an
-  // empty dropdown is not read as one that failed to load.
   const hasNoTasks =
     selectedDeveloperId !== '' &&
     !tasksQuery.isPending &&
@@ -154,9 +114,6 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
       ? undefined
       : `Tasks could not be loaded: ${tasksQuery.error.message}`
 
-  // What sits under the task picker: why there is nothing to pick, what the
-  // field is for, or — once a task is chosen — the project it already carries,
-  // shown rather than asked because a second question could only disagree.
   const taskHint =
     taskLoadError !== undefined
       ? undefined
@@ -185,10 +142,6 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
                 onBlur={field.onBlur}
                 onChange={(next) => {
                   field.onChange(next)
-
-                  // The task list is about to change, and a task belonging to
-                  // the previous person would be refused by
-                  // `feedback_guard_task`.
                   setValue('taskId', '')
                 }}
                 options={developerOptions}
@@ -219,9 +172,6 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
           name="taskId"
           render={({ field }) => (
             <Dropdown
-              // Disabled only while there is nothing to answer with. An empty task
-              // list is now an answer — general — rather than a reason to lock the
-              // field.
               disabled={selectedDeveloperId === '' || tasksQuery.isPending}
               id="feedback-task"
               isInvalid={errors.taskId !== undefined}

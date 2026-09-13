@@ -46,13 +46,6 @@ import {
   parseExcelTimestampCell,
 } from './excel-value.utils'
 
-/**
- * Translation between workbook rows and domain models.
- *
- * This module is the only place that knows Excel column names, which is what
- * allows the rest of the application to be storage-agnostic.
- */
-
 export type RowMapResult<TValue> =
   | { ok: true; value: TValue }
   | { ok: false; messages: string[] }
@@ -76,14 +69,6 @@ function readCell(row: RawExcelRow, column: string): unknown {
   return row[column]
 }
 
-/**
- * Builds `{ key: value }` for a present value, or `{}` for a blank cell.
- *
- * Spreading this omits optional keys entirely rather than setting them to
- * `undefined`, so "the cell was blank" has exactly one representation in the
- * domain model instead of depending on how the validator treats a key that
- * exists but holds `undefined`.
- */
 function optionalField<TKey extends string, TValue>(
   key: TKey,
   value: TValue | null,
@@ -104,12 +89,6 @@ const PROJECT_STATUS_BY_EXCEL_VALUE = buildValueLookup(EXCEL_PROJECT_STATUS_VALU
 
 const ACCESS_ROLE_BY_EXCEL_VALUE = buildValueLookup(EXCEL_ACCESS_ROLE_VALUES)
 
-/**
- * Splits a delimited id cell.
- *
- * Both separators are accepted on read because a person editing the sheet by
- * hand will reach for a comma regardless of what the writer emits.
- */
 function parseIdListCell(value: unknown): string[] {
   const text = parseExcelTextCell(value)
   if (text === null) return []
@@ -135,13 +114,8 @@ export function mapDeveloperRow(row: RawExcelRow): RowMapResult<Developer> {
       'primaryProjectId',
       parseExcelTextCell(readCell(row, DEVELOPER_COLUMNS.projectId)),
     ),
-    // A blank Status cell means the row was added without deciding; treating
-    // that as active keeps new joiners visible rather than silently hidden.
     active: parseExcelBooleanCell(readCell(row, DEVELOPER_COLUMNS.status)) ?? true,
     ...optionalField('email', parseExcelTextCell(readCell(row, DEVELOPER_COLUMNS.email))),
-    // An unrecognised AccessRole is left unset rather than rejected, so a typo
-    // in that column costs the person their elevated access instead of hiding
-    // their entire row from the application.
     ...optionalField('accessRole', accessRole),
     ...optionalField('createdDate', parseExcelDateCell(readCell(row, DEVELOPER_COLUMNS.createdDate))),
   }
@@ -225,8 +199,6 @@ export function toMentorAssignmentRow(assignment: MentorAssignment): RawExcelRow
 export function mapProjectRow(row: RawExcelRow): RowMapResult<Project> {
   const rawStatus = parseExcelTextCell(readCell(row, PROJECT_COLUMNS.status))
 
-  // A blank or unrecognised Status reads as active, which is what an
-  // in-flight project in a hand-edited sheet actually is.
   const status =
     rawStatus === null
       ? 'active'
@@ -236,8 +208,6 @@ export function mapProjectRow(row: RawExcelRow): RowMapResult<Project> {
     id: parseExcelTextCell(readCell(row, PROJECT_COLUMNS.projectId)) ?? '',
     name: parseExcelTextCell(readCell(row, PROJECT_COLUMNS.projectName)) ?? '',
     ...optionalField('client', parseExcelTextCell(readCell(row, PROJECT_COLUMNS.clientName))),
-    // Derived rather than stored: one Status column is easier to keep honest
-    // than a separate Active flag that can contradict it.
     active: status !== 'completed',
     ...optionalField('description', parseExcelTextCell(readCell(row, PROJECT_COLUMNS.description))),
     status,
@@ -290,8 +260,6 @@ export function mapTaskRow(row: RawExcelRow): RowMapResult<AssignedTask> {
 
   if (messages.length > 0) return { ok: false, messages }
 
-  // A task with no CreatedDate is dated by its due date where there is one,
-  // so it still sorts sensibly instead of vanishing from date-bounded views.
   const dueDate = parseExcelDateCell(readCell(row, TASK_COLUMNS.dueDate))
   const createdDate = parseExcelDateCell(readCell(row, TASK_COLUMNS.createdDate)) ?? dueDate ?? ''
 
@@ -334,9 +302,6 @@ export function toTaskRow(task: AssignedTask): RawExcelRow {
 }
 
 export function mapCommentRow(row: RawExcelRow): RowMapResult<MentorComment> {
-  // CommentDate is the day the feedback is about, CreatedDate the day the row
-  // was written. They are usually the same, so either will do and only the
-  // absence of both is an error.
   const date =
     parseExcelDateCell(readCell(row, COMMENT_COLUMNS.commentDate)) ??
     parseExcelDateCell(readCell(row, COMMENT_COLUMNS.createdDate))
@@ -359,8 +324,6 @@ export function mapCommentRow(row: RawExcelRow): RowMapResult<MentorComment> {
     developerId: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.developerId)) ?? '',
     mentorId: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.mentorId)) ?? '',
     ...optionalField('projectId', parseExcelTextCell(readCell(row, COMMENT_COLUMNS.projectId))),
-    // Blank in rows written before feedback was task-scoped, and in a
-    // workbook that predates the column, which reads the same way.
     ...optionalField('taskId', parseExcelTextCell(readCell(row, COMMENT_COLUMNS.taskId))),
     date,
     comment: parseExcelTextCell(readCell(row, COMMENT_COLUMNS.comment)) ?? '',
@@ -430,9 +393,6 @@ export function mapDailyWorkRow(row: RawExcelRow): RowMapResult<DailyWorkEntry> 
 
   if (messages.length > 0) return { ok: false, messages }
 
-  // Audit columns are often blank in hand-entered rows. Falling back to the
-  // work date rather than "now" keeps values stable across refetches, which
-  // matters for caching and for sorting by last update.
   const fallbackTimestamp = `${date ?? ''}T00:00:00.000Z`
   const createdAt =
     parseExcelTimestampCell(readCell(row, DAILY_WORK_COLUMNS.createdDate)) ?? fallbackTimestamp
@@ -479,13 +439,6 @@ export function mapDailyWorkRow(row: RawExcelRow): RowMapResult<DailyWorkEntry> 
     : { ok: false, messages: describeZodIssues(result.error) }
 }
 
-/**
- * Serialises an entry back into a workbook row.
- *
- * The date is written as an ISO `yyyy-MM-dd` string rather than a serial so
- * the stored value is unambiguous regardless of the column's number format.
- * Reads accept both, so this choice can be revisited without a migration.
- */
 export function toDailyWorkRow(entry: DailyWorkEntry): RawExcelRow {
   return {
     [DAILY_WORK_COLUMNS.entryId]: entry.id,
@@ -514,12 +467,6 @@ export interface MappedTable<TValue> {
   issues: RowValidationIssue[]
 }
 
-/**
- * Maps every row, keeping good records and collecting failures.
- *
- * One malformed row should not blank out the dashboard, so mapping is
- * per-row and the caller decides how loudly to report `issues`.
- */
 export function mapTableRows<TValue>(
   rows: readonly RawExcelRow[],
   mapRow: (row: RawExcelRow) => RowMapResult<TValue>,

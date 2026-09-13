@@ -1,13 +1,6 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-/// Shared form styling.
-///
-/// Every form in the application — daily updates, admin records, feedback —
-/// uses these classes so that fields line up and behave the same way regardless
-/// of which module rendered them. Buttons used to live here too and now live
-/// with the component that renders them, in `ui/button/Button.scss`.
-
 .form {
   @include grid($gap: $space-5);
 
@@ -49,9 +42,7 @@
         border-color: $color-brand;
       }
 
-      /// Border and surface together, and after the focus rule so an invalid
-      /// field stays marked while it is being corrected — the focus ring is an
-      /// outline, so both are visible at once.
+      /// After focus rule so invalid styling persists while correcting the field.
       &[aria-invalid='true'] {
         border-color: $color-danger;
         background: $color-danger-surface;
@@ -70,22 +61,11 @@
     }
   }
 
-  /// Spans the full width of a multi-column grid, for descriptions and notes.
   &__field--wide {
     grid-column: 1 / -1;
   }
 
-  /// A password input and the control that reveals it.
-  ///
-  /// The button is positioned over the input rather than placed beside it in a
-  /// flex row, so the field keeps the width, height, border and focus ring every
-  /// other control in `__field` has: a two-item row would have needed its own
-  /// border around the pair, and then an invalid password would have marked the
-  /// input inside instead of the field you can see.
-  ///
-  /// The input's right padding is what stops the text running under the button.
-  /// It is the button's width plus the gap, and both are stated here rather than
-  /// eyeballed, so a larger icon cannot quietly start overlapping the value.
+  /// Toggle overlays the input so the field keeps a single border and focus ring.
   &__password {
     position: relative;
     display: grid;
@@ -116,9 +96,7 @@
       color: $color-text;
     }
 
-    /// Inset, because the control sits on top of the input's own border: an
-    /// outline drawn outside would trace the button and the border together and
-    /// read as one thick smudge.
+    /// Inset ring: the control sits on the input border.
     &:focus-visible {
       outline: 2px solid $color-brand;
       outline-offset: -2px;
@@ -152,7 +130,6 @@
     }
   }
 
-  /// The counterpart of `__alert`, for a save that went through.
   &__success {
     margin: 0;
     padding: $space-3;
@@ -167,7 +144,6 @@
     @include flex($justify: flex-end, $gap: $space-3, $wrap: wrap);
   }
 
-  /// Checkbox lists, used for assigning developers to mentors and projects.
   &__checklist {
     @include grid($gap: $space-2);
     max-height: 16rem;
@@ -189,13 +165,7 @@
   }
 }
 
-/// A filter control, with its caption above it as a small heading.
-///
-/// Deliberately not a variant of `.form__field`: a filter narrows what is shown
-/// and cannot be wrong, so it has no error, no hint and no required mark, and it
-/// is drawn smaller because a row of them sits above the content rather than
-/// being the content. It is one class rather than the two identical copies —
-/// `.activity-filters__field` and `.reports__field` — that used to exist.
+/// Filter control with caption; no validation styling.
 .filter-field {
   @include grid($gap: $space-2);
   font-size: $font-size-xs;
@@ -220,8 +190,6 @@
     }
   }
 
-  /// Two columns of whatever grid holds it, for the one filter that is typed
-  /// rather than picked and needs the room.
   &--wide {
     grid-column: span 2;
 
@@ -230,8 +198,6 @@
     }
   }
 
-  /// Caption beside the control rather than above it, for a lone filter sitting
-  /// next to a heading rather than in a grid of them.
   &--inline {
     @include flex($gap: $space-2);
     font-size: $font-size-sm;
@@ -245,13 +211,7 @@
   }
 }
 
-/// A row of buttons inside a table cell.
-///
-/// One line, always. Left to wrap, the buttons stacked as soon as the column
-/// got tight — which happens on every admin table the moment the sidebar is
-/// expanded — and every row grew to a different height depending on how many
-/// actions it happened to offer. The table scrolls sideways instead, and
-/// `_table.scss` pins this column so the buttons stay reachable while it does.
+/// Table row actions stay on one line; the table scrolls sideways instead.
 .row-actions {
   @include flex($gap: $space-2, $wrap: nowrap);
 }

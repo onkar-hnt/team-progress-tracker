@@ -1,23 +1,12 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// Fills the area it is given and centres the card in it, both ways.
-///
-/// `flex: 1` because the content area is a column now and this is one of its items;
-/// `min-height: 100%` stays for the case where it is not — the waiting screens drop
-/// this straight into the page, outside the shell.
 .page-placeholder {
   @include flex($justify: center);
 
   flex: 1 1 auto;
   min-height: 100%;
 
-  /// Centred text, unlike every panel on a working screen.
-  ///
-  /// This is one short statement with at most one control under it, and centring
-  /// it is what stops a 50rem card looking like an empty table. It is also the
-  /// same shape as the waiting screen and the login card, which are the other two
-  /// times the application is one card on an empty page.
   &__card {
     @include card;
 
@@ -39,8 +28,6 @@
     }
   }
 
-  /// Centred with the text above it, and given room to clear it: a button flush
-  /// against a paragraph reads as part of the sentence.
   &__action {
     @include flex-center($gap: $space-3);
 

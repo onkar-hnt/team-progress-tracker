@@ -16,9 +16,7 @@ html {
     -webkit-font-smoothing: antialiased;
 }
 
-/// The shell owns the viewport and scrolls internally, so the document itself
-/// must never scroll. `100dvh` keeps mobile browser chrome from cropping the
-/// bottom of the layout as the address bar hides.
+/// Shell owns the viewport; 100dvh avoids mobile browser chrome cropping the layout.
 html,
 body,
 #root {
@@ -39,18 +37,7 @@ select {
     font: inherit;
 }
 
-/// Scrollbars are hidden everywhere.
-///
-/// Only the track is removed. Every region still scrolls by wheel, trackpad,
-/// touch, keyboard and anchor, and nothing here changes `overflow`, so no
-/// content becomes unreachable.
-///
-/// It does remove the cue that a region *can* be scrolled, which is why the
-/// scrolling areas in this application all have an edge of their own: the
-/// dialog body sits between a header and a pinned footer, and the tables
-/// scroll inside a bordered panel. Applied at `*` rather than to those
-/// containers because a scroll region added later would otherwise be the odd
-/// one out.
+/// Hide scrollbars globally; scrolling still works. Scroll regions use visible edges as cues.
 * {
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -60,41 +47,10 @@ select {
     display: none;
 }
 
-/// Where a scroll ends: the one rule every scrolling region in this application follows.
-///
-/// `overscroll-behavior: contain` stops a scroll at the boundary of its own box instead of
-/// handing the rest to whatever is behind it. That is either exactly right or a trap, and
-/// which one it is depends on a single question — is the thing behind it something the
-/// reader is currently reading?
-///
-/// **Inside the page it is a trap, so chaining stays on.** A table capped at ten rows, a
-/// list of entries, a panel on the dashboard: the page continues above and below them, and
-/// containment meant that reaching the last row stopped the wheel dead. The page had not
-/// ended, the region had, and the only way onwards was to move the pointer off it and try
-/// again — a fault reported as "scrolling locks up", which is exactly what it looks like
-/// from the outside. These regions declare `overscroll-behavior: auto` explicitly rather
-/// than leaving the default unsaid, because the default here is a decision.
-///
-/// **In an overlay it is right, so containment stays.** A dialog body, the notification
-/// popover, an open dropdown list: what is behind those is not being read, and letting a
-/// flick carry through to it means closing the overlay to find the page has moved. Three
-/// containers, and they are the only three.
-///
-/// Nowhere is any of this done in script. There are no wheel or touch handlers in this
-/// codebase, and nothing writes to `body.style.overflow` — so there is no scroll lock that
-/// can be left behind by a navigation, an unmount or two overlays closing out of order.
+/// In-page scroll regions use overscroll-behavior: auto; overlays use contain.
 
-/// Reduced motion, as a floor rather than as a policy.
-///
-/// Every animation in the application is written inside a `no-preference` query, so
-/// in principle this changes nothing. It is here for the case that principle does
-/// not cover: a transition added to a component next month without the author
-/// thinking about it, or movement that comes from a dependency's own stylesheet
-/// rather than from this codebase — ApexCharts fades its own tooltip in, and does not ask.
-///
-/// `0.01ms` rather than `0`, because a duration of zero prevents the `animationend`
-/// event from firing in some engines and anything waiting on that event would hang.
-/// The animation still happens; it is simply over before a frame is drawn.
+/// Reduced-motion floor for transitions added without motion-safe wrappers.
+/// 0.01ms keeps animationend firing; 0 would hang listeners in some engines.
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

@@ -6,20 +6,6 @@ import type {
   UpdateMentorCommentRequest,
 } from '@models/index'
 
-/**
- * Translation between `public.feedback` rows and the domain `MentorComment`.
- *
- * The table is named for what it holds and the model for how the application
- * talks about it; `feedback_date` maps to `date` for the same reason
- * `daily_updates.entry_date` does — the column is explicit in SQL, where
- * three different dates are in scope, and the model is read in a context
- * where only one is.
- *
- * `code` is not mapped. The column exists and the database assigns `CMT001`
- * and up, but `MentorComment` has never carried it and no screen shows it, so
- * reading it would add a field nothing consumes.
- */
-
 export const FEEDBACK_COLUMNS =
   'id, developer_id, mentor_id, project_id, task_id, feedback_date, comment, progress_update, blockers, recommendations, created_at, updated_at' as const
 
@@ -76,13 +62,6 @@ export interface FeedbackInsert {
   recommendations: string | null
 }
 
-/**
- * Builds the insert payload.
- *
- * `id`, `code` and the audit timestamps are omitted so the column defaults and
- * the `updated_at` trigger assign them. A client clock has no business
- * deciding when a row was written.
- */
 export function toFeedbackInsert(request: CreateMentorCommentRequest): FeedbackInsert {
   return {
     developer_id: request.developerId,
@@ -97,17 +76,6 @@ export function toFeedbackInsert(request: CreateMentorCommentRequest): FeedbackI
   }
 }
 
-/**
- * Builds the update payload from the keys the caller actually supplied.
- *
- * Key presence rather than a comparison against `undefined`, matching the
- * task, project and developer mappers: omitting `blockers` leaves them alone,
- * while passing the key explicitly as `undefined` clears them.
- *
- * The `NOT NULL` columns take the additional `!== undefined` guard, because
- * for those the two meanings collapse — there is no way to unset a comment or
- * a date, so an explicit `undefined` can only mean "leave it".
- */
 export function toFeedbackUpdate(request: UpdateMentorCommentRequest): Partial<FeedbackInsert> {
   const payload: Partial<FeedbackInsert> = {}
 

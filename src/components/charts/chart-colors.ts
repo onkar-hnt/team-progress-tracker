@@ -1,74 +1,19 @@
 import type { TaskStatus } from '@models/index'
 
-/**
- * The chart palette.
- *
- * ## Why the charts have their own tier of colour
- *
- * The interface palette in `_variables.scss` is tuned for text and hairlines: `$color-success`
- * at #14603a is a green that has to stay legible as 12px type on a pale surface, so it is dark
- * and unsaturated. Drawn as a 2px line on white it reads as almost black, and four such colours
- * in one chart are four shades of dark. That is what made the old charts look generic.
- *
- * So these are the same *hues*, one tier brighter and more saturated — the shade a filled area
- * or a rounded bar needs to carry its meaning at a glance. A completed bar here and a Completed
- * badge in the table beside it are recognisably the same green without being the same value.
- *
- * ## Why it is TypeScript rather than a custom property
- *
- * ApexCharts does arithmetic on these: area gradients are computed by shading the series colour,
- * and hover states by lightening it. That arithmetic parses hex, so the obvious trick of handing
- * it `var(--chart-success)` and letting the browser resolve a Sass token does not work — the
- * shading function receives an unparseable string and returns nothing, and the series is drawn
- * with no fill. Data colours therefore live here, in one module, as literal values.
- *
- * Everything *around* the data goes the other way. Axis labels, grid lines, the tooltip surface
- * and the legend text are styled in `ApexChart.scss` from the Sass tokens directly, because
- * ApexCharts writes them as plain attributes that a stylesheet can override. Nothing about the
- * chrome is duplicated here, and a change to the interface palette still reaches the charts.
- *
- * ## The one rule about assigning them
- *
- * A colour means something. Green is finished work, red is stopped work, amber is work that
- * wants attention, blue is work in flight, slate is work not begun. The categorical list below
- * is for data where the categories carry no such meaning of their own — the projects in a
- * distribution — and it deliberately excludes red and amber, so a chart of projects cannot
- * accidentally imply that somebody's project is the failing one.
- */
-
+// ApexCharts needs literal hex for gradient/hover math; CSS vars break shading.
+// Categorical colours omit red and amber so project charts do not imply failure.
 export const CHART_COLORS = {
-  /** Work in flight, and the default for a single-series chart. */
   primary: '#3b6ef5',
-
-  /** A second measure beside the primary one, where both are neutral in tone. */
   secondary: '#06b6d4',
-
-  /** Finished. */
   success: '#10b981',
-
-  /** Wants attention: due soon, behind, under target. */
   warning: '#f59e0b',
-
-  /** Stopped, overdue, failed. */
   danger: '#ef4444',
-
-  /** Informational, and a third categorical colour. */
   info: '#6366f1',
-
-  /** A fourth categorical colour, distinct from both blues at a glance. */
   accent: '#8b5cf6',
-
-  /** Not started, and anything genuinely inert. */
   neutral: '#94a3b8',
 } as const
 
-/**
- * The four task statuses.
- *
- * Keyed by the status itself rather than positionally, so a chart cannot list its data in one
- * order and its colours in another — which is the failure that makes a chart quietly wrong
- * rather than visibly broken.
- */
+// Keyed by TaskStatus so data order cannot drift from colour order.
 export const STATUS_CHART_COLORS: Readonly<Record<TaskStatus, string>> = {
   'not-started': CHART_COLORS.neutral,
   'in-progress': CHART_COLORS.primary,
@@ -76,16 +21,7 @@ export const STATUS_CHART_COLORS: Readonly<Record<TaskStatus, string>> = {
   blocked: CHART_COLORS.danger,
 }
 
-/**
- * For categories that are merely different — projects, mostly.
- *
- * Six, then it repeats, and the repeat is honest: a donut of more than six categories cannot be
- * read whatever the colours do, and the answer to that is the table underneath rather than a
- * seventh colour nobody can distinguish from the second.
- *
- * Ordered so that adjacent slices are far apart in hue, and with no red or amber in the list
- * for the reason given above.
- */
+// Six colours then repeat; no red or amber for neutral project categories.
 const SERIES_CHART_COLORS = [
   CHART_COLORS.primary,
   CHART_COLORS.success,
@@ -95,67 +31,21 @@ const SERIES_CHART_COLORS = [
   CHART_COLORS.neutral,
 ] as const
 
-/**
- * The nth categorical colour, wrapping.
- *
- * A function rather than the array, because indexing an array under `noUncheckedIndexedAccess`
- * yields `string | undefined` and the honest handling of that at the call site is a fallback
- * colour nobody wants to choose. The modulo makes it total, so there is nothing to fall back to.
- */
+// Modulo keeps the index total under noUncheckedIndexedAccess.
 export function seriesColor(index: number): string {
   return SERIES_CHART_COLORS[index % SERIES_CHART_COLORS.length] ?? CHART_COLORS.primary
 }
 
-/**
- * The two inks a number printed on top of a slice is written in.
- *
- * `$color-white` and `$color-text` from the interface palette, repeated here because this is the
- * one place a token has to reach a value ApexCharts writes into an SVG attribute — see
- * `labelInkOn` for why it cannot be a custom property.
- */
+// Duplicated from Sass: Apex writes label ink into SVG fill attributes.
 const LABEL_INK = {
   light: '#ffffff',
   dark: '#172033',
 } as const
 
-/**
- * The slice luminance at which the two inks above read equally well on it.
- *
- * Solved rather than chosen: contrast is `(lighter + 0.05) / (darker + 0.05)`, so white and the
- * dark ink are level where `(L + 0.05)² = 1.05 × (0.0145 + 0.05)`, with 0.0145 the dark ink's own
- * luminance. That puts the crossover at 0.21.
- */
+// Luminance crossover where white and dark ink have equal contrast.
 const INK_CROSSOVER = 0.21
 
-/**
- * Which of the two inks is legible on a given slice.
- *
- * Every printed percentage used to be white, set in the stylesheet, on the reasoning that a slice
- * is saturated and white is what reads on saturated colour. That is true of the blues and the
- * violet and false of everything else in the palette: white on the green is 2.4:1 and on the
- * slate 2.3:1, which is not a contrast ratio so much as a rumour of one. The 29% on a donut of
- * two projects was legible or not depending on which colour its slice happened to draw.
- *
- * So the ink is chosen per slice from the slice's own lightness, at the luminance where the two
- * inks are equally readable on it. That crossover is 0.179 for pure black against white, and 0.21
- * for the ink actually used here, which is dark navy rather than black and so slightly the weaker
- * of the two — a threshold copied from the black-and-white case would send the blues to the dark
- * ink at 3.6:1 when white would have given them 4.5:1.
- *
- * At 0.21 every colour in the palette pairs at 4.2:1 or better: white on the blues, the indigo and
- * the violet, dark on the green, the cyan, the slate, the red and the amber.
- *
- * ## Why this is not done in the stylesheet
- *
- * A rule cannot know which slice it is painting. ApexCharts writes the colour as the SVG `fill`
- * *attribute* per label — `dataLabels.style.colors[i]` — and an attribute takes a colour, not a
- * `var()`. Any stylesheet answer is therefore one colour for every slice, which is the bug.
- * Being the shade of a data colour, this belongs beside them in any case.
- *
- * The luminance formula is the sRGB one: linearise each channel, then weight them by how much
- * the eye takes from each. A `#rgb` shorthand is not accepted, because nothing in this module
- * writes one.
- */
+// Per-slice ink from luminance; stylesheets cannot vary fill per slice.
 export function labelInkOn(sliceColor: string): string {
   const channels = [1, 3, 5].map((offset) => Number.parseInt(sliceColor.slice(offset, offset + 2), 16) / 255)
 

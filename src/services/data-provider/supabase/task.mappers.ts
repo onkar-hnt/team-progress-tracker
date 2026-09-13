@@ -7,20 +7,6 @@ import type {
 } from '@models/index'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 
-/**
- * Translation between `public.tasks` rows and the domain `AssignedTask`.
- *
- * A task is the *plan* — assigned by an admin, with a due date, living until
- * it is finished — as opposed to a daily update, which is the record of what
- * happened on one day. That distinction is why `created_date` and `due_date`
- * are plain calendar days while `updated_at` is a full timestamp: the first
- * two are things a person schedules, the last is when a row was touched.
- *
- * `mentor_id` is stored on the task rather than inferred from the current
- * mentor mapping, so that reassigning a developer to a new mentor does not
- * silently rewrite who was accountable for work already assigned.
- */
-
 export const TASK_COLUMNS =
   'id, code, name, description, project_id, developer_id, mentor_id, priority, status, created_date, due_date, updated_at' as const
 
@@ -77,14 +63,6 @@ export interface TaskInsert {
   due_date: string | null
 }
 
-/**
- * Builds the insert payload.
- *
- * `id` and `code` are omitted so the column defaults assign them, and
- * `updated_at` is left to the database as well — a client clock has no
- * business deciding when a row was written. A `code` on the request is
- * ignored rather than honoured.
- */
 export function toTaskInsert(request: CreateAssignedTaskRequest): TaskInsert {
   return {
     name: request.name.trim(),
@@ -99,17 +77,6 @@ export function toTaskInsert(request: CreateAssignedTaskRequest): TaskInsert {
   }
 }
 
-/**
- * Builds the update payload from the keys the caller actually supplied.
- *
- * Key presence rather than a comparison against `undefined`, matching the
- * project and developer mappers: omitting `dueDate` leaves the date alone,
- * while passing it explicitly as `undefined` clears it.
- *
- * The `NOT NULL` columns take the additional `!== undefined` guard, because
- * for those the two meanings collapse — there is no way to unset a name or a
- * status, so an explicit `undefined` can only mean "leave it".
- */
 export function toTaskUpdate(request: UpdateAssignedTaskRequest): Partial<TaskInsert> {
   const payload: Partial<TaskInsert> = {}
 

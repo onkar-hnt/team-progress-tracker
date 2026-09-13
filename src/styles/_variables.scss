@@ -1,12 +1,5 @@
-/// ---------------------------------------------------------------------------
-/// Typography
-/// ---------------------------------------------------------------------------
+// Typography
 
-/// One typeface for the whole application, applied once on `html` in
-/// `_reset.scss` and inherited by every control through `font: inherit`. Named
-/// here rather than written into the reset so that the one other place needing
-/// a different face — a code sample, which has to be monospaced — is stated
-/// alongside it instead of reaching for `monospace` on its own.
 $font-family-base:
   Inter,
   ui-sans-serif,
@@ -16,16 +9,8 @@ $font-family-base:
   'Segoe UI',
   sans-serif;
 
-/// For values meant to be read character by character: a file name, an
-/// environment variable, an id.
 $font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-/// The type scale. `xs` and `sm` carry most of the interface — badges, hints,
-/// table cells — `md` is body text, `lg` a panel title and `2xl` a page title.
-///
-/// `xl` completes the scale and has no consumer today: nothing currently sits
-/// between a panel title and a page title. It is here so the next thing that
-/// does has a rung to land on rather than a literal.
 $font-size-xs: 0.75rem;
 $font-size-sm: 0.875rem;
 $font-size-md: 1rem;
@@ -33,27 +18,19 @@ $font-size-lg: 1.125rem;
 $font-size-xl: 1.375rem;
 $font-size-2xl: 1.75rem;
 
-/// Four weights, because the literals had settled into exactly four uses: 600
-/// for nearly every label and heading, 700 for the two brand marks, 500 for a
-/// checkbox caption, and the browser's own 400 for body text.
 $font-weight-regular: 400;
 $font-weight-medium: 500;
 $font-weight-semibold: 600;
 $font-weight-bold: 700;
 
-/// The two line heights in use: one for running text, one for a heading or a
-/// single-line label where the looser figure would push the box out of shape.
 $line-height-tight: 1.25;
 $line-height-base: 1.5;
 $line-height-loose: 1.6;
 
-/// Applied to the small upper-case labels above a value — a stat card caption,
-/// a table header, a field label. Without it the letters crowd at that size.
+/// Letter-spacing for small uppercase labels.
 $letter-spacing-wide: 0.04em;
 
-/// ---------------------------------------------------------------------------
-/// Colour
-/// ---------------------------------------------------------------------------
+// Colour
 
 $color-brand: #3155a6;
 $color-brand-dark: #172554;
@@ -65,17 +42,7 @@ $color-border: #dfe3ea;
 $color-surface-subtle: #f5f7fa;
 $color-white: #ffffff;
 
-/// Status palettes.
-///
-/// Five states — neutral, informational, good, worth attention, wrong — each a
-/// border, a text colour and a surface, because that is the shape every badge,
-/// alert and notice in the application already had. They were written out as
-/// literals in fifteen files, sixty-three times, and had drifted: three
-/// different greens, two ambers, and a `#eef2ff` one digit away from
-/// `$color-brand-light`. Naming them is what stops the next one being a fourth.
-///
-/// The text colour of each palette is legible on white as well as on its own
-/// surface, so a badge and a line of body text can use the same one.
+/// Status palettes: border, text and surface per state.
 $color-neutral-border: #d6dae1;
 $color-neutral-text: #48505c;
 $color-neutral-surface: #f1f3f6;
@@ -92,29 +59,21 @@ $color-warning-border: #fcd9a6;
 $color-warning: #8a4b09;
 $color-warning-surface: #fef5e7;
 
-/// Danger carries two text tones: the darker one for a word set on its own
-/// surface, the lighter for a message or a control on the white page.
+/// Darker tone for text on a danger surface; lighter for controls on white.
 $color-danger: #b42318;
 $color-danger-dark: #912018;
 $color-danger-border: #fda29b;
 $color-danger-surface: #fef3f2;
 
-/// Controls drawn on the dark header bar, where the palette above has no
-/// contrast to offer. One border strength rather than the two that had grown
-/// up: the icon buttons were outlined at 25% and everything beside them at 35%.
+/// Controls on the dark header bar.
 $color-inverse-border: rgb(255 255 255 / 35%);
 $color-inverse-hover: rgb(255 255 255 / 12%);
 
-/// A tint of the text colour, for something set into the page rather than
-/// raised off it — a code sample, a read-only value.
 $color-surface-sunken: rgb(15 23 42 / 7%);
 
-/// What dims the page behind a modal or an open drawer.
 $color-overlay: rgb(15 23 42 / 45%);
 
-/// ---------------------------------------------------------------------------
-/// Spacing, radius and elevation
-/// ---------------------------------------------------------------------------
+// Spacing, radius and elevation
 
 $space-1: 0.25rem;
 $space-2: 0.5rem;
@@ -127,57 +86,27 @@ $space-8: 2rem;
 $radius-sm: 0.25rem;
 $radius-md: 0.5rem;
 $radius-lg: 0.75rem;
-/// For anything drawn as a capsule: a badge, a count bubble, a pill filter.
 $radius-pill: 999px;
 
-/// Four elevations, one shadow colour.
-///
-/// `sm` sits a card off the page, `raised` is where a card goes on hover, `md`
-/// floats a popover — a dropdown list, the sidebar drawer, a tooltip — and `lg`
-/// is for a modal. The `md` step existed three times before this, as the same
-/// `0 8px 24px` at 12%, 14% and 22% in three separate files.
 $shadow-sm: 0 1px 3px rgb(15 23 42 / 8%);
 $shadow-raised: 0 4px 12px rgb(15 23 42 / 10%);
 $shadow-md: 0 8px 24px rgb(15 23 42 / 14%);
 $shadow-lg: 0 12px 32px rgb(15 23 42 / 18%);
 
-/// ---------------------------------------------------------------------------
-/// Motion
-/// ---------------------------------------------------------------------------
+// Motion
 
-/// Three speeds. `fast` is for something that has to feel immediate under the
-/// cursor — a colour, a border, a shadow — `base` for something that moves,
-/// where the eye needs long enough to follow it, and `slow` for something
-/// arriving from nothing: a screen after a navigation, a card after its data.
-///
-/// Duration and easing are separate because the compound shorthand below cannot
-/// serve an `animation`, which needs a name, a fill mode and often a delay
-/// beside them. They were the same two numbers written twice before this.
 $duration-fast: 120ms;
 $duration-base: 160ms;
 $duration-slow: 240ms;
 
-/// For anything entering: quick to start, settling at the end. `ease` on its own
-/// decelerates too gently to read as arriving rather than as fading.
 $ease-out: cubic-bezier(0.22, 0.8, 0.28, 1);
 
-/// The shorthands the transitions use, unchanged in value.
 $transition-fast: $duration-fast ease;
 $transition-base: $duration-base ease;
 
-/// ---------------------------------------------------------------------------
-/// Stacking order
-/// ---------------------------------------------------------------------------
+// Stacking order
 
-/// The one place the application's layers are written down, in the order they
-/// sit: a sticky table header inside its own scroll box, the corner cell that
-/// has to clear it, the backdrop behind the mobile drawer, the drawer itself,
-/// then a popover over all of it and a tooltip over that.
-///
-/// The snackbar column is last because it reports on what the layers below are
-/// doing, including a modal dialog — though a `z-index` alone cannot clear one
-/// of those, which is why `Snackbar.tsx` also puts itself in the top layer. This
-/// value is what places it in the browsers where that API is missing.
+/// Layer order for sticky headers through snackbars. Snackbar also uses the top layer in JS where supported.
 $z-sticky: 1;
 $z-sticky-corner: 2;
 $z-backdrop: 15;
@@ -186,14 +115,9 @@ $z-popover: 30;
 $z-tooltip: 40;
 $z-snackbar: 50;
 
-/// ---------------------------------------------------------------------------
-/// Layout
-/// ---------------------------------------------------------------------------
+// Layout
 
 $header-height: 3.5rem;
-/// Set by the longest label on it — "Team Activity" — plus the icon, the gaps and
-/// the two paddings around it, and nothing more. It was three rems wider, which
-/// bought empty space on the right of every row and took it from the tables.
+/// Width for the longest sidebar label plus icon and padding.
 $sidebar-width: 13rem;
-/// Wide enough for an icon plus its focus ring, with nothing else on the rail.
 $sidebar-width-collapsed: 4.5rem;

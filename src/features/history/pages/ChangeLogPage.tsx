@@ -20,25 +20,6 @@ import { compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
 import './ChangeLogPage.scss'
 
-/**
- * Who changed what, and what it was before.
- *
- * The screen the README used to apologise for not having. It reads one table, filled
- * by one trigger, and shows the field-level diff of every change to the six kinds of
- * record worth accounting for.
- *
- * Everybody has one, and it holds what they may see: a developer finds the changes to
- * their own work — including the ones somebody else made to it, which is the question
- * that makes this worth building — a mentor finds their developers' as well, and an
- * administrator finds all of it, roster included. None of that is decided here.
- * `record_history_select` decides it, and this screen lists what came back.
- *
- * Read-only, with no actions on a row at all. That is the point of a log: it is the
- * one screen in the application where nothing can be changed, including by whoever
- * wrote the thing being read.
- */
-
-/** How many changes arrive at a time. Bigger than the bin's page, because a log is scanned. */
 const CHANGE_PAGE_SIZE = 50
 
 type SortKey = 'kind' | 'subject' | 'what' | 'when' | 'who'
@@ -51,25 +32,12 @@ export function ChangeLogPage() {
   const changesQuery = useChangeLog(paging.limit)
   const page = paging.apply(changesQuery.data)
 
-  /**
-   * Who made a change.
-   *
-   * Read from the row rather than resolved. The name is copied onto the history row as
-   * it is written, because the alternative — mapping a login id through the roster — is
-   * exactly what a developer cannot do: `profiles` is an administrator's to read, so
-   * their own mentor came back as a stranger. See 20260913235500.
-   *
-   * The two ways a name can be absent mean different things and are said differently. No
-   * actor at all is a change made by a trigger rather than by a person, which is how the
-   * synchronised copy of a status change is recorded. An actor with no name is somebody
-   * whose login carries none.
-   */
+  // Actor name is stored on the row; developers cannot read profiles to resolve it.
   const nameOfActor = (change: ChangeRecord): string => {
     if (change.changedByProfileId === undefined) return 'The system'
     return change.changedByName ?? 'Someone else'
   }
 
-  /** The diff as one line of text, which is also what the search reads. */
   const describeChange = (change: ChangeRecord): string => {
     if (change.fields.length === 0) return HISTORY_ACTIONS[change.action]
 
@@ -212,9 +180,6 @@ export function ChangeLogPage() {
                         <td className="data-table__nowrap">
                           {nameOfActor(change)}
                         </td>
-                        {/* Relative, with the exact moment on hover: "2 hours ago"
-                            answers "was this just now", and the timestamp is what
-                            somebody quotes back. */}
                         <td className="data-table__nowrap">
                           <span title={formatTimestamp(change.changedAt)}>
                             {formatRelativeTime(change.changedAt)}

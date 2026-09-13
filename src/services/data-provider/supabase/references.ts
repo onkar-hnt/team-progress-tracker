@@ -3,20 +3,7 @@ import type { AppSupabaseClient } from '@services/supabase/index'
 import { ReferentialIntegrityError } from '../data-provider.errors'
 import { mapPostgrestError } from './supabase-errors'
 
-/**
- * Checks that a referenced record exists before a write depends on it.
- *
- * The foreign keys would catch every one of these anyway. Checking first
- * matters for two reasons: a multi-step write must not half-apply before the
- * database refuses it, and — while the migration is part-way through — an id
- * can arrive from the fixtures, where it is `PRJ001` rather than a uuid. A
- * malformed-input failure is a poor way to say "no such project".
- *
- * Each check also requires the row not to be in the bin, and that part the foreign
- * keys genuinely would not catch: a soft-deleted row is still a row, so the key
- * accepts it and the result is new work attached to something waiting to be
- * destroyed. "No such project" is the right answer for a project nobody can see.
- */
+/** Pre-write existence checks; also reject soft-deleted rows FKs would still accept. */
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
 
@@ -24,14 +11,6 @@ export function isSupabaseUuid(value: string): boolean {
   return UUID_PATTERN.test(value)
 }
 
-/**
- * Confirms a project exists, for `developers.primary_project_id`.
- *
- * Projects have not been migrated yet, so today this rejects every id the
- * project fixtures produce. That is the correct answer rather than a
- * limitation to work around: the column is a foreign key into a table those
- * records are genuinely not in.
- */
 export async function assertProjectExists(
   client: AppSupabaseClient,
   projectId: string,
@@ -50,7 +29,6 @@ export async function assertProjectExists(
   if (data === null) throw new ReferentialIntegrityError('projectId', projectId)
 }
 
-/** Confirms a mentor exists, for the accountable-mentor reference on a project. */
 export async function assertMentorExists(
   client: AppSupabaseClient,
   mentorId: string,
@@ -69,22 +47,12 @@ export async function assertMentorExists(
   if (data === null) throw new ReferentialIntegrityError('mentorId', mentorId)
 }
 
-/**
- * Confirms a task exists, for the task a piece of feedback is about.
- *
- * Existence only. Whether that task belongs to the developer the feedback
- * names is a comparison between two columns of the row being written, which
- * `feedback_guard_task` makes in the database.
- */
 export async function assertTaskExists(
   client: AppSupabaseClient,
   taskId: string,
 ): Promise<void> {
   if (!isSupabaseUuid(taskId)) throw new ReferentialIntegrityError('taskId', taskId)
 
-  // A deleted task cannot be linked to. The row is still there, so the foreign
-  // key would accept it, and the result would be new work attached to something
-  // sitting in the bin waiting to be destroyed.
   const { data, error } = await client
     .from('tasks')
     .select('id')
@@ -97,7 +65,6 @@ export async function assertTaskExists(
   if (data === null) throw new ReferentialIntegrityError('taskId', taskId)
 }
 
-/** Confirms one developer exists, for a record that names a single assignee. */
 export async function assertDeveloperExists(
   client: AppSupabaseClient,
   developerId: string,
@@ -105,13 +72,6 @@ export async function assertDeveloperExists(
   await assertDevelopersExist(client, [developerId])
 }
 
-/**
- * Confirms every developer exists before a multi-step write depends on them.
- *
- * Checked as a set rather than one at a time, so a list of twenty costs one
- * round trip. The first missing id is reported, which is enough to fix the
- * request.
- */
 export async function assertDevelopersExist(
   client: AppSupabaseClient,
   developerIds: readonly string[],

@@ -51,19 +51,6 @@ import type { DateRange } from '@utils/date.utils'
 import { queryKeys } from './query-keys'
 import { useAccessScope } from './use-access-scope'
 
-/**
- * Data hooks for feature components.
- *
- * Components use these and never reach for the service or a provider
- * directly, which is what keeps the storage backend replaceable.
- *
- * Each hook resolves the access scope itself and stays disabled until it is
- * known. That is what makes the data isolation reliable: a screen cannot
- * issue an unscoped query, because it never supplies the scope, and a query
- * cannot run before the limits it must respect exist.
- */
-
-/** Shared plumbing: disabled until a scope exists, keyed by that scope. */
 function useScopedQuery<TValue>(
   buildKey: (scopeId: string) => readonly unknown[],
   run: (scope: AccessScope) => Promise<TValue>,
@@ -80,11 +67,6 @@ function useScopedQuery<TValue>(
     enabled: !isResolving && scope !== null,
     ...(options.staleTime === undefined ? {} : { staleTime: options.staleTime }),
 
-    // For the hooks whose query carries a paging limit. Raising the limit is a new
-    // key, and without this the list a person is reading would be replaced by a
-    // skeleton on its way to becoming one row longer. Held to the hooks that need
-    // it rather than applied to all of them, because everywhere else the screen
-    // is meant to fall back to its skeleton.
     ...(options.keepsPreviousData === true ? { placeholderData: keepPreviousData } : {}),
   })
 }
@@ -129,13 +111,6 @@ export function useProjects(): UseQueryResult<Project[]> {
   )
 }
 
-/**
- * Roster reads, for the screens that maintain the roster.
- *
- * Deliberately separate hooks rather than a flag on the scoped ones, so a
- * screen that shows somebody's work cannot widen itself by passing an
- * argument. Anything reading these is a management screen.
- */
 export function useRosterDevelopers(): UseQueryResult<Developer[]> {
   const service = getWorkTrackerService()
 
@@ -186,7 +161,6 @@ export function useActiveProjects(): UseQueryResult<Project[]> {
   )
 }
 
-/** Entries with developer and project names resolved, newest first. */
 export function useDailyWorkEntries(
   query?: DailyWorkQuery,
 ): UseQueryResult<DailyWorkEntryView[]> {
@@ -207,14 +181,6 @@ export function useTasks(query?: AssignedTaskQuery): UseQueryResult<AssignedTask
   )
 }
 
-/**
- * Feedback, a page at a time when the caller asks for one.
- *
- * The one record hook that keeps its previous answer on screen while fetching,
- * because it is the one the feedback screens page through with `usePaging`. Nothing
- * about paging is decided here — the limit arrives in the query like any other
- * predicate — but the flicker it would otherwise cause is.
- */
 export function useComments(query?: MentorCommentQuery): UseQueryResult<MentorCommentView[]> {
   const service = getWorkTrackerService()
 
@@ -243,7 +209,6 @@ export function useRangeOverview(range: DateRange): UseQueryResult<RangeOverview
   )
 }
 
-/** `null` when the developer does not exist or is outside the scope. */
 export function useDeveloper(id: string): UseQueryResult<Developer | null> {
   const service = getWorkTrackerService()
 
@@ -253,29 +218,9 @@ export function useDeveloper(id: string): UseQueryResult<Developer | null> {
   )
 }
 
-/**
- * What a write touched, and so what has to be read again.
- *
- * This used to invalidate the whole root on every write, on the grounds that
- * one record feeds the dashboard, trends, developer views and reports, and
- * that narrowing would be easy to get subtly wrong. Correct, but it also threw
- * away two things that had asked not to be: the access scope, re-resolved
- * after every status change, and the Admin workbook structure, which costs a
- * handful of Graph requests and says in its own definition that it is not
- * re-read on remount.
- *
- * Three groups rather than one per table, because the couplings are real and
- * pretending otherwise is how narrowed invalidation goes wrong.
- */
 type WriteScope = 'comments' | 'roster' | 'work'
 
 const AFFECTED_BY: Readonly<Record<WriteScope, readonly (readonly unknown[])[]>> = {
-  /**
-   * Daily updates and tasks are one group because the database keeps their
-   * statuses in step: writing either one can move the other, so neither can be
-   * refetched alone. Feedback joins them because a comment names a task, and
-   * renaming or deleting that task changes what the timeline reads.
-   */
   work: [
     queryKeys.allDailyWork(),
     queryKeys.allTasks(),
@@ -286,10 +231,6 @@ const AFFECTED_BY: Readonly<Record<WriteScope, readonly (readonly unknown[])[]>>
 
   comments: [queryKeys.allComments()],
 
-  /**
-   * Nothing can be spared here. Every view resolves names against the roster,
-   * and the access scope deciding what any of them may read is derived from it.
-   */
   roster: [queryKeys.root],
 }
 
@@ -298,11 +239,6 @@ function useInvalidateWorkTracker(scope: WriteScope): () => Promise<void> {
   const service = getWorkTrackerService()
 
   return async () => {
-    // Only a roster write can have changed what the lookup memo holds, and
-    // dropping it after a status change would make the refetch below re-read
-    // developers and projects to arrive at the same answer. Cleared before the
-    // invalidation, so the queries it wakes resolve names against the roster
-    // as it is now.
     if (scope === 'roster') service.forgetLookups()
 
     await Promise.all(
@@ -311,19 +247,6 @@ function useInvalidateWorkTracker(scope: WriteScope): () => Promise<void> {
   }
 }
 
-/**
- * Re-reads everything the signed-in person can see, on request.
- *
- * The one case where invalidating the whole root is right rather than lazy.
- * Somebody presses this precisely because they do not trust what is on screen
- * — a colleague has just changed something, or a write failed halfway — and
- * refreshing only part of it would leave them unable to say what they had
- * refreshed. Narrowed invalidation is for writes, which know what they touched.
- *
- * A mutation rather than a plain callback so the button can report that it is
- * working and refuse to be pressed twice, which matters here because the
- * refetches it triggers can take a moment on a slow connection.
- */
 export function useRefreshWorkTracker(): UseMutationResult<void, Error, void> {
   const queryClient = useQueryClient()
   const service = getWorkTrackerService()
@@ -336,22 +259,6 @@ export function useRefreshWorkTracker(): UseMutationResult<void, Error, void> {
   })
 }
 
-/**
- * Shared mutation wrapper, so every write refreshes the same way and reports a
- * failure the same way.
- *
- * The reporting is here rather than at the call sites because there are
- * twenty-odd of them and they were not doing it consistently. Four admin screens
- * shared a `writeState` helper that rendered the first failed mutation's message
- * as an alert above their table — which, as its own doc comment admitted, meant
- * a failed save left its explanation stranded behind the dialog that caused it.
- * The other screens showed nothing at all.
- *
- * `failureMessage` is the wording for a failure this application does not
- * recognise; anything the data layer has already phrased for a reader is used
- * instead. It is `string | null` rather than optional so that every definition
- * below has to state its intent, and the two that pass `null` say why.
- */
 function useWorkTrackerMutation<TResult, TVariables>(
   run: (variables: TVariables) => Promise<TResult>,
   scope: WriteScope,
@@ -364,8 +271,6 @@ function useWorkTrackerMutation<TResult, TVariables>(
     mutationFn: run,
     onSuccess: invalidate,
     onError: (error) => {
-      // Logged whatever the caller has arranged, so that the SQLSTATE and
-      // constraint behind a mapped message stay reachable in the console.
       logFailure(`write:${scope}`, error)
 
       if (failureMessage !== null) snackbar.error(toUserMessage(error, failureMessage))
@@ -451,13 +356,6 @@ export function useDeleteDeveloper(): UseMutationResult<void, Error, string> {
   )
 }
 
-/**
- * Gives an employee a login, through the server-side provisioning function.
- *
- * Not a `WorkTrackerService` call — provisioning is an auth concern, not a
- * record one — but it shares the same invalidation, because a successful
- * attempt sets `profile_id` and the employee list shows that column.
- */
 export function useProvisionDeveloperLogin(): UseMutationResult<
   ProvisionDeveloperResult,
   Error,
@@ -466,22 +364,10 @@ export function useProvisionDeveloperLogin(): UseMutationResult<
   return useWorkTrackerMutation(
     (input: ProvisionDeveloperInput) => provisionDeveloperLogin(input),
     'roster',
-    // Reported by the Employees screen instead. A failure here is a partial
-    // success — the employee row is already saved — and what has to be said is
-    // "saved, but the login could not be set up, use Create login to retry",
-    // which needs the record's name and the retry instruction. The successful
-    // case shows a one-time password that has to stay on screen until it is
-    // copied, so neither outcome belongs in something that fades.
     null,
   )
 }
 
-/**
- * Gives a mentor a login. The employee equivalent, against the mentor table.
- *
- * Shares the same invalidation for the same reason: a successful attempt sets
- * `profile_id`, and the mentor list shows that column.
- */
 export function useProvisionMentorLogin(): UseMutationResult<
   ProvisionMentorResult,
   Error,
@@ -490,7 +376,6 @@ export function useProvisionMentorLogin(): UseMutationResult<
   return useWorkTrackerMutation(
     (input: ProvisionMentorInput) => provisionMentorLogin(input),
     'roster',
-    // Reported by the Mentors screen, for the reasons given above.
     null,
   )
 }

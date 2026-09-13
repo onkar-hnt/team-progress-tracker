@@ -13,13 +13,6 @@ interface DeveloperReportResultsProps {
   onDownload: () => void
 }
 
-/**
- * The generated report: what it adds up to, then every row behind it.
- *
- * The preview is narrower than the download on purpose. Thirteen columns of
- * free text is a file, not a table — so the columns worth scanning are on screen
- * and the rest are in the CSV, which is where somebody reads a full remark.
- */
 export function DeveloperReportResults({
   entries,
   onDownload,

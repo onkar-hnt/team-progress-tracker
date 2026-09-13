@@ -13,25 +13,6 @@ import {
 import { resolveSupabaseIdentity } from './supabase-identity'
 import type { SupabaseAuthUser } from './supabase-identity'
 
-/**
- * Sign-in through Supabase Auth, with the role read from `public.profiles`.
- *
- * This is the production identity source. It replaces the built-in
- * administrator credentials in `bootstrap-admin.ts`, which are reachable only
- * from `LocalAuthProvider` and therefore cannot participate here: a rejected
- * Supabase sign-in raises an error, and there is no path from this class to
- * the offline provider.
- *
- * The session itself is Supabase's to keep. It lives in `localStorage` under
- * the client's own key and is refreshed in the background, so nothing in this
- * application stores a token, and `session-store.ts` — the sessionStorage
- * email used by the workbook providers — is deliberately untouched.
- *
- * SECURITY: no token, refresh token or password is logged, returned or
- * embedded in an error message. Failures carry the provider's error as
- * `cause`, which keeps the detail available to a developer inspecting it
- * without putting credentials into a rendered message.
- */
 export class SupabaseAuthProvider implements AuthProvider {
   readonly name = 'supabase'
 
@@ -40,48 +21,13 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   readonly usesCredentials = true
 
-  /**
-   * The user whose profile was most recently resolved.
-   *
-   * Supabase raises `SIGNED_IN` for sign-ins this class performed as well as
-   * for those it did not, so without this the profile would be fetched twice
-   * for every login. Comparing ids means the subscription only does work when
-   * the identity actually changed — another tab signing in, or a session
-   * appearing after this one started.
-   */
   private lastResolvedUserId: string | null = null
 
-  /**
-   * The identity resolution currently in progress, if any.
-   *
-   * Several things ask for the same identity within a few milliseconds of a
-   * page load, and each would otherwise issue its own profile, mentor and
-   * developer queries:
-   *
-   * - `restoreSession`, from the provider's restore effect, once per mount of
-   *   that provider. The existing `isCurrent` guard suppresses a duplicate
-   *   *state update*, not a duplicate request.
-   * - `SIGNED_IN`, which `auth-js` raises from `_recoverAndRefresh()` when it
-   *   loads a stored session during client initialisation — startup does not
-   *   arrive as `INITIAL_SESSION`, despite the name.
-   *
-   * `lastResolvedUserId` cannot collapse these on its own: they begin before
-   * any of them finishes, so there is nothing yet to compare against. Sharing
-   * the promise is what makes the count independent of how many callers there
-   * happen to be.
-   */
   private pendingResolution: {
     readonly userId: string
     readonly promise: Promise<AppUser>
   } | null = null
 
-  /**
-   * Translates configuration problems into an auth error.
-   *
-   * Configuration is validated rather than assumed so that a deployment
-   * missing its environment says so, instead of failing later as an opaque
-   * network error against an empty URL.
-   */
   private client(): AppSupabaseClient {
     try {
       return getSupabaseClient()
@@ -95,9 +41,6 @@ export class SupabaseAuthProvider implements AuthProvider {
   }
 
   async signIn(credentials?: SignInCredentials): Promise<AppUser> {
-    // The login form always supplies these; a delegated caller reaching here
-    // without them is a wiring mistake, reported as a rejected sign-in rather
-    // than a crash.
     if (credentials === undefined) throw new InvalidCredentialsError()
 
     const client = this.client()
@@ -113,10 +56,6 @@ export class SupabaseAuthProvider implements AuthProvider {
     try {
       return await this.resolve(data.user)
     } catch (identityError) {
-      // Credentials were valid, so Supabase now holds a session for somebody
-      // the application cannot authorise. Leaving it in place would restore
-      // the same dead end on every reload, so the session is discarded and
-      // the person is told why.
       await this.discardSession(client)
       throw identityError
     }
@@ -125,8 +64,6 @@ export class SupabaseAuthProvider implements AuthProvider {
   async signOut(): Promise<void> {
     this.lastResolvedUserId = null
 
-    // Unconfigured means there is no session to end, which is the state
-    // sign-out is trying to reach — so this is success, not an error.
     let client: AppSupabaseClient
     try {
       client = this.client()
@@ -134,10 +71,6 @@ export class SupabaseAuthProvider implements AuthProvider {
       return
     }
 
-    // The result is deliberately ignored. supabase-js clears the persisted
-    // session before the network call, so a failed revocation still leaves
-    // the browser signed out — and reporting it would strand somebody in a
-    // session they have already left.
     await client.auth.signOut()
   }
 
@@ -149,21 +82,11 @@ export class SupabaseAuthProvider implements AuthProvider {
     return this.readCurrentIdentity(true)
   }
 
-  /**
-   * The identity behind the persisted session, or `null` if there is none.
-   *
-   * `forced` discards any resolution already in flight. Startup wants the
-   * opposite — three callers asking at once should cost one round trip — but
-   * a caller re-reading after a change it just made would otherwise be handed
-   * the answer to the older question.
-   */
   private async readCurrentIdentity(forced: boolean): Promise<AppUser | null> {
     let client: AppSupabaseClient
     try {
       client = this.client()
     } catch {
-      // Nothing to restore, and the login screen will explain the
-      // misconfiguration as soon as somebody tries to sign in.
       return null
     }
 
@@ -177,30 +100,11 @@ export class SupabaseAuthProvider implements AuthProvider {
     try {
       return await this.resolve(data.session.user)
     } catch {
-      // A session whose profile has since been removed or deactivated is not
-      // a usable session. Treated as signed out rather than surfaced, because
-      // a page load is not a sign-in attempt.
       await this.discardSession(client)
       return null
     }
   }
 
-  /**
-   * Reflects identity changes that happened outside this provider.
-   *
-   * Covers signing out in another tab, a session arriving after startup, and
-   * an account being updated.
-   *
-   * `INITIAL_SESSION` is ignored because `restoreSession` handles startup,
-   * and `TOKEN_REFRESHED` because a new token does not change who somebody
-   * is — which matters, since an hourly refresh would otherwise re-read the
-   * profile and re-render the whole app for no reason.
-   *
-   * `SIGNED_IN` cannot be ignored the same way even though it *is* raised at
-   * startup, by `_recoverAndRefresh()`: it is also the only signal that
-   * another tab signed in. It is therefore accepted and de-duplicated,
-   * against both the resolution in flight and the last one completed.
-   */
   onSessionChange(listener: (user: AppUser | null) => void): () => void {
     let client: AppSupabaseClient
     try {
@@ -222,18 +126,11 @@ export class SupabaseAuthProvider implements AuthProvider {
 
       const { user } = session
 
-      // supabase-js holds an internal lock while this callback runs, and
-      // calling back into the client from inside it can deadlock. Deferring
-      // to a fresh task is the documented way to do further work.
       setTimeout(() => {
         void (async () => {
           try {
             listener(await this.resolve(user))
           } catch {
-            // The session exists but cannot be authorised. Reported as signed
-            // out; the session is left for `signIn` to clear, so that a
-            // transient profile read failure in a background tab does not
-            // evict a working session elsewhere.
             listener(null)
           }
         })()
@@ -248,9 +145,6 @@ export class SupabaseAuthProvider implements AuthProvider {
   private async resolve(authUser: SupabaseAuthUser): Promise<AppUser> {
     const pending = this.pendingResolution
 
-    // Same person, already being resolved: join that attempt rather than
-    // starting a second one. A *different* id means the identity changed
-    // mid-flight, which has to be resolved on its own.
     if (pending !== null && pending.userId === authUser.id) return pending.promise
 
     const promise = this.readIdentity(authUser)
@@ -259,17 +153,11 @@ export class SupabaseAuthProvider implements AuthProvider {
     try {
       return await promise
     } finally {
-      // Only clears this attempt. A resolution for a newer identity may have
-      // replaced it while this one was settling, and discarding that would
-      // reintroduce the duplicate it is preventing.
       if (this.pendingResolution?.promise === promise) this.pendingResolution = null
     }
   }
 
   private async readIdentity(authUser: SupabaseAuthUser): Promise<AppUser> {
-    // Claimed before awaiting, not after, so that a `SIGNED_IN` arriving
-    // after this resolution completes — a cross-tab broadcast, say — is
-    // recognised as the same identity and skipped.
     this.lastResolvedUserId = authUser.id
 
     try {
@@ -293,13 +181,6 @@ export class SupabaseAuthProvider implements AuthProvider {
   }
 }
 
-/**
- * Maps a Supabase auth failure onto the application's error vocabulary.
- *
- * Components only ever see an `AuthError` subclass, so no PostgREST or GoTrue
- * shape reaches the UI. Wrong credentials stay deliberately vague about
- * whether it was the address or the password.
- */
 function mapSupabaseAuthError(error: unknown): Error {
   if (isAuthRetryableFetchError(error)) {
     return new SignInFailedError(
@@ -337,8 +218,6 @@ function mapSupabaseAuthError(error: unknown): Error {
         break
     }
 
-    // 400 and 401 from the token endpoint mean rejected credentials whatever
-    // the code says, so they must not surface as an unexplained failure.
     if (error.status === 400 || error.status === 401) return new InvalidCredentialsError()
 
     return new SignInFailedError('Sign-in was refused. Please try again.', { cause: error })

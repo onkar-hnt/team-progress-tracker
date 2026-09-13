@@ -1,198 +1,114 @@
-@use '@styles/variables' as *;
-@use '@styles/mixins' as *;
-
-/// The shell: a rail down the left, a bar over the content, the content under it.
-///
-/// The rail spans both rows, so the bar begins where the rail ends rather than
-/// running over the top of it. That is what puts the collapse control in the head
-/// of the rail: with the corner belonging to the rail, there is no strip above it
-/// for the control to sit in.
-.app-layout {
-  @include grid;
-
-  /// The containing block for the skip link, which is positioned against the shell rather
-  /// than against the page.
-  position: relative;
-
-  height: 100%;
-  overflow: hidden;
-  grid-template-rows: $header-height minmax(0, 1fr);
-  grid-template-areas:
-    'rail bar'
-    'rail content';
-  grid-template-columns: $sidebar-width minmax(0, 1fr);
-
-  /// Animating the track width keeps the content edge attached to the rail as
-  /// it collapses, instead of the two moving independently.
-  transition: grid-template-columns $transition-base;
-
-  &--collapsed {
-    grid-template-columns: $sidebar-width-collapsed minmax(0, 1fr);
-  }
-
-  /// Off the top of the window until it is focused, then it drops into the corner.
-  ///
-  /// Moved rather than hidden: `display: none` or `visibility: hidden` would take it out
-  /// of the tab order, which is the one thing it needs to be in. Above the snackbar layer
-  /// because it must be reachable and legible whatever else is on screen — it is the
-  /// first stop on the page and nothing should be able to cover it.
-  &__skip {
-    position: absolute;
-    top: $space-3;
-    left: $space-3;
-    z-index: $z-snackbar;
-    padding: $space-2 $space-4;
-    border-radius: $radius-md;
-    color: $color-white;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-semibold;
-    text-decoration: none;
-    background: $color-brand-dark;
-    box-shadow: $shadow-md;
-    transform: translateY(-250%);
-
-    @include motion-safe {
-      transition: transform $transition-base;
-    }
-
-    &:focus-visible {
-      @include focus-ring;
-
-      transform: translateY(0);
-    }
-  }
-
-  /// `minmax(0, 1fr)` above is what allows this to scroll rather than stretch
-  /// the grid: without it a wide table would expand the track and hand the
-  /// scrollbar back to the page.
-  /// A column, so the routed screen can be told to take whatever height is left.
-  /// Screens are short more often than they are tall — the daily update form, a log
-  /// with nothing in it yet — and as a plain block container this left them sitting
-  /// in the top half with a band of bare background underneath.
-  ///
-  /// A column rather than a percentage height on the screen itself, because the
-  /// notice above it is sometimes there and sometimes not: `flex: 1` means "the rest
-  /// of it" either way, where `100%` would overshoot by the height of the notice and
-  /// produce a scrollbar for a page that fits.
-  &__content {
-    @include flex(column, $align: null);
-
-    grid-area: content;
-    padding: $space-8;
-    overflow-y: auto;
-    background: $color-surface-subtle;
-
-    /// The outermost scroller, so containment here withholds nothing: the document behind
-    /// it is `overflow: hidden` and cannot scroll whatever it is handed. What it does stop
-    /// is the viewport bounce and pull-to-refresh on a phone, which on a screen whose own
-    /// content is still scrolling reads as the layout coming loose.
-    ///
-    /// This is the one contained region that is not an overlay, and the reason it is not a
-    /// trap: there is nothing above it to trap the reader out of.
-    overscroll-behavior: contain;
-
-    /// For a jump somebody asked for: the skip link at the top of the page, an anchor,
-    /// a `scrollIntoView` from a control that has just revealed something below the
-    /// fold. Wheel, trackpad and touch scrolling are unaffected — the browser never
-    /// eases those — so this cannot make ordinary reading feel sluggish, which is the
-    /// usual complaint about smooth scrolling and the reason the whole page is not
-    /// handed to a scroll-hijacking library.
-    scroll-behavior: smooth;
-
-    @include respond-to-tablet {
-      padding: $space-5;
-    }
-
-    @include respond-to-mobile {
-      padding: $space-4;
-    }
-  }
-
-  /// The routed screen, which is replaced on every navigation and arrives rather than
-  /// appears. A short fade, once, standing in for the moment a server-rendered
-  /// application would have shown a new page.
-  ///
-  /// A fade and not the rise the cards use, and not by taste: a screen contains
-  /// dropdowns and tooltips, those place themselves with `position: fixed`, and an
-  /// ancestor holding a transform is what "fixed" becomes fixed to. A menu opened while
-  /// the screen was still arriving would appear a header's height too low. `enter` has
-  /// the longer version, including the fill mode this depends on.
-  ///
-  /// It has to pass its height through — the screen inside claims what is left of the
-  /// column — so it is a flex column that is itself flexible, and nothing else.
-  ///
-  /// `min-height` is deliberately left at `auto`. Zeroing it is the usual companion to
-  /// `flex: 1`, and here it would let a long screen be shrunk to the height of the
-  /// window with its content spilling out of the bottom, which is precisely what
-  /// `page-stack` explains it is avoiding.
-  &__screen {
-    @include flex(column, $align: null);
-    @include enter(fade-in);
-
-    flex: 1 1 auto;
-  }
-
-  &__scrim {
-    display: none;
-  }
-
-  /// Below the tablet breakpoint the rail becomes a drawer over the content, so
-  /// the single column belongs entirely to the bar and the content. The rail is
-  /// `position: fixed` there and out of the grid, so it needs no track — and the
-  /// `rail` area disappearing from the template is what widens the bar to the
-  /// full window.
-  @include respond-to-tablet {
-    grid-template-areas:
-      'bar'
-      'content';
-    grid-template-columns: minmax(0, 1fr);
-
-    &--collapsed {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    &--drawer-open &__scrim {
-      display: block;
-      position: fixed;
-      inset: $header-height 0 0;
-      z-index: $z-backdrop;
-      background: $color-overlay;
-    }
-
-    /// The drawer is an overlay like a dialog, and the same reasoning applies: the scrim
-    /// covers the content but cannot stop a wheel or a flick over it from reaching the
-    /// scroller behind. Released with the class, so there is nothing to clean up.
-    &--drawer-open &__content {
-      overflow: hidden;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-}
-
-/// Nothing behind an open dialog moves.
-///
-/// `showModal()` blocks scrolling of the *document*, and this application's document is not
-/// what scrolls — `__content` is, and a dialog knows nothing about it. So a wheel or a flick
-/// over the backdrop still moved the page underneath: the half of "the background is locked"
-/// that the native dialog does not give us.
-///
-/// Written against `body` rather than nested in the block above, because the dialogs are not
-/// all in the same place. A form's modal is rendered inside the screen that opened it; the
-/// confirmation dialog is one instance mounted by `ConfirmProvider`, which sits above the
-/// router and so above the shell entirely. `body:has()` covers both, and covers the next one
-/// wherever it is mounted.
-///
-/// `:has()` is the whole mechanism, and its virtue is that there is no mechanism: the rule
-/// applies while the attribute is there and stops when it goes. Nothing is stored, so there
-/// is no lock to be left behind by a navigation, an unmount, or two dialogs closing in the
-/// wrong order — which is what goes wrong with the `body.style.overflow` version of this.
-///
-/// The scroll offset survives, because a container turning `hidden` keeps it, and scrollbars
-/// are hidden application-wide so there is no track width to lose. The page is where it was,
-/// at the same width, when the dialog closes.
-body:has(dialog[open]) .app-layout__content {
-  overflow: hidden;
-}
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.app-layout {
+  @include grid;
+
+  position: relative;
+
+  height: 100%;
+  overflow: hidden;
+  grid-template-rows: $header-height minmax(0, 1fr);
+  grid-template-areas:
+    'rail bar'
+    'rail content';
+  grid-template-columns: $sidebar-width minmax(0, 1fr);
+
+  transition: grid-template-columns $transition-base;
+
+  &--collapsed {
+    grid-template-columns: $sidebar-width-collapsed minmax(0, 1fr);
+  }
+
+  &__skip {
+    position: absolute;
+    top: $space-3;
+    left: $space-3;
+    z-index: $z-snackbar;
+    padding: $space-2 $space-4;
+    border-radius: $radius-md;
+    color: $color-white;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    text-decoration: none;
+    background: $color-brand-dark;
+    box-shadow: $shadow-md;
+    transform: translateY(-250%);
+
+    @include motion-safe {
+      transition: transform $transition-base;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+
+      transform: translateY(0);
+    }
+  }
+
+  &__content {
+    @include flex(column, $align: null);
+
+    grid-area: content;
+    padding: $space-8;
+    overflow-y: auto;
+    background: $color-surface-subtle;
+
+    // Stops viewport bounce; document behind is overflow: hidden.
+    overscroll-behavior: contain;
+
+    scroll-behavior: smooth;
+
+    @include respond-to-tablet {
+      padding: $space-5;
+    }
+
+    @include respond-to-mobile {
+      padding: $space-4;
+    }
+  }
+
+  // Fade only — transform on enter breaks position: fixed descendants.
+  &__screen {
+    @include flex(column, $align: null);
+    @include enter(fade-in);
+
+    flex: 1 1 auto;
+  }
+
+  &__scrim {
+    display: none;
+  }
+
+  @include respond-to-tablet {
+    grid-template-areas:
+      'bar'
+      'content';
+    grid-template-columns: minmax(0, 1fr);
+
+    &--collapsed {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    &--drawer-open &__scrim {
+      display: block;
+      position: fixed;
+      inset: $header-height 0 0;
+      z-index: $z-backdrop;
+      background: $color-overlay;
+    }
+
+    &--drawer-open &__content {
+      overflow: hidden;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+// showModal() does not lock __content; :has() applies while any dialog is open.
+body:has(dialog[open]) .app-layout__content {
+  overflow: hidden;
+}

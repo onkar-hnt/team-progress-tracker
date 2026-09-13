@@ -20,9 +20,6 @@
     background: $color-surface-sunken;
   }
 
-  /// The same three tokens `.form__alert` uses, rather than the same three hex
-  /// values written again — these two are the application's only two ways of
-  /// saying "this went wrong" and they should not drift apart.
   &--error {
     border-color: $color-danger-border;
     color: $color-danger-dark;

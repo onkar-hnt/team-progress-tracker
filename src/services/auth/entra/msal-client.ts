@@ -10,27 +10,11 @@ import { appConfig } from '@config/app.config'
 import { SignInFailedError } from '../auth.errors'
 import { GRAPH_SCOPES } from './entra-config'
 
-/**
- * Microsoft Entra sign-in and Graph token acquisition.
- *
- * One module owns the MSAL instance because MSAL keeps its own cache and must
- * be initialised exactly once per page. Everything else in the application
- * asks for a token through `acquireGraphToken` and never touches MSAL.
- *
- * This module is always imported dynamically, so the MSAL library forms its
- * own chunk and is fetched only by deployments that actually sign in with it.
- *
- * Tokens are held by MSAL in session storage and are not persisted anywhere
- * by this application.
- */
-
 function buildConfiguration(): Configuration {
   return {
     auth: {
       clientId: appConfig.entra.clientId,
       authority: `https://login.microsoftonline.com/${appConfig.entra.tenantId}`,
-      // The hash router means the app is served from one path, so redirecting
-      // back to the origin always lands somewhere the router can handle.
       redirectUri: window.location.origin + import.meta.env.BASE_URL,
     },
     cache: {
@@ -72,14 +56,6 @@ export interface EntraSignInResult {
   displayName: string
 }
 
-/**
- * Signs in interactively via a popup.
- *
- * A popup rather than a redirect keeps the application state intact, which
- * matters because a redirect would discard any unsaved form the person was
- * filling in. Where popups are blocked, MSAL's error is translated into a
- * message that says so.
- */
 export async function signInWithEntra(): Promise<EntraSignInResult> {
   const client = await getClient()
 
@@ -110,18 +86,9 @@ export async function signOutFromEntra(): Promise<void> {
   const client = await getClient()
   const account = readActiveAccount(client)
 
-  // Clears this application's cached tokens without a redirect to Microsoft,
-  // so the person is not signed out of every other Microsoft tab they have
-  // open. `logoutRedirect` would be the wrong trade here.
   await client.clearCache(account === null ? undefined : { account })
 }
 
-/**
- * A Graph access token, refreshed silently where possible.
- *
- * Falls back to a popup only when the refresh token has expired or consent is
- * needed, so day-to-day use involves no prompts.
- */
 export async function acquireGraphToken(): Promise<string> {
   const client = await getClient()
   const account = readActiveAccount(client)
@@ -143,12 +110,6 @@ export async function acquireGraphToken(): Promise<string> {
   }
 }
 
-/**
- * Prefers `username`, which for a work account is the UPN.
- *
- * The Employees sheet is keyed by work email, so the UPN is the value that
- * will match; `name` is a display string and may be anything.
- */
 function toSignInResult(account: AccountInfo): EntraSignInResult {
   return {
     email: account.username.trim().toLowerCase(),

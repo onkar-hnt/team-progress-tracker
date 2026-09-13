@@ -9,21 +9,10 @@ import './CommentTimeline.scss'
 interface CommentTimelineProps {
   comments: readonly MentorCommentView[]
   emptyMessage: string
-
-  /** Hidden on a single developer's page, where every entry is about them. */
   showDeveloper?: boolean
-
   renderActions?: (comment: MentorCommentView) => ReactNode
 }
 
-/**
- * Mentor feedback as a dated timeline.
- *
- * A timeline rather than a table because feedback is read as a narrative —
- * what was said, when, and how it followed on — and the optional fields
- * (progress, blockers, recommendations) are often empty, which would leave a
- * table mostly blank.
- */
 export function CommentTimeline({
   comments,
   emptyMessage,
@@ -38,13 +27,6 @@ export function CommentTimeline({
         <li className="comment-timeline__item" key={comment.id}>
           <div className="comment-timeline__header">
             <div>
-              {/* The task leads, because it is what the note is about; who
-                  said it and when are the qualifiers. Feedback that names no
-                  task falls back to the project, and then to "General" — which
-                  is now a choice a mentor made rather than only the mark of a
-                  row written before the task link existed. Styled quietly in
-                  that case, so a general note reads as being about the person
-                  rather than as a task whose name failed to load. */}
               <p
                 className={`comment-timeline__task${
                   comment.taskName === undefined ? ' comment-timeline__task--general' : ''
@@ -81,7 +63,6 @@ export function CommentTimeline({
   )
 }
 
-/** Optional fields are omitted entirely rather than shown with a dash. */
 function CommentDetail({ label, value }: { label: string; value?: string }) {
   if (value === undefined || value.trim() === '') return null
 

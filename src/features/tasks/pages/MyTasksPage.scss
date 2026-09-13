@@ -25,13 +25,10 @@
     }
   }
 
-  /// Sizing lives on the control itself, as `Dropdown`'s compact variant.
   &__status {
     @include flex($gap: $space-2, $inline: true);
   }
 
-  /// Reserves no space of its own: the wrapper is inline-flex, so the row does
-  /// not reflow as the message appears and disappears.
   &__saving {
     color: $color-text-muted;
     font-size: $font-size-xs;

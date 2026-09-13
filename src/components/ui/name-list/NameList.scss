@@ -4,8 +4,6 @@
 .name-list {
   @include flex($align: baseline, $gap: $space-2, $wrap: wrap, $inline: true);
 
-  /// A pill rather than a link, so it reads as a count that can be opened
-  /// rather than as one more name in the list.
   &__more {
     padding: 0 $space-2;
     border: 1px solid $color-brand-muted;
@@ -27,15 +25,6 @@
     }
   }
 
-  /// Two to a line, so a dozen names are a block to scan rather than a column
-  /// to scroll. One to a line on a phone, where two would leave each name too
-  /// narrow to read.
-  /// Six rows tall, then it scrolls. A team of forty names would otherwise grow
-  /// the dialog to the full height of the screen, and the heading saying whose
-  /// names these are would be the first thing to go.
-  ///
-  /// The bottom margin is the padding the dialog body does not have: it leaves
-  /// that space to the sticky footer a form puts there, and this is not a form.
   &__all {
     @include grid(repeat(2, minmax(0, 1fr)), $space-2);
     max-height: 16rem;
@@ -44,18 +33,12 @@
     list-style: none;
     overflow-y: auto;
 
-    /// Chains outward, which here means into the dialog body this sits in — and that is
-    /// contained, so the page behind still does not move. Containment on both would have
-    /// stopped the wheel at the fortieth name with the dialog's own footer still below.
     overscroll-behavior: auto;
 
     @include respond-to-mobile {
       grid-template-columns: minmax(0, 1fr);
     }
 
-    /// Every row the same height, so the two columns stay level. The clipping
-    /// itself belongs to the `Tooltip` inside, which shows the whole name on
-    /// hover for the rare one too long to fit.
     li {
       padding: $space-2 $space-3;
       border: 1px solid $color-border;

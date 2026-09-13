@@ -1,15 +1,7 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// `dvh` rather than `vh` for the same reason as the shell: on a phone the
-/// address bar is counted by `vh` but not shown, so a dialog sized in `vh`
-/// puts its pinned footer just below the fold — which is the one place it
-/// must never be.
-/// The height is settled rather than left to whatever is inside. Allowed to
-/// grow to the whole screen, a dialog was a different size every time it opened
-/// and a long form turned into a full-page takeover with a scrollbar down the
-/// side. 36rem is enough for the forms here; anything longer scrolls in the
-/// body, which is what the body is for.
+// dvh avoids mobile address-bar sizing bugs; 36rem max with scrollable body.
 .modal {
   @include card($shadow: $shadow-lg);
 
@@ -17,15 +9,6 @@
   max-height: min(36rem, calc(100dvh - #{$space-8}));
   padding: 0;
 
-  /// Rises the short distance it is about to occupy rather than appearing
-  /// outright, which is what tells the reader it came from the page underneath
-  /// instead of replacing it.
-  ///
-  /// An animation rather than a transition: a `<dialog>` goes from
-  /// `display: none` to shown, and only a keyframe runs reliably across that in
-  /// every browser this targets. There is no matching exit — closing is
-  /// immediate, and waiting for an animation before releasing focus is worse
-  /// than no animation at all.
   &[open] {
     animation: modal-enter $transition-base;
   }
@@ -38,23 +21,12 @@
     animation: modal-backdrop-enter $transition-base;
   }
 
-  /// The same cap as the dialog. The panel is the flex column that decides
-  /// which part scrolls, so it has to know the limit too rather than inherit an
-  /// `auto` height and let the body grow past it.
   &__panel {
     @include flex(column, $align: null);
 
     max-height: min(36rem, calc(100dvh - #{$space-8}));
   }
 
-  /// Deliberately shallow. The bar carries a title and a close button and takes the
-  /// height of the taller of the two, so the padding is the only part worth arguing
-  /// about — 1.25rem of it above and below a 2.25rem button made a 4.75rem strip of
-  /// chrome above every form, which on the shorter dialogs was a third of the dialog.
-  ///
-  /// `align-items: center` matters more than the number: the title and the button are
-  /// different heights, and centred they read as one bar rather than as a heading with
-  /// a control floating beside it.
   &__header {
     @include flex($justify: space-between, $align: center, $gap: $space-4);
 
@@ -63,9 +35,6 @@
     border-bottom: 1px solid $color-border;
   }
 
-  /// A step down from `lg`. At 1.125rem the title was competing with the page heading
-  /// behind it; a dialog is a interruption rather than a place, and 1rem is enough to
-  /// lead the content under it.
   &__title {
     margin: 0;
     color: $color-text;
@@ -74,29 +43,10 @@
     line-height: $line-height-tight;
   }
 
-  /// Narrow enough that a single sentence is read rather than scanned. Used by
-  /// the confirmation dialog, which is a question and two buttons.
   &--compact {
     width: min(28rem, calc(100vw - #{$space-8}));
   }
 
-  /// No rule for the close control. It is `Button` with `isIconOnly`, which is
-  /// where the square, the border, the hover and the focus ring already live —
-  /// this block held a copy of all four, and the copy was 2rem where the button is
-  /// 2.25rem, so the one control the dialog shares with every screen was the one
-  /// that did not match them.
-
-  /// The only part that scrolls. `min-height: 0` is what allows it to shrink
-  /// below its content inside the flex column; without it a long form pushes
-  /// the panel past its own max-height and the header scrolls away with it.
-  ///
-  /// Horizontal overflow is clipped rather than left to `auto`, because the
-  /// footer below reaches past this padding with negative margins and a single
-  /// `auto` axis would otherwise turn the other one into `auto` as well and
-  /// produce a sideways scroll.
-  ///
-  /// No bottom padding: the footer owns the space under the last field, so
-  /// that content scrolls right up to the bar rather than stopping short of it.
   &__body {
     flex: 1 1 auto;
     min-height: 0;
@@ -105,15 +55,7 @@
     overscroll-behavior: contain;
   }
 
-  /// The action row of whichever form is placed here becomes the footer.
-  ///
-  /// Pinned in place rather than given a footer slot on the component. The
-  /// submit button has to stay inside its own `<form>` to submit it, so a real
-  /// footer element would mean lifting every button out and wiring it back
-  /// with a `form` attribute — six forms changed to move one bar.
-  /// The margins have to match the body's horizontal padding exactly, or the bar
-  /// stops short of one edge — which is the reason they are stated as the same
-  /// variable rather than as a number that happens to agree.
+  // Sticky form actions pin to the bottom; negative margin matches body padding.
   &__body .form__actions,
   &__body .daily-update-form__actions {
     position: sticky;

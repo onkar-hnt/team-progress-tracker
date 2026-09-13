@@ -4,31 +4,6 @@ import { appConfig } from '@config/app.config'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
 
-/**
- * What changed, read back.
- *
- * ## Why this sits outside `DataProvider`
- *
- * The same argument as notifications, accounts and the recycle bin, and it is worth
- * restating because it is the fourth time: `DataProvider` is the seam that makes the
- * record store replaceable, and a change log is not something a spreadsheet can
- * keep. A workbook has no trigger to catch a write, no session to attribute it to,
- * and anybody editing it can change a cell without this application ever seeing it —
- * so a log kept there would be silently incomplete, which is worse than absent.
- *
- * So it is a Supabase feature and says so, through `isHistoryAvailable`. The screen
- * shows a placeholder under the other data sources rather than an empty log that
- * could never fill.
- *
- * ## Where the authorization is
- *
- * Entirely in `record_history_select`, and nothing here narrows or widens it. Work
- * history is visible to whoever may see that developer's work, roster history to
- * whoever maintains the roster, and the table has no write policy at all — so this
- * module reads and never writes, not by convention but because there is nothing
- * else it could do.
- */
-
 export function isHistoryAvailable(): boolean {
   return appConfig.dataSource === 'supabase' && isSupabaseConfigured()
 }
@@ -75,13 +50,6 @@ export interface ChangeRecord {
   recordId: string
   changedAt: string
 
-  /**
-   * Who made it, as they were named at the time.
-   *
-   * Absent when there was nobody — a change made by a trigger rather than by a person —
-   * and also when the login has no display name to copy. The screen tells those two
-   * apart by `changedByProfileId`, which is present for the second and not the first.
-   */
   changedByName?: string
 
   /** Absent when the change was made by a trigger rather than by a person. */
@@ -91,15 +59,6 @@ export interface ChangeRecord {
   fields: FieldChange[]
 }
 
-/**
- * How a column is named on screen.
- *
- * Only the columns whose humanised name would be wrong or unclear are listed; the
- * rest fall through to `humanise`, which turns `hours_spent` into "Hours spent" and
- * is right often enough that listing every column would be a maintenance cost for no
- * gain. The ones here are the ones where the column name and the label people use
- * genuinely differ.
- */
 const FIELD_LABELS: Readonly<Record<string, string>> = {
   access_role: 'Access level',
   active: 'Active',
@@ -122,15 +81,6 @@ function humanise(column: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
-/**
- * A stored JSON value as a short piece of display text.
- *
- * Ids are left as they are rather than resolved. The log is read as a page of many
- * changes to many records, and resolving every id in it would mean a request per
- * distinct value — for a column like `project_id` the *label* already says what
- * moved, which is what somebody scanning the log needs; the record itself is one
- * click away for the detail.
- */
 function formatValue(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
@@ -155,13 +105,6 @@ function requireClient() {
   return getSupabaseClient()
 }
 
-/**
- * A missing table means the migration has not been applied.
- *
- * `42P01` is Postgres on an unknown table and `PGRST205` is PostgREST's schema cache
- * saying the same. Named outright, because the generic wording sends whoever hit it
- * looking for a network fault instead of a pending deploy.
- */
 const MISSING_TABLE_CODES: ReadonlySet<string> = new Set(['42P01', 'PGRST205'])
 
 function mapHistoryError(error: { code: string; message: string }): DataProviderError {
@@ -190,10 +133,6 @@ const changeRowSchema = z.object({
   changed_by_name: z.string(),
   changed_at: z.string().min(1),
 
-  // Shape checked one level down and no further: the values are whatever the column
-  // held, and constraining them here would reject a change to a column this build
-  // has never heard of — which is the one thing a log of an evolving schema must
-  // still be able to show.
   changes: z.record(z.string(), z.object({ from: z.unknown(), to: z.unknown() })),
 })
 
@@ -209,9 +148,6 @@ function toChangeRecord(row: z.infer<typeof changeRowSchema>): ChangeRecord {
     ...(row.changed_by_name === '' ? {} : { changedByName: row.changed_by_name }),
 
     fields: Object.entries(row.changes)
-      // Sorted by label so two changes to the same pair of fields read the same way
-      // twice. `Object.entries` follows insertion order, which for a value built by
-      // `jsonb_object_agg` is the planner's business rather than anything stable.
       .map(([column, change]) => {
         const from = formatValue(change.from)
         const to = formatValue(change.to)
@@ -226,24 +162,11 @@ function toChangeRecord(row: z.infer<typeof changeRowSchema>): ChangeRecord {
   }
 }
 
-/**
- * The most recent changes the caller may see.
- *
- * A growing limit, the same shape as the notification panel and the paged feedback
- * lists: one row more than the page is fetched, and whether it arrived is how the
- * screen knows there is another page. No filters — the policy decides whose changes
- * these are, and the screen searches and narrows what it has, because the columns
- * worth narrowing by are the subject and the person, and both read better as a
- * search over a page than as six dropdowns.
- */
 export async function listChanges(limit: number): Promise<ChangeRecord[]> {
   const { data, error } = await requireClient()
     .from('record_history')
     .select(HISTORY_COLUMNS)
     .order('changed_at', { ascending: false })
-    // Tie-broken by id, because a save that changes a task and its entry writes two
-    // rows in the same statement with the same timestamp, and they should not swap
-    // places between one read and the next.
     .order('id', { ascending: false })
     .limit(limit)
 
@@ -252,13 +175,6 @@ export async function listChanges(limit: number): Promise<ChangeRecord[]> {
   return parseChanges(data ?? [])
 }
 
-/**
- * Everything that has happened to one record, oldest last.
- *
- * Unlimited, unlike the log itself: this is the history of one thing, and the point
- * of opening it is to see all of it. A record with hundreds of changes would be
- * remarkable rather than routine.
- */
 export async function listRecordChanges(
   kind: HistoryKind,
   recordId: string,

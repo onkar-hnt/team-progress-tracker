@@ -5,9 +5,6 @@
   margin: 0;
   font-size: $font-size-sm;
 
-  /// Centred in its own dashed box, with the icon, headline, explanation and
-  /// next step stacked in reading order. The dashed edge is what says "this
-  /// space is meant to hold something" rather than "this panel ends here".
   &--empty {
     @include grid($gap: $space-2);
 
@@ -28,16 +25,12 @@
     color: $color-danger-dark;
     background: $color-danger-surface;
 
-    /// Takes the slack so the retry button stays against the right edge, and
-    /// wraps to its own line rather than squeezing the button off the row.
     .feedback__message {
       flex: 1;
       min-width: 12rem;
     }
   }
 
-  /// The icon, in a tinted disc. Sized well above the glyph so the disc reads
-  /// as a deliberate mark and not as a tight box around a stroke.
   &__badge {
     @include flex-center;
     @include square(2.75rem);
@@ -75,9 +68,6 @@
     @include grid($gap: $space-3);
   }
 
-  /// The rows are given uneven widths so the block reads as text arriving
-  /// rather than as a loading graphic. The last one is shortest, which is what
-  /// the end of a paragraph looks like.
   &__skeleton-row {
     height: 1.25rem;
     border-radius: $radius-md;
@@ -109,7 +99,6 @@
   }
 }
 
-/// Respect a reduced-motion preference rather than animating regardless.
 @media (prefers-reduced-motion: reduce) {
 
   .feedback__skeleton-row {

@@ -47,23 +47,12 @@ import { AssignedWorkPanel } from '../components/AssignedWorkPanel'
 
 import './DashboardPage.scss'
 
-/**
- * The dashboard, which shows a different amount depending on the viewer.
- *
- * The numbers are already limited to what the person may see, because the
- * queries are scoped. What changes here is which panels are worth showing at
- * all: a developer looking at "missing updates" or "developer-wise progress"
- * would be reading a list of one, so those panels are for people who oversee
- * others.
- */
 export function DashboardPage() {
   const { user } = useAuth()
   const snackbar = useSnackbar()
   const navigate = useNavigate()
   const isTeamView = canViewTeamData(user)
 
-  // Opening on a weekend should show the last working day rather than an
-  // empty screen, so the default is nudged back to a working day.
   const [selectedDate, setSelectedDate] = useState(() => toNearestWorkingDay(todayIsoDate()))
 
   const [editing, setEditing] = useState<DailyWorkEntryView | null>(null)
@@ -90,37 +79,12 @@ export function DashboardPage() {
 
   const error = dayQuery.error ?? weekQuery.error ?? developersQuery.error ?? projectsQuery.error
 
-  /**
-   * Clicking a chart, for somebody who can see the team's rows.
-   *
-   * The charts below are counts of exactly what the activity list holds, so a slice, a bar or
-   * a person's row is a shortcut to the rows behind the number — the same argument as the
-   * metric cards above, which are links for the same reason.
-   *
-   * Only for the team view. A developer has no activity screen to arrive at, and a chart that
-   * navigated somewhere they cannot go would be worse than one that does nothing.
-   */
   const openActivity = isTeamView
     ? (slice: ActivitySlice) => {
         void navigate(activityRangeLink(weekRange, slice))
       }
     : undefined
 
-  /**
-   * Amending your own update, from where you noticed it needed amending.
-   *
-   * A daily update carries its own status and progress, so logging at midday
-   * and finishing by five means the entry needs changing rather than
-   * replacing. Status gets a select because it is the field that changes most
-   * and carries no risk; everything else is behind Edit.
-   *
-   * `canEditEntry` decides per row, so an admin gets these on anybody's entry
-   * and a mentor gets them on none — a mentor reading their team's work must
-   * not be able to rewrite a first-hand record.
-   *
-   * Offered only on a developer's own dashboard. Mentors and admins have the
-   * Team Activity table, which does the same job across everybody.
-   */
   const renderEntryActions = (entry: DailyWorkEntryView) =>
     canEditEntry(user, entry) ? (
       <>
@@ -130,9 +94,6 @@ export function DashboardPage() {
           onChange={(status) => {
             const progress = progressForStatus(status)
 
-            // Progress travels with the status, so the list never shows
-            // "Completed · 50%". Left alone for in-progress and blocked,
-            // where the developer's own number is the meaningful one.
             updateEntry.mutate(
               {
                 id: entry.id,
@@ -186,19 +147,13 @@ export function DashboardPage() {
   const week = weekQuery.data
   const isLoading = dayQuery.isPending || weekQuery.isPending
 
-  // The denominator behind "Updated today": how many people were expected to log
-  // anything at all. Deactivated developers are not, and counting them would make a
-  // fully reported day look like a shortfall.
+  // Exclude inactive developers from the "Updated today" denominator.
   const activeDeveloperCount = (developersQuery.data ?? []).filter(
     (developer) => developer.active,
   ).length
 
   return (
     <div className="dashboard">
-      {/* The description names what these cards count. They are built from
-          daily updates, not from assigned tasks, and the two have their own
-          statuses — so a task marked Completed on My Tasks does not move
-          "Completed" here, which reads as a miscount unless it is said. */}
       <Panel
         action={datePicker}
         description={
@@ -213,14 +168,6 @@ export function DashboardPage() {
           <Skeleton label="Loading dashboard metrics…" rows={4} />
         ) : (
           <div className="stat-card-grid">
-            {/* For somebody who oversees a team, every count here now leads to the rows
-                it counted: the activity list holds its filters in the URL, so a card can
-                address the slice it is reporting rather than dropping the reader into an
-                unfiltered list to rebuild the filter by hand. The date travels too, so
-                the list opens on the day being read rather than on today.
-
-                A developer's own cards mostly do not link, because the list behind them
-                is the one already on this screen. The two that do lead to the form. */}
             <StatCard
               icon="calendar"
               label="Updates today"
@@ -228,9 +175,6 @@ export function DashboardPage() {
               tone="progress"
               value={day.statuses.total}
             />
-            {/* The only card here with a denominator, so the only one with a bar:
-                completed out of everything logged today. The rest are counts, and a
-                bar under a count would imply a total nobody stated. */}
             <StatCard
               detail={`${String(day.completionRate)}% of today's updates`}
               icon="check"
@@ -252,9 +196,6 @@ export function DashboardPage() {
               to={isTeamView ? activityLink(selectedDate, { status: 'not-started' }) : undefined}
               value={day.statuses.notStarted}
             />
-            {/* Blocked rather than a status, because that is what the number is: the
-                blocked status and the blocker flag together, which is the filter the
-                activity screen calls "Blocked work only". */}
             <StatCard
               detail="Blocked by status or flag"
               icon="alert"
@@ -265,8 +206,6 @@ export function DashboardPage() {
             />
             <StatCard icon="chart" label="Hours logged" value={day.hoursLogged} />
 
-            {/* Counts across people only mean something to someone who
-                oversees more than themselves. */}
             {isTeamView ? (
               <>
                 <StatCard
@@ -304,14 +243,7 @@ export function DashboardPage() {
         )}
       </Panel>
 
-      {/* Both panels here are a fixed height that scrolls inside itself, so the
-          pair lines up whatever each of them has to show and a long week cannot
-          drag one of them past the other. */}
       <div className="dashboard__row dashboard__row--priority">
-        {/* A developer's own work leads, because this is the panel they act in —
-            the status control and Edit are here — and their blockers are usually
-            a short list or none at all. A mentor's row still opens with
-            blockers, which is the question they came to the screen with. */}
         {isTeamView ? null : (
           <Panel description="Your most recent updates." title="Recent work">
             <div className="dashboard__panel-scroll">
@@ -384,9 +316,6 @@ export function DashboardPage() {
         ) : null}
       </div>
 
-      {/* Assigned work is the one part of a developer's progress that is not
-          derived from daily updates, so it needs its own read. Mentors and
-          admins get the team panels above instead. */}
       {isTeamView ? null : <AssignedWorkPanel />}
 
       <Panel
@@ -485,8 +414,6 @@ export function DashboardPage() {
         </Panel>
       ) : null}
 
-      {/* The form opens on the entry's own date rather than today's, so
-          amending Tuesday's update does not quietly move it to Friday. */}
       <Modal isOpen={editing !== null} onClose={() => setEditing(null)} title="Edit update">
         {editing === null ? null : (
           <DailyUpdateForm date={editing.date} entry={editing} onSaved={() => setEditing(null)} />
@@ -496,13 +423,6 @@ export function DashboardPage() {
   )
 }
 
-/**
- * An update's status, changed in place.
- *
- * The same reasoning as the task list: this is the most frequent change and
- * carries no risk of data loss, so a select that saves on change costs one
- * interaction rather than opening a form to alter one field.
- */
 function EntryStatusSelect({
   entry,
   isSaving,
@@ -519,8 +439,6 @@ function EntryStatusSelect({
         disabled={isSaving}
         isCompact
         onChange={(next) => {
-          // Re-picking the value already showing is still a write, and one
-          // that would refetch every derived view to prove nothing changed.
           if (next !== entry.status) onChange(next as TaskStatus)
         }}
         options={TASK_STATUS_OPTIONS}

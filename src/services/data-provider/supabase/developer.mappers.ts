@@ -3,20 +3,6 @@ import { z } from 'zod'
 import type { CreateDeveloperRequest, Developer, UpdateDeveloperRequest } from '@models/index'
 import { USER_ROLES } from '@models/user.model'
 
-/**
- * Translation between `public.developers` rows and the domain `Developer`.
- *
- * Three columns here are easily confused, and the mapping is where the
- * distinction has to be kept straight:
- *
- * - `id` is the relational key, a uuid this application controls.
- * - `employee_id` is the payroll reference, which HR may renumber.
- * - `code` is the `DEV001` label people read aloud.
- *
- * And separately, `role` is a job title while `access_role` decides what the
- * person may see. Nothing about one implies the other.
- */
-
 export const DEVELOPER_COLUMNS =
   'id, code, name, employee_id, role, location, active, email, access_role, primary_project_id, created_date, profile_id, deleted_at' as const
 
@@ -33,25 +19,13 @@ export const developerRowSchema = z.object({
   primary_project_id: z.string().nullable(),
   created_date: z.string().nullable(),
 
-  // Read so the admin screen can tell who already has a login. Never written
-  // from here: the provisioning function owns it.
   profile_id: z.string().nullable(),
 
-  // Set by a delete and cleared by a restore, both server-side. Read so that the
-  // rows in the bin can be told from the rest of the list — this read returns
-  // both, deliberately, so historical names still resolve.
   deleted_at: z.string().nullable(),
 })
 
 export type DeveloperRow = z.infer<typeof developerRowSchema>
 
-/**
- * A nullable column becomes an absent property.
- *
- * The domain models "not recorded" by the property not being there, and the
- * optional fields on `Developer` cannot hold null. Emitting the key with a
- * null value would typecheck nowhere and read as a value everywhere.
- */
 function optional<TKey extends string, TValue>(
   key: TKey,
   value: TValue | null,
@@ -89,14 +63,6 @@ export interface DeveloperInsert {
   created_date: string | null
 }
 
-/**
- * Builds the insert payload.
- *
- * `id` and `code` are absent deliberately: both come from column defaults,
- * `gen_random_uuid()` and `developer_code_seq`, so concurrent inserts cannot
- * produce the same code. A `code` on the request is ignored rather than
- * honoured, since accepting one would reopen that race.
- */
 export function toDeveloperInsert(request: CreateDeveloperRequest): DeveloperInsert {
   return {
     name: request.name.trim(),
@@ -111,19 +77,6 @@ export function toDeveloperInsert(request: CreateDeveloperRequest): DeveloperIns
   }
 }
 
-/**
- * Builds the update payload, carrying only what the caller actually set.
- *
- * A key the caller omitted must not appear, or PostgREST would serialise the
- * `undefined` as null and blank a column nobody touched. This matches how the
- * Excel provider merged a partial request over the existing record.
- *
- * Presence is tested with `in` rather than against `undefined`, so that the
- * two distinguishable things a caller can say stay distinguishable: omitting
- * `primaryProjectId` leaves the project alone, while passing it explicitly as
- * `undefined` clears it. Compared against `undefined` alone there would be no
- * way to unset a nullable column at all.
- */
 export function toDeveloperUpdate(request: UpdateDeveloperRequest): Partial<DeveloperInsert> {
   const payload: Partial<DeveloperInsert> = {}
 
@@ -140,12 +93,6 @@ export function toDeveloperUpdate(request: UpdateDeveloperRequest): Partial<Deve
   return payload
 }
 
-/**
- * An empty string is stored as null, not as an empty string.
- *
- * The unique indexes on `email` and `employee_id` skip nulls but not blanks,
- * so two people saved with an empty email would collide on the second one.
- */
 function blankToNull(value: string | undefined): string | null {
   const trimmed = value?.trim() ?? ''
   return trimmed === '' ? null : trimmed

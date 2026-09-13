@@ -13,14 +13,6 @@ import { isAdmin } from '@services/auth/permissions'
 import { AuthContext } from './auth-context'
 import type { AuthContextValue } from './auth-context'
 
-/**
- * Holds the signed-in user for the application.
- *
- * Restoring is asynchronous because the role is re-read from the workbook
- * rather than trusted from storage, so a change of access in Excel takes
- * effect on the next load. Until it resolves, `isRestoring` keeps the route
- * guards from treating an unrestored session as signed out.
- */
 export function AuthSessionProvider({ children }: PropsWithChildren) {
   const authProvider = getAuthProvider()
   const queryClient = useQueryClient()
@@ -36,8 +28,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
         const restored = await authProvider.restoreSession()
         if (isCurrent) setUser(restored)
       } catch {
-        // A failed restore is a signed-out state, not a crash: the login page
-        // will report the reason if the person tries again.
+        // Failed restore is signed-out, not a crash.
         if (isCurrent) setUser(null)
       } finally {
         if (isCurrent) setIsRestoring(false)
@@ -51,18 +42,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     }
   }, [authProvider])
 
-  /**
-   * Follows identity changes made outside this component.
-   *
-   * Signing out in another tab, or a session expiring beyond recovery, would
-   * otherwise leave this page rendering a user who is no longer signed in.
-   * Providers whose accounts live in a workbook have nothing to observe and
-   * omit the subscription entirely.
-   *
-   * Subscribing is idempotent and the cleanup unsubscribes, so a remount
-   * leaves exactly one listener. The provider ignores the initial-session
-   * event, so this never races the restore above.
-   */
+  /** Sync session changes from other tabs or expiry. */
   useEffect(() => {
     return authProvider.onSessionChange?.((nextUser) => {
       setUser(nextUser)
@@ -74,18 +54,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     })
   }, [authProvider, queryClient])
 
-  /**
-   * Prepares the Admin workbook once a session belonging to an administrator
-   * exists, whether it was just signed into or restored on load.
-   *
-   * Deliberately not awaited. Authentication has already succeeded at this
-   * point, and holding the session open on a workbook check would let a Graph
-   * timeout look like a rejected sign-in. Progress and failures go to the
-   * data-source status instead, which the shell already displays.
-   *
-   * `initialiseAdminWorkbook` is itself guarded, so any re-render or remount
-   * of this provider shares one run.
-   */
+  /** Fire-and-forget admin workbook prep; do not block sign-in on Graph timeouts. */
   useEffect(() => {
     if (!isAdmin(user)) return
 
@@ -101,12 +70,6 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     [authProvider],
   )
 
-  /**
-   * Re-reads the identity after this application changed something about it.
-   *
-   * A provider without `refreshIdentity` has an identity that cannot change
-   * mid-session, so there is nothing to do rather than an error to report.
-   */
   const refreshUser = useCallback(async () => {
     if (authProvider.refreshIdentity === undefined) return
 
@@ -116,11 +79,8 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   const signOut = useCallback(async () => {
     await authProvider.signOut()
     setUser(null)
-    // Cached team data belongs to the previous session, so drop it rather
-    // than let the next user briefly see it.
+    // Drop cached data from the previous session.
     queryClient.clear()
-    // The next administrator to sign in gets a fresh check, rather than
-    // inheriting a result from a session that has ended.
     resetAdminWorkbookInitialisation()
   }, [authProvider, queryClient])
 

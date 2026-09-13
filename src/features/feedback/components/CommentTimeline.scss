@@ -1,31 +1,15 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// Feedback, newest first, about a screenful at a time.
-///
-/// Capped at the height of a ten-row table, like the entry lists, so the panels on a
-/// screen that mixes the two do not disagree about how tall a list of records is. A
-/// comment can run to several lines, so the number of them that fits varies — which is
-/// why this is a height and not a count.
-///
-/// The page's `ShowMore` sits outside the list and stays visible under it, so reaching
-/// the twenty-sixth comment is one control rather than a scroll followed by a hunt.
 .comment-timeline {
   @include grid($gap: $space-4);
   margin: 0;
-
-  /// Room for the focus ring on the buttons inside a card now that the box clips.
   padding: 2px;
-
   list-style: none;
   max-height: 31rem;
   overflow-y: auto;
-
-  /// Chains to the page at the ends, like the entry lists. See `_reset.scss`.
   overscroll-behavior: auto;
 
-  /// Fades in on mount, so a comment that has just arrived — from Show more, or from
-  /// somebody else's feedback landing over the realtime channel — is visibly new.
   &__item {
     @include enter(fade-in, $duration-base);
 
@@ -45,9 +29,6 @@
     color: $color-text;
     font-weight: $font-weight-semibold;
 
-    /// Feedback about the person rather than about a task. Lighter and unbolded,
-    /// because it is a category and not a title — bold, it looked like a task called
-    /// "General feedback".
     &--general {
       color: $color-text-muted;
       font-weight: $font-weight-medium;

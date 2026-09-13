@@ -1,18 +1,9 @@
 @use 'sass:color';
 @use 'variables' as *;
 
-/// ---------------------------------------------------------------------------
-/// Layout
-/// ---------------------------------------------------------------------------
+// Layout
 
-/// A flex container, with the properties that are nearly always set alongside
-/// `display: flex` in this application.
-///
-/// `null` means "say nothing", so a block that deliberately leaves a property
-/// to CSS can do that without the mixin emitting a value that only looks like
-/// the default. `$align` defaults to `center` because that is what forty-odd of
-/// the flex rows here want; a row that wants the default stretch passes
-/// `$align: null`.
+/// Flex container; null skips a property. Default align is center.
 @mixin flex($direction: row,
     $justify: null,
     $align: center,
@@ -48,15 +39,11 @@
     }
 }
 
-/// Centred on both axes: an icon inside its button, a spinner in the viewport,
-/// a count bubble over a bell.
 @mixin flex-center($gap: null, $inline: false) {
     @include flex($justify: center, $align: center, $gap: $gap, $inline: $inline);
 }
 
-/// A grid container. As with `flex`, a `null` column list emits nothing, which
-/// is what the eighteen blocks here that use a grid purely to get gap-separated
-/// stacking want.
+/// Grid container; null columns emits nothing.
 @mixin grid($columns: null, $gap: null) {
     display: grid;
 
@@ -69,65 +56,14 @@
     }
 }
 
-/// The single column a screen's sections stack in.
-///
-/// `flex: 1` is what makes a screen reach the bottom of the window: the shell's content
-/// area is a column, and this takes the rest of it. A screen exactly as tall as its
-/// content sat in the top half of the window with a band of bare background under it,
-/// which reads as a page that failed to finish loading rather than one that is short.
-///
-/// ## Who gets the leftover height
-///
-/// One section, named by the screen, and not all of them.
-///
-/// This was a grid whose rows were `auto`, and a grid hands leftover height to its auto
-/// rows — so every section grew a little, including the ones with a fixed amount to show.
-/// A form of six fields became a card with a third of its height empty, which is the state
-/// the daily update screen was in.
-///
-/// A flex column instead, whose items keep the height they ask for, and one section per
-/// screen marked with `page-fill` to take what is spare. It is always a section holding
-/// records — a table, a list of entries, a timeline — because those are the ones where
-/// more height means more of the data on screen rather than more empty card.
-///
-/// The height stops at the box that scrolls: the rows, cards and comments inside it keep
-/// their own size and the box scrolls through them, so a window twice as tall shows twice
-/// as many records rather than the same records twice as tall. `.panel--fill` is where
-/// that is arranged.
-///
-/// ## Width
-///
-/// A flex column stretches its children to the container's width and, unlike a grid's
-/// implicit `auto` track, is not floored at the width of the widest thing inside. That
-/// track was the reason a table with more columns than the window used to widen every
-/// panel above it and push the filters and stat cards off the right of the screen; the
-/// explicit `minmax(0, 1fr)` column was there to stop it. Nothing here can do that, so
-/// the fix comes for free and the table scrolls in its own panel as before — see
-/// `.data-table__scroll`.
+/// Screen sections stack in one column; flex: 1 fills the shell content area.
 @mixin page-stack {
     @include flex(column, $align: stretch, $gap: $space-6);
 
     flex: 1 1 auto;
 }
 
-/// The one section on a screen that grows into whatever height is left over.
-///
-/// For a section whose content can use it: a table of records, a list of entries, a
-/// timeline. Not for a form, a row of stat cards or a heading — those have a size, and
-/// anything past it is empty card.
-///
-/// The `min-height` does two things at once, which is why it is a number and not the `0`
-/// that usually accompanies `flex: 1`. Being below the content's height is what lets the
-/// section shrink and the box inside it scroll instead of pushing the page taller. Being
-/// above zero is what stops a short window — or a screen whose filters and stat cards have
-/// already used most of one — squeezing the records into a strip too shallow to read; past
-/// that point the page scrolls, which is the right answer and the one it gave before any
-/// of this.
-///
-/// 24rem is a table header and six or seven rows.
-///
-/// Applied conditionally by every screen that uses it — `fills={rows.length > 0}` —
-/// because a section with nothing in it has no more use for the space than a form does.
+/// One section grows into leftover height. 24rem minimum keeps short viewports readable.
 @mixin page-fill {
     flex: 1 1 auto;
     min-height: 24rem;
@@ -138,19 +74,12 @@
     height: $height;
 }
 
-/// Every place in this application that sets both dimensions sets them equal —
-/// an icon button, the spinner, a checkbox, the offscreen 1px box — so this is
-/// the form that actually gets used.
 @mixin square($size) {
     @include size($size, $size);
 }
 
-/// ---------------------------------------------------------------------------
-/// Surfaces
-/// ---------------------------------------------------------------------------
+// Surfaces
 
-/// The white, hairline-bordered, rounded panel that every section of every page
-/// is drawn on.
 @mixin card($radius: $radius-lg, $shadow: $shadow-sm) {
     border: 1px solid $color-border;
     border-radius: $radius;
@@ -158,15 +87,7 @@
     box-shadow: $shadow;
 }
 
-/// Lifts a card under the cursor. Applied to a card that leads somewhere or
-/// summarises something the user can drill into — not to every surface, since a
-/// surface that lifts without being clickable is a false affordance.
-///
-/// The lift is 1px: enough to register as movement, not enough to shift the
-/// text under it noticeably.
-/// The colour and the shadow change for everybody, because they say the card is
-/// interactive and that is information rather than decoration. Only the movement is
-/// held back, which is what somebody asking for reduced motion is asking about.
+/// Hover lift for clickable cards. Movement is motion-safe only.
 @mixin card-lift($border: $color-brand-muted) {
     transition:
         border-color $transition-fast,
@@ -185,20 +106,8 @@
     }
 }
 
-/// ---------------------------------------------------------------------------
-/// Type
-/// ---------------------------------------------------------------------------
+// Type
 
-/// The small capitalised label that sits above a value: a stat card caption, a
-/// table header, a field label, a group heading in a menu.
-///
-/// The eight places that had this had drifted to three different trackings —
-/// 0.02em, 0.04em and 0.06em — which is visible when a table header and a stat
-/// card caption sit on the same screen. One value now.
-///
-/// The weight is a parameter only because two of the labels are bold rather
-/// than semibold, and both sit alone above a block of text rather than in a row
-/// of sibling labels, so the difference does not read as an inconsistency.
 @mixin overline($size: $font-size-xs, $color: $color-text-muted, $weight: $font-weight-semibold) {
     color: $color;
     font-size: $size;
@@ -207,83 +116,24 @@
     text-transform: uppercase;
 }
 
-/// ---------------------------------------------------------------------------
-/// Motion
-/// ---------------------------------------------------------------------------
+// Motion
 
-/// Everything inside plays only for somebody who has not asked for less movement.
-///
-/// The inverse of the query the components were using. `reduce` and then turning
-/// the animation off again is two rules that have to be kept in agreement, and the
-/// failure mode is silent: forget the second and the animation ships, working
-/// perfectly, for everyone including the people who asked it not to. Written this
-/// way round there is nothing to forget, because the movement only ever existed
-/// inside the query.
+/// Content inside runs only when reduced motion is not preferred.
 @mixin motion-safe {
     @media (prefers-reduced-motion: no-preference) {
         @content;
     }
 }
 
-/// Something arriving on screen.
-///
-/// ## `backwards`, and why not `both`
-///
-/// `backwards` holds the first frame through the delay, which is what a staggered
-/// card needs: without it a card waiting its turn would sit at full opacity for
-/// that fifth of a second and then start fading in from nothing.
-///
-/// What it deliberately does not do is hold the last frame. An animation with a
-/// forwards fill never finishes applying — it is "in effect" for the rest of the
-/// session — and an element with an animation in effect on opacity or transform is
-/// treated as creating a stacking context, permanently.
-///
-/// That is not a theoretical cost. The dropdown menus and the tooltips are
-/// `position: fixed` with a `z-index` that assumes they can paint above the page.
-/// Trapped in a row's or a card's stacking context they cannot: the status menu
-/// on the first entry of a list was painted *underneath* the second entry, and a
-/// tooltip in a table row disappeared behind the sticky header — the popover
-/// obeying its own container's place in the paint order rather than the z-index it
-/// asked for. `both` was how that happened, and a fill mode is not the sort of
-/// thing anybody looks at twice.
-///
-/// With no forwards fill the element is back to its ordinary self the moment the
-/// animation ends, and the whole class of problem lasts as long as the animation
-/// does.
-///
-/// ## Movement, and what it does to anything fixed inside
-///
-/// For the same reason, and for the length of the animation, `rise-in` is the
-/// containing block for every `position: fixed` descendant it has: `translateY` is
-/// a transform, and a transformed ancestor is what "fixed" becomes fixed to. So a
-/// hover panel opened in that window would be offset by the container's position
-/// on the page.
-///
-/// So: `rise-in` for something whose contents are text and numbers, `fade-in` for
-/// anything holding a control that opens something. That is why the rows, the entry
-/// cards and the routed screen only fade, and the stat cards move.
-///
-/// @param $name One of the shared keyframes in `_motion.scss`.
+/// Entrance animation. Use backwards fill only — forwards keeps a stacking context and breaks fixed popovers.
+/// Use rise-in for static content; fade-in for rows or controls with fixed descendants.
 @mixin enter($name: rise-in, $duration: $duration-slow, $delay: 0ms) {
     @include motion-safe {
         animation: $name $duration $ease-out $delay backwards;
     }
 }
 
-/// A row of siblings arriving one after another rather than all at once.
-///
-/// Used on the stat cards, where the eye lands on the first number while the rest
-/// are still settling — which is the order they should be read in anyway. The step
-/// is deliberately smaller than it looks like it should be: at 40ms a row of eight
-/// is done in a third of a second, and anything slower turns a dashboard into a
-/// performance somebody has to sit through several times a day.
-///
-/// Applied to the child, not the container, so it composes with `enter`: the child
-/// says what it does and this says when.
-///
-/// @param $count How many siblings to write delays for. Beyond it they all arrive
-///   together on the last beat, which is the right way to fail — a grid of thirty
-///   cards should not take a second and a half to appear.
+/// Staggered entrance delays on nth-child. Applied to children, not the container.
 @mixin stagger($count: 8, $step: 40ms) {
     @include motion-safe {
         @for $index from 1 through $count {
@@ -294,21 +144,14 @@
     }
 }
 
-/// ---------------------------------------------------------------------------
-/// Interaction
-/// ---------------------------------------------------------------------------
+// Interaction
 
-/// Derived from the brand colour rather than written out as `rgb(49 85 166 …)`,
-/// which is what this was: the same colour in decimal, in a second file, where
-/// changing the brand would have left it behind.
 @mixin focus-ring {
     outline: 3px solid color.change($color-brand, $alpha: 0.35);
     outline-offset: 2px;
 }
 
-/// Removes an element from view while leaving it available to screen readers.
-/// Used where a label is redundant visually but still needed as an accessible
-/// name, such as headings on the collapsed sidebar rail.
+/// Screen-reader-only content.
 @mixin visually-hidden {
     position: absolute;
     padding: 0;
@@ -321,13 +164,9 @@
     @include square(1px);
 }
 
-/// ---------------------------------------------------------------------------
-/// Breakpoints
-/// ---------------------------------------------------------------------------
+// Breakpoints
 
-/// Where the two-column page layouts fold to one. Four pages had this as a bare
-/// `@media (max-width: 64rem)`, which made it the one breakpoint in the
-/// application without a name.
+/// Two-column layouts fold to one at 64rem.
 @mixin respond-to-laptop {
     @media (max-width: 64rem) {
         @content;

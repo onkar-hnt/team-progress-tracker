@@ -1,249 +1,159 @@
-@use '@styles/variables' as *;
-@use '@styles/mixins' as *;
-
-/// The charts, dressed in the application's own clothes.
-///
-/// ## Why this is a stylesheet and not a configuration object
-///
-/// ApexCharts will take colours and type sizes as options, and the temptation is to write the
-/// whole appearance there — which means the interface palette gets a second, partial copy in
-/// TypeScript that drifts the first time a token changes. That is exactly what happened to the
-/// charts this replaces: a `#eef1f5` grid line, matching nothing in the design system.
-///
-/// So only the *data* colours are passed as options, because Apex does arithmetic on those
-/// (see `chart-colors.ts`). Everything around the data — axis labels, grid lines, the legend,
-/// the tooltip surface — is ordinary DOM and SVG with stable class names, and is styled here
-/// from the same tokens as the rest of the application. A change to `$color-text-muted`
-/// reaches the axis labels for the same reason it reaches a table caption.
-///
-/// The rules below are therefore descendant selectors against Apex's classes. That is a
-/// dependency on its markup, and the honest thing to say about it is that the class names are
-/// public API — documented, and what every Apex theme in existence targets.
-///
-/// ## How these rules win, which is not only by load order
-///
-/// `ApexChart.tsx` imports Apex's stylesheet first and this one second, so at equal specificity
-/// these win — for everything Apex ships in that sheet.
-///
-/// The legend is the exception, and it is worth knowing about before editing the rules for it.
-/// Apex's legend *feature* carries its own copy of the CSS as a string and injects it into the
-/// document head when the module loads, which puts it after this file however this file is
-/// imported. So an equal-specificity rule for a legend loses. The rules below therefore reach the
-/// legend through `.apexcharts-canvas`, which outranks the single class Apex writes with.
-///
-/// The legend text is a step beyond even that: Apex writes its colour, size, weight and face as
-/// *inline* styles, taken from `legend.fontSize` and friends. Those four are the only
-/// `!important` declarations in this file, each marked where it appears.
-
-.apex-chart {
-  &__canvas {
-    width: 100%;
-
-    /// A chart measures its parent to size itself, so the parent must be able to shrink.
-    /// Without this the chart sets the grid track's width and the column can never narrow —
-    /// which looks fine until the window does.
-    min-width: 0;
-
-    &--interactive {
-
-      .apexcharts-bar-area,
-      .apexcharts-pie-area,
-      .apexcharts-marker {
-        cursor: pointer;
-      }
-    }
-  }
-
-  /// The panel keeps its height when there is nothing to draw, so a week with no work in it
-  /// does not collapse the layout and shift everything below.
-  &--empty {
-    @include flex-center;
-  }
-}
-
-/// ---------------------------------------------------------------------------
-/// Axes and grid
-/// ---------------------------------------------------------------------------
-
-.apexcharts-canvas {
-
-  .apexcharts-text,
-  .apexcharts-xaxis-label,
-  .apexcharts-yaxis-label {
-    fill: $color-text-muted;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-  }
-
-  /// The grid, and the axis line under the categories. One hairline colour, the same one the
-  /// tables and panels are divided with, so a chart sits in a page rather than on it.
-  .apexcharts-gridline,
-  .apexcharts-xaxis line,
-  .apexcharts-yaxis line {
-    stroke: $color-border;
-  }
-
-  /// What is highlighted behind the pointer on a bar chart. Apex's default is a grey block
-  /// solid enough to read as a selection somebody has made; this is a brand tint that reads
-  /// as the column being pointed at.
-  .apexcharts-grid-borders line,
-  .apexcharts-xcrosshairs,
-  .apexcharts-ycrosshairs {
-    stroke: $color-brand-muted;
-  }
-
-  /// Printed on the donuts only, where the number is the point.
-  ///
-  /// Size and weight here; colour is not, and this is the one place in the file where a colour
-  /// deliberately stays in TypeScript. It was `fill: $color-white`, which is a single answer to a
-  /// question that has a different answer per slice: white reads on the blues and disappears into
-  /// the green and the slate at barely 2.4:1. Apex writes the fill per label as an SVG attribute,
-  /// which cannot take a `var()`, so the choice is made from the slice's own lightness where the
-  /// slice colours live — see `labelInkOn` in `chart-colors.ts`.
-  ///
-  /// A rule here would override that, per slice, with one colour. So there isn't one.
-  .apexcharts-datalabel {
-    font-size: $font-size-xs;
-    font-weight: $font-weight-semibold;
-
-    /// Apex adds a `text-shadow` to rescue white type from a slice it cannot be read on. The ink
-    /// is chosen to be readable instead, and a shadow under legible type reads as a mistake.
-    text-shadow: none;
-  }
-
-  /// The total in the middle of a donut: the figure large, its caption small and muted, which
-  /// is the same relationship a stat card has.
-  .apexcharts-datalabels-group {
-    .apexcharts-datalabel-label {
-      fill: $color-text-muted;
-      font-size: $font-size-xs;
-      font-weight: $font-weight-semibold;
-      letter-spacing: $letter-spacing-wide;
-      text-transform: uppercase;
-    }
-
-    .apexcharts-datalabel-value {
-      fill: $color-text;
-      font-size: $font-size-xl;
-      font-weight: $font-weight-semibold;
-    }
-  }
-}
-
-/// ---------------------------------------------------------------------------
-/// Legend
-/// ---------------------------------------------------------------------------
-
-/// Scoped through `.apexcharts-canvas` rather than written against `.apexcharts-legend` alone,
-/// because Apex injects its own legend CSS at runtime and would otherwise win on load order —
-/// see the note at the top of this file.
-.apexcharts-canvas .apexcharts-legend {
-  /// Apex pads the strip by 10px on top of the margin it puts on each item. The items carry
-  /// their own spacing — `legend.itemMargin`, which it writes inline and no rule here can
-  /// undercut — so this only ever moved the whole strip off centre.
-  ///
-  /// Deliberately no `gap`: it would stack on those inline margins and space the items twice.
-  padding: 0;
-
-  .apexcharts-legend-series {
-    align-items: center;
-    display: inline-flex;
-    gap: $space-2;
-  }
-
-  /// Apex marks the swatch off from its label by a single pixel. The gap above spaces them.
-  .apexcharts-legend-marker {
-    margin-right: 0;
-  }
-
-  /// ### The label, and why its margin is stated
-  ///
-  /// Apex gives this `padding-left: 15px` with `margin-left: -15px`, which leaves the text
-  /// exactly where it would be without either and stretches its clickable box back over the
-  /// swatch. Zeroing only the padding — which is what this rule used to do — kept the negative
-  /// margin and pulled every label 15px left, onto the swatch beside it. That is the collision
-  /// visible on every legend in the application: a dot printed over the C of "Completed".
-  ///
-  /// Both are zeroed now and the flex gap above does the spacing, which is the same answer the
-  /// rest of the application uses for a marker beside a word. What is given up is the enlarged
-  /// hit area, and it is given up cheaply: the swatch is a click target in its own right, and
-  /// the label still has its own.
-  .apexcharts-legend-text {
-    color: $color-text-muted !important;
-    /* Inline, from `legend.labels.colors`. */
-    font-family: inherit !important;
-    /* Inline, from `chart.fontFamily`. */
-    font-size: $font-size-xs !important;
-    /* Inline, from `legend.fontSize`. */
-    font-weight: $font-weight-medium !important;
-    /* Inline, from `legend.fontWeight`. */
-    margin: 0;
-    padding: 0;
-  }
-}
-
-/// ---------------------------------------------------------------------------
-/// Tooltip
-/// ---------------------------------------------------------------------------
-
-/// Apex's default is a square box with a grey border, a grey title bar and browser-default
-/// type. Beside a panel with a 0.5rem radius and a soft shadow it looks like a chart borrowed
-/// from another application — which it is, and the point of the rules below is that nobody
-/// should be able to tell.
-.apexcharts-tooltip.apexcharts-theme-light {
-  background: $color-white;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  box-shadow: $shadow-md;
-  color: $color-text;
-  font-size: $font-size-xs;
-
-  /// The date or category, as a heading rather than as Apex's grey strip across the top.
-  .apexcharts-tooltip-title {
-    background: transparent;
-    border-bottom: 1px solid $color-border;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-semibold;
-    margin: 0;
-    padding: $space-2 $space-3;
-  }
-
-  .apexcharts-tooltip-series-group {
-    align-items: center;
-    gap: $space-2;
-    padding: $space-1 $space-3;
-
-    &:first-child {
-      padding-top: $space-2;
-    }
-
-    &:last-child {
-      padding-bottom: $space-2;
-    }
-  }
-
-  .apexcharts-tooltip-text {
-    font-family: inherit;
-    font-size: $font-size-xs;
-    line-height: $line-height-tight;
-  }
-
-  /// Label in the muted tone, value in the text tone and bold: the number is what the pointer
-  /// was asking about, and it should be the thing that is read first.
-  .apexcharts-tooltip-text-y-label,
-  .apexcharts-tooltip-text-goals-label {
-    color: $color-text-muted;
-  }
-
-  .apexcharts-tooltip-text-y-value,
-  .apexcharts-tooltip-text-goals-value {
-    font-weight: $font-weight-semibold;
-    margin-left: $space-1;
-  }
-
-  .apexcharts-tooltip-marker {
-    height: 8px;
-    margin-right: 0;
-    width: 8px;
-  }
-}
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+// Chart chrome from Sass tokens; data colours stay in chart-colors.ts for Apex math.
+// Import Apex CSS before this file so these rules win at equal specificity.
+// Legend CSS is injected later by Apex — scope through .apexcharts-canvas to outrank it.
+
+.apex-chart {
+  &__canvas {
+    width: 100%;
+
+    // Chart measures its parent; min-width: 0 lets the grid column shrink.
+    min-width: 0;
+
+    &--interactive {
+
+      .apexcharts-bar-area,
+      .apexcharts-pie-area,
+      .apexcharts-marker {
+        cursor: pointer;
+      }
+    }
+  }
+
+  &--empty {
+    @include flex-center;
+  }
+}
+
+.apexcharts-canvas {
+
+  .apexcharts-text,
+  .apexcharts-xaxis-label,
+  .apexcharts-yaxis-label {
+    fill: $color-text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+  }
+
+  .apexcharts-gridline,
+  .apexcharts-xaxis line,
+  .apexcharts-yaxis line {
+    stroke: $color-border;
+  }
+
+  .apexcharts-grid-borders line,
+  .apexcharts-xcrosshairs,
+  .apexcharts-ycrosshairs {
+    stroke: $color-brand-muted;
+  }
+
+  // Label colour is per-slice in chart-colors.ts; only size and weight here.
+  .apexcharts-datalabel {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+
+    text-shadow: none;
+  }
+
+  .apexcharts-datalabels-group {
+    .apexcharts-datalabel-label {
+      fill: $color-text-muted;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      letter-spacing: $letter-spacing-wide;
+      text-transform: uppercase;
+    }
+
+    .apexcharts-datalabel-value {
+      fill: $color-text;
+      font-size: $font-size-xl;
+      font-weight: $font-weight-semibold;
+    }
+  }
+}
+
+.apexcharts-canvas .apexcharts-legend {
+  // Zero padding and margins — flex gap handles spacing; Apex padding offset the strip.
+  padding: 0;
+
+  .apexcharts-legend-series {
+    align-items: center;
+    display: inline-flex;
+    gap: $space-2;
+  }
+
+  .apexcharts-legend-marker {
+    margin-right: 0;
+  }
+
+  // Zero Apex padding-left and negative margin or labels collide with swatches.
+  .apexcharts-legend-text {
+    color: $color-text-muted !important;
+    /* Inline, from `legend.labels.colors`. */
+    font-family: inherit !important;
+    /* Inline, from `chart.fontFamily`. */
+    font-size: $font-size-xs !important;
+    /* Inline, from `legend.fontSize`. */
+    font-weight: $font-weight-medium !important;
+    /* Inline, from `legend.fontWeight`. */
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.apexcharts-tooltip.apexcharts-theme-light {
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-md;
+  color: $color-text;
+  font-size: $font-size-xs;
+
+  .apexcharts-tooltip-title {
+    background: transparent;
+    border-bottom: 1px solid $color-border;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    margin: 0;
+    padding: $space-2 $space-3;
+  }
+
+  .apexcharts-tooltip-series-group {
+    align-items: center;
+    gap: $space-2;
+    padding: $space-1 $space-3;
+
+    &:first-child {
+      padding-top: $space-2;
+    }
+
+    &:last-child {
+      padding-bottom: $space-2;
+    }
+  }
+
+  .apexcharts-tooltip-text {
+    font-family: inherit;
+    font-size: $font-size-xs;
+    line-height: $line-height-tight;
+  }
+
+  .apexcharts-tooltip-text-y-label,
+  .apexcharts-tooltip-text-goals-label {
+    color: $color-text-muted;
+  }
+
+  .apexcharts-tooltip-text-y-value,
+  .apexcharts-tooltip-text-goals-value {
+    font-weight: $font-weight-semibold;
+    margin-left: $space-1;
+  }
+
+  .apexcharts-tooltip-marker {
+    height: 8px;
+    margin-right: 0;
+    width: 8px;
+  }
+}

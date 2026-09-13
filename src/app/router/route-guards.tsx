@@ -8,15 +8,7 @@ import { useAccessScope, useMentorAssignments } from '@hooks/use-access-scope'
 import type { AppUser } from '@models/index'
 import { canManageTeam, canReadFeedback, canViewTeamData, isAdmin } from '@services/auth/index'
 
-/**
- * Blocks unauthenticated access and remembers where the user was going.
- *
- * The attempted path travels in navigation state so that signing in returns
- * the user to it instead of dumping everybody on the dashboard.
- *
- * Nothing is decided while the session is being restored: redirecting during
- * that window would sign people out on every refresh.
- */
+/** Redirects unauthenticated users; waits during session restore. */
 export function RequireAuth() {
   const { isAuthenticated, isRestoring } = useAuth()
   const location = useLocation()
@@ -32,17 +24,7 @@ export function RequireAuth() {
   return <Outlet />
 }
 
-/**
- * Holds everything back until a handed-out password has been replaced.
- *
- * Accounts created from the Employees screen start with a password derived
- * from the holder's name, so it is known to whoever created it and guessable
- * by anyone who knows the rule. Left alone, that temporary password stays in
- * use indefinitely — so nothing is reachable until it is changed.
- *
- * The password screen sits outside `RequireAuth`, so sending people there
- * cannot loop back through this guard.
- */
+/** Redirects accounts that must replace a temporary password. */
 export function RequirePasswordChange() {
   const { user } = useAuth()
 
@@ -51,16 +33,6 @@ export function RequirePasswordChange() {
   return <Outlet />
 }
 
-/**
- * Restricts a branch of the route tree by role.
- *
- * Signed-in users get an explanation rather than a redirect, because bouncing
- * someone silently to the dashboard reads as a broken link.
- *
- * Route guards keep whole areas out of reach, but they are not what protects
- * individual records: that is the access scope applied inside the data hooks,
- * which narrows every query to what the signed-in person may see.
- */
 function RequireRole({
   description,
   isAllowed,
@@ -77,7 +49,6 @@ function RequireRole({
   return <Outlet />
 }
 
-/** The roster screens: admins and mentors. */
 export function RequireTeamManagement() {
   return (
     <RequireRole
@@ -87,16 +58,6 @@ export function RequireTeamManagement() {
   )
 }
 
-/**
- * The one area mentors do not share: administering the logins themselves.
- *
- * A mentor hands out logins and resets passwords for the people assigned to them,
- * because both are things that get somebody working. Taking access away is not,
- * and the roster's own Active flag already lets a mentor record that somebody has
- * left. The database says the same — `may_manage_account` admits administrators
- * and nobody else — so this guard is about not offering a screen whose every
- * control would be refused.
- */
 export function RequireAdmin() {
   return (
     <RequireRole
@@ -106,7 +67,6 @@ export function RequireAdmin() {
   )
 }
 
-/** Screens that list more than one person: admins and mentors. */
 export function RequireTeamAccess() {
   return (
     <RequireRole
@@ -116,14 +76,6 @@ export function RequireTeamAccess() {
   )
 }
 
-/**
- * The feedback screen: mentors and admins write it, developers read their own.
- *
- * The guard is wider than the screen's write controls, which ask
- * `canWriteFeedback` separately. What it still blocks is an account linked to
- * neither a mentor record nor an employee record, which has nothing to read
- * and nobody to attribute a note to.
- */
 export function RequireFeedbackAccess() {
   return (
     <RequireRole
@@ -133,18 +85,11 @@ export function RequireFeedbackAccess() {
   )
 }
 
-/**
- * Waits for the access scope before rendering scoped screens.
- *
- * Without this, a screen could briefly render with no scope and show its
- * empty state before the real data arrives, which looks like data loss.
- */
+/** Waits for access scope before scoped screens render. */
 export function RequireScope() {
   const { error, isResolving } = useAccessScope()
 
-  // The query the scope is built from, so a failure here can be retried in
-  // place. This guard stands in front of the shell, so the refresh in the
-  // header is not on screen to be pressed.
+  // Retry here because this guard sits ahead of the shell refresh control.
   const assignmentsQuery = useMentorAssignments()
 
   if (isResolving) return <FullPageLoader label="Loading your workspace…" />

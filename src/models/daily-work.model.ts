@@ -6,48 +6,23 @@ export const TASK_PRIORITIES = ['low', 'medium', 'high', 'critical'] as const
 
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]
 
-/**
- * A single task update logged by a developer for a given day.
- *
- * One developer may log several entries for the same date, so `date` is not
- * unique and must never be treated as a key. `id` (the `EntryId` column) is
- * the only stable identifier.
- */
 export interface DailyWorkEntry {
   id: string
-  /** Calendar day the work applies to, as `yyyy-MM-dd`. */
   date: string
   developerId: string
   projectId: string
 
-  /**
-   * The assigned task this day of work belongs to.
-   *
-   * Absent for entries logged before updates were task-linked, and for a
-   * developer with nothing assigned. Where it is present the task holds the
-   * status of the work, and the two are kept in step by the database.
-   */
+  /** When present, task status and entry status are kept in step by the database. */
   taskId?: string
 
   taskTitle: string
   description?: string
-
-  /**
-   * What was actually achieved on the day.
-   *
-   * Distinct from `taskTitle`, which names the piece of work: the title stays
-   * the same across the days it takes, while this changes daily and is what a
-   * mentor reads to see movement.
-   */
   workDone?: string
-
-  /** What the developer intends to pick up next. */
   plannedWork?: string
 
   status: TaskStatus
   priority: TaskPriority
 
-  /** Whole percentage between 0 and 100. */
   progress: number
   hoursSpent?: number
 
@@ -56,28 +31,14 @@ export interface DailyWorkEntry {
 
   remarks?: string
 
-  /** Full ISO 8601 timestamp. */
   createdAt: string
-  /** Full ISO 8601 timestamp. */
   updatedAt: string
 }
 
-/**
- * Fields a developer supplies when logging work. Identity and audit
- * timestamps are assigned by the data provider so that every storage backend
- * stays authoritative over them.
- */
 export type CreateDailyWorkEntryRequest = Omit<DailyWorkEntry, 'createdAt' | 'id' | 'updatedAt'>
 
-/** Partial update of an existing entry, addressed separately by `id`. */
 export type UpdateDailyWorkEntryRequest = Partial<CreateDailyWorkEntryRequest>
 
-/**
- * Server-agnostic filter passed to the data layer.
- *
- * Providers may satisfy these filters remotely or in memory; callers must not
- * depend on which. Date bounds are inclusive `yyyy-MM-dd` strings.
- */
 export interface DailyWorkQuery {
   dateFrom?: string
   dateTo?: string
@@ -87,16 +48,6 @@ export interface DailyWorkQuery {
   priorities?: readonly TaskPriority[]
   isBlocked?: boolean
 
-  /**
-   * At most this many entries, and then necessarily the most recent ones.
-   *
-   * A limit is also an order, because a limit without one returns an arbitrary
-   * subset rather than a page. So every provider answers a limited query newest
-   * first — by `date`, tie-broken by `id` so that two entries logged on the same
-   * day do not swap places between one request and the next.
-   *
-   * Absent means every matching entry, which is what a report or a total needs: a
-   * limit belongs to a list somebody is reading, not to a sum.
-   */
+  /** Limit implies newest-first order (date, then id). */
   limit?: number
 }

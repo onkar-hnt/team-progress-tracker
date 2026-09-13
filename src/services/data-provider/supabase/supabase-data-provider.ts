@@ -72,33 +72,6 @@ export interface SupabaseDataProviderOptions {
   client: AppSupabaseClient
 }
 
-/**
- * Supabase as the application's storage.
- *
- * Implements the same `DataProvider` interface as the Excel and mock
- * providers, and that is the entire point of the migration being tractable:
- * `WorkTrackerService`, the query hooks, the pages and the styles are all
- * unchanged, because none of them can tell which implementation they are
- * talking to.
- *
- * The migration is complete. Every entity is served from a repository here,
- * and the fixture delegate that stood in for the tables still being moved is
- * gone along with the last of them.
- *
- * Two responsibilities the Excel provider carried are deliberately absent
- * here, because the database has taken them over:
- *
- * - **Identifiers.** `id` and the `MEN001`-style codes come from column
- *   defaults. Nothing in the browser counts rows to guess the next one.
- * - **Referential integrity.** Foreign keys refuse the write; this provider
- *   translates the refusal instead of pre-emptively counting dependants.
- *
- * Access control stays where it was — out of this layer entirely — with one
- * addition worth being explicit about: row-level security now filters reads
- * server-side as well. A read here returns what the caller is permitted to
- * see, and `WorkTrackerService` narrows it further for display. Neither
- * relies on the other.
- */
 export class SupabaseDataProvider implements DataProvider {
   private readonly client: AppSupabaseClient
 
@@ -108,20 +81,9 @@ export class SupabaseDataProvider implements DataProvider {
 
   readonly name = 'Supabase'
 
-  /**
-   * Always writable.
-   *
-   * Whether a *particular* write is allowed is decided per row by RLS, which
-   * this flag cannot express — it exists so the UI can disable actions
-   * against a read-only workbook, not to predict authorization.
-   */
   get capabilities(): DataProviderCapabilities {
     return { canWrite: true }
   }
-
-  // ---------------------------------------------------------------------------
-  // Employees — served by Supabase
-  // ---------------------------------------------------------------------------
 
   getDevelopers(): Promise<Developer[]> {
     return selectDevelopers(this.client)
@@ -139,10 +101,6 @@ export class SupabaseDataProvider implements DataProvider {
     return deleteDeveloperRow(this.client, id)
   }
 
-  // ---------------------------------------------------------------------------
-  // Mentors — served by Supabase
-  // ---------------------------------------------------------------------------
-
   getMentors(): Promise<Mentor[]> {
     return selectMentors(this.client)
   }
@@ -151,13 +109,6 @@ export class SupabaseDataProvider implements DataProvider {
     return insertMentor(this.client, request)
   }
 
-  /**
-   * Also how a mentor is activated and deactivated.
-   *
-   * There is no separate operation for it: `active` is an ordinary field on
-   * the record, the admin form edits it as a checkbox, and treating it as its
-   * own endpoint would add a second path to the same column.
-   */
   updateMentor(id: string, request: UpdateMentorRequest): Promise<Mentor> {
     return updateMentorRow(this.client, id, request)
   }
@@ -177,13 +128,6 @@ export class SupabaseDataProvider implements DataProvider {
     return replaceMentorAssignments(this.client, mentorId, developerIds)
   }
 
-  // ---------------------------------------------------------------------------
-  // Projects — served by Supabase
-  // ---------------------------------------------------------------------------
-  // The team list travels with the project rather than through methods of its
-  // own, because that is how `Project` models it and how the admin form edits
-  // it. `projects.repository` writes both tables.
-
   getProjects(): Promise<Project[]> {
     return selectProjects(this.client)
   }
@@ -199,12 +143,6 @@ export class SupabaseDataProvider implements DataProvider {
   deleteProject(id: string): Promise<void> {
     return deleteProjectRow(this.client, id)
   }
-
-  // ---------------------------------------------------------------------------
-  // Tasks — served by Supabase
-  // ---------------------------------------------------------------------------
-  // The only slice that filters at source. The query maps onto SQL, and the
-  // schema carries indexes built for these predicates.
 
   getTasks(query?: AssignedTaskQuery): Promise<AssignedTask[]> {
     return selectTasks(this.client, query)
@@ -225,12 +163,6 @@ export class SupabaseDataProvider implements DataProvider {
   deleteTask(id: string): Promise<void> {
     return deleteTaskRow(this.client, id)
   }
-
-  // ---------------------------------------------------------------------------
-  // Daily updates — served by Supabase
-  // ---------------------------------------------------------------------------
-  // Also filtered at source. The busiest reads in the application are here:
-  // every dashboard panel asks this table for a day or a week.
 
   getDailyWorkEntries(query?: DailyWorkQuery): Promise<DailyWorkEntry[]> {
     return selectDailyUpdates(this.client, query)
@@ -254,13 +186,6 @@ export class SupabaseDataProvider implements DataProvider {
   deleteDailyWorkEntry(id: string): Promise<void> {
     return deleteDailyUpdateRow(this.client, id)
   }
-
-  // ---------------------------------------------------------------------------
-  // Feedback — served by Supabase
-  // ---------------------------------------------------------------------------
-  // Each comment names the task it is about. The task must belong to the same
-  // developer, which `feedback_guard_task` enforces in the database because it
-  // compares two columns of the row and no pre-flight check can see that.
 
   getComments(query?: MentorCommentQuery): Promise<MentorComment[]> {
     return selectComments(this.client, query)

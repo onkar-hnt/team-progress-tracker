@@ -6,28 +6,6 @@ import type { WorkbookStructureReport } from '@services/data-provider/excel/ensu
 
 import { getAdminWorkbookService } from './admin-workbook.service'
 
-/**
- * Startup initialisation of the Admin workbook.
- *
- * Signing in as an administrator is the point at which the workbook first
- * needs to be usable, so that is when its structure is checked and any
- * missing sheets, tables or columns are created. Doing it here rather than on
- * a screen means nobody has to remember to visit Settings, and no page
- * component decides when the data source gets prepared.
- *
- * Three properties matter, and they are why this is a small observable store
- * rather than a hook or a query:
- *
- * - It runs once per session. Providers re-render and guards remount on
- *   navigation; neither may start a second run against the workbook.
- * - It never blocks sign-in. Authentication has already succeeded by the time
- *   this starts, and a workbook fault is reported as a data-source problem
- *   rather than turning into a rejected sign-in or a redirect loop.
- * - Its progress is observable by components that want to show it, without
- *   any of them being responsible for triggering it. The workbook connection
- *   store next door works the same way, for the same reason.
- */
-
 export type AdminWorkbookInitialisationStatus =
   /** Not attempted yet: nobody has signed in as an administrator. */
   | 'idle'
@@ -55,13 +33,6 @@ const IDLE: AdminWorkbookInitialisation = { status: 'idle', report: null, error:
 let state: AdminWorkbookInitialisation = IDLE
 let pending: Promise<AdminWorkbookInitialisation> | null = null
 
-/**
- * Whether a run has already settled for this session.
- *
- * Separate from `state` because a failed run has still been attempted:
- * without this, an effect that re-fires after a failure would retry forever.
- * Only an explicit retry clears it.
- */
 let hasSettled = false
 
 const listeners = new Set<() => void>()
@@ -76,23 +47,10 @@ export function subscribeToAdminWorkbookInitialisation(listener: () => void): ()
   return () => listeners.delete(listener)
 }
 
-/**
- * The current state.
- *
- * Returns the same object until something changes, which is what
- * `useSyncExternalStore` requires to avoid re-rendering on every check.
- */
 export function getAdminWorkbookInitialisation(): AdminWorkbookInitialisation {
   return state
 }
 
-/**
- * Prepares the workbook, at most once per session.
- *
- * Safe to call from an effect: a second call while the first is running
- * returns the same promise, and a call after one has settled returns the
- * result without touching the workbook again.
- */
 export function initialiseAdminWorkbook(): Promise<AdminWorkbookInitialisation> {
   if (pending !== null) return pending
   if (hasSettled) return Promise.resolve(state)
@@ -100,13 +58,6 @@ export function initialiseAdminWorkbook(): Promise<AdminWorkbookInitialisation> 
   return start()
 }
 
-/**
- * Re-checks the workbook after the administrator asked for it.
- *
- * The manual action in Settings, and the way to recover from a failure once
- * the cause has been fixed. It still joins a run already in progress rather
- * than starting a rival one, because both would be writing to the same file.
- */
 export function retryAdminWorkbookInitialisation(): Promise<AdminWorkbookInitialisation> {
   if (pending !== null) return pending
 
@@ -114,13 +65,6 @@ export function retryAdminWorkbookInitialisation(): Promise<AdminWorkbookInitial
   return start()
 }
 
-/**
- * Forgets that initialisation happened.
- *
- * Called when the session ends or the workbook changes, so the next
- * administrator to sign in gets a fresh check rather than inheriting a result
- * that described a different file or a different moment.
- */
 export function resetAdminWorkbookInitialisation(): void {
   hasSettled = false
   if (state !== IDLE) set(IDLE)
@@ -129,9 +73,6 @@ export function resetAdminWorkbookInitialisation(): void {
 function start(): Promise<AdminWorkbookInitialisation> {
   const service = getAdminWorkbookService()
 
-  // Resolved from configuration, so a deployment with no workbook or no app
-  // registration settles here without a request and keeps showing the
-  // existing data-source warning rather than reporting a failed repair.
   const unavailable = service.getUnavailabilityReason()
   if (unavailable !== null) {
     hasSettled = true
@@ -153,13 +94,6 @@ function start(): Promise<AdminWorkbookInitialisation> {
   return run
 }
 
-/**
- * Records the outcome and never rejects.
- *
- * The result belongs in the store, where the UI can show it, rather than in
- * an exception the caller has to remember to catch — this is started by a
- * fire-and-forget effect whose only job is to begin the work.
- */
 async function execute(
   work: Promise<WorkbookStructureReport>,
 ): Promise<AdminWorkbookInitialisation> {
@@ -197,13 +131,6 @@ function describeFailure(error: unknown): string {
   return 'The Admin workbook could not be prepared. Check the workbook link and your access to it.'
 }
 
-/**
- * Diagnostics for the one thing that happens before any screen is used.
- *
- * Deliberately limited to the data source, the lifecycle and the names of
- * structures that were created. Tokens, authorization headers, credentials
- * and workbook rows are never passed here.
- */
 function report(message: string, level: 'error' | 'info' = 'info'): void {
   const line = `[admin-workbook] initialisation ${message}`
 
@@ -211,8 +138,6 @@ function report(message: string, level: 'error' | 'info' = 'info'): void {
   else console.info(line)
 }
 
-// Pointing the application at a different workbook invalidates the result:
-// the new file has its own structure and has to be checked on its own terms.
 subscribeToWorkbookConnection(() => {
   resetAdminWorkbookInitialisation()
 })

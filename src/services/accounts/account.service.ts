@@ -8,34 +8,6 @@ import { DataProviderError, DataSourceUnavailableError } from '@services/data-pr
 import { invokePrivilegedFunction } from '@services/provisioning/provision-login'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
 
-/**
- * The logins themselves, as distinct from the people they belong to.
- *
- * Everywhere else in the application a person is an employee or a mentor — a
- * business row, with work and feedback hanging off it. This module is about the
- * other half: the `public.profiles` row that decides whether they can get in at
- * all, and what they see when they do.
- *
- * ## Why it is not on `DataProvider`
- *
- * Same reason as notifications. `DataProvider` is the seam that makes the record
- * store replaceable and is implemented three times over; an auth account is not a
- * record the workbook could hold, and the two offline providers have no logins to
- * list. So this is a Supabase feature and says so through `areAccountsAvailable`,
- * exactly as provisioning and password resets already do.
- *
- * ## Reading is ordinary; writing is not
- *
- * The list is a plain select. `profiles_select` already answers it correctly —
- * every row for an administrator, your own row for anybody else — so no privilege
- * is needed and none is used.
- *
- * Enabling and disabling goes out to the `set-account-state` Edge Function
- * instead, because it is two writes and only one of them is reachable from here:
- * the status column, and the ban on the auth user that stops an already-open
- * session renewing itself. See that function for why both are needed.
- */
-
 /** Whether this deployment has logins to administer at all. */
 export function areAccountsAvailable(): boolean {
   return appConfig.dataSource === 'supabase' && isSupabaseConfigured()
@@ -66,13 +38,6 @@ export interface Account {
 
 const ACCOUNT_COLUMNS = 'id, email, display_name, role, status, must_change_password, created_at'
 
-/**
- * Validated rather than cast, like `resolveSupabaseIdentity` beside it.
- *
- * The client is not generated against the schema, so rows arrive untyped and a
- * renamed column would otherwise spread `undefined` through the table instead of
- * saying what happened.
- */
 const accountRowSchema = z.object({
   id: z.string().min(1),
   email: z.string().min(1),
@@ -105,16 +70,7 @@ function requireClient() {
   return getSupabaseClient()
 }
 
-/**
- * A local mapper, for the same reason the notification service has one.
- *
- * `mapPostgrestError` is keyed by `DataSourceTable` — the union naming the record
- * tables all three providers share — and `profiles` is not one of those. Reaching
- * it would have meant adding a profiles sheet to the Excel schema's vocabulary.
- */
 function mapAccountError(error: PostgrestError, fallback: string): DataProviderError {
-  // The guard trigger and the policies both refuse with this, and the message
-  // they raise is already written for a reader.
   if (error.code === '42501') {
     return new DataProviderError(error.message, { cause: error })
   }
@@ -122,14 +78,6 @@ function mapAccountError(error: PostgrestError, fallback: string): DataProviderE
   return new DataProviderError(fallback, { cause: error })
 }
 
-/**
- * Every login, newest activity aside.
- *
- * Ordered by name rather than by creation, because the question this screen
- * answers is "what is the state of so-and-so's account", and that is looked up by
- * name. Unbounded on purpose: this is one row per person who can sign in, so the
- * list is the size of the team.
- */
 export async function listAccounts(): Promise<Account[]> {
   const client = requireClient()
 
@@ -165,12 +113,6 @@ export interface SetAccountStateResult {
 
   state: 'active' | 'inactive'
 
-  /**
-   * Whether open sessions were ended as well as sign-in refused.
-   *
-   * False on reactivation, where there is nothing to end, and false where the ban
-   * could not be applied — which is a partial success carrying a `warning`.
-   */
   sessionsRevoked: boolean
 
   /** True when the account was already in that state and nothing was written. */
@@ -192,13 +134,6 @@ function isSetAccountStateResult(value: unknown): value is SetAccountStateResult
   )
 }
 
-/**
- * Asks the server to enable or disable a login.
- *
- * Decides nothing about who may: that is `public.may_manage_account`, which the
- * function asks before it acts. A screen that hides the control is a courtesy; the
- * refusal is in the database.
- */
 export async function setAccountState({
   isActive,
   profileId,

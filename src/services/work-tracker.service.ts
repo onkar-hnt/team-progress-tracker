@@ -48,12 +48,6 @@ import {
 } from '@utils/work-summary.utils'
 import { sortByMostRecent } from '@utils/task.utils'
 
-/**
- * An entry with its lookups resolved, ready for tables and cards.
- *
- * Ids remain on the object so that navigation and filtering keep using keys;
- * the added names are for display only.
- */
 export interface DailyWorkEntryView extends DailyWorkEntry {
   developerName: string
   projectName: string
@@ -65,7 +59,6 @@ export interface AssignedTaskView extends AssignedTask {
   projectName: string
   mentorName?: string
 
-  /** Past its due date and not yet completed. */
   isOverdue: boolean
 }
 
@@ -74,17 +67,10 @@ export interface MentorCommentView extends MentorComment {
   mentorName: string
   projectName?: string
 
-  /**
-   * The task the feedback is about.
-   *
-   * Absent for feedback recorded before it became task-scoped, and for a task
-   * that has since been deleted — the row survives its task on purpose, so
-   * the timeline has to read without one.
-   */
+  /** Absent when feedback predates task link or the task was deleted. */
   taskName?: string
 }
 
-/** Everything the dashboard needs for a single selected day. */
 export interface DayOverview {
   date: string
   entries: DailyWorkEntryView[]
@@ -96,7 +82,6 @@ export interface DayOverview {
   blockedEntries: DailyWorkEntryView[]
 }
 
-/** Everything the dashboard needs for a period such as a week. */
 export interface RangeOverview {
   range: DateRange
   entries: DailyWorkEntryView[]
@@ -107,46 +92,15 @@ export interface RangeOverview {
   blockedEntries: DailyWorkEntryView[]
 }
 
-/**
- * Application-facing data service.
- *
- * Features talk to this class, never to a provider. It owns the work that is
- * independent of storage: resolving names, assembling the composite views
- * screens need, and applying business rules such as "only active developers
- * can be missing an update".
- *
- * It also applies the access scope. Every method that can return
- * person-specific data takes an `AccessScope` and narrows its result to it, so
- * a screen cannot read outside the signed-in person's permissions even by
- * mistake. Methods that take no scope return only data that is safe for
- * anybody signed in.
- *
- * Because it depends on `DataProvider` rather than a concrete backend, moving
- * from mock data to SharePoint, and later to an API, changes nothing here.
- */
+/** Applies access scope to person-specific reads; screens call this, not the provider. */
 export class WorkTrackerService {
   private readonly provider: DataProvider
 
-  /**
-   * The three lookup tables, shared across one burst of view assembly.
-   *
-   * Almost every composite view resolves names against developers, projects
-   * and mentors, and each is assembled by its own query. React Query
-   * deduplicates by query key, so it cannot see that a dashboard's day
-   * overview, week overview and task list are all reading the roster: the
-   * duplication happens inside three different queries. Measured on a
-   * developer's dashboard that was four reads of developers and three of
-   * projects for one page.
-   *
-   * Deliberately not a general cache. Only these three, only for a moment,
-   * and cleared outright by `forgetLookups` after any write, so a screen
-   * refreshed by a mutation never resolves names against the state before it.
-   */
+  /** Brief memo of roster lookups; cleared by forgetLookups after roster writes. */
   private readonly developerLookup: ShortLivedRead<Developer>
   private readonly projectLookup: ShortLivedRead<Project>
   private readonly mentorLookup: ShortLivedRead<Mentor>
 
-  /** The involvement-derived project list, which costs several reads to build. */
   private readonly scopedProjectLookup = new ShortLivedReadByKey<Project>()
 
   constructor(provider: DataProvider) {
@@ -157,13 +111,6 @@ export class WorkTrackerService {
     this.mentorLookup = new ShortLivedRead(() => provider.getMentors())
   }
 
-  /**
-   * Drops the lookup memos.
-   *
-   * Called from the one place that runs after every successful write, before
-   * the invalidated queries are refetched — the whole point is that those
-   * refetches see the roster as it is now.
-   */
   forgetLookups(): void {
     this.developerLookup.forget()
     this.projectLookup.forget()
@@ -175,7 +122,6 @@ export class WorkTrackerService {
     return this.provider.capabilities
   }
 
-  /** Employees the signed-in person may see. */
   async getDevelopers(scope: AccessScope): Promise<Developer[]> {
     const developers = await this.developerLookup.get()
 
@@ -189,19 +135,7 @@ export class WorkTrackerService {
     return developers.filter((developer) => developer.active)
   }
 
-  /**
-   * The whole roster, for the screens that maintain it.
-   *
-   * Separate from `getDevelopers` rather than a widening of it, because the
-   * two callers want opposite things. The management screens need every
-   * employee or they cannot administer one — and a create would fail outright,
-   * since inserting a row reads it back to learn the code the database
-   * assigned. The reporting screens need the narrowed list, or a mentor would
-   * be shown a roster of colleagues with nothing but zeroes against them.
-   *
-   * Falls back to the narrowed list rather than refusing, so an unprivileged
-   * caller reaching this by mistake sees less rather than an error.
-   */
+  /** Full roster for management screens; falls back to scoped list when readsRoster is false. */
   async getRosterDevelopers(scope: AccessScope): Promise<Developer[]> {
     if (!scope.readsRoster) return this.getDevelopers(scope)
 
@@ -228,11 +162,7 @@ export class WorkTrackerService {
     return projects.filter((project) => project.active)
   }
 
-  /**
-   * `null` when the id does not exist *or* is out of scope, which are the same
-   * answer to the caller — and now also when the record is in the bin, for the same
-   * reason: a deleted employee has no details screen until somebody restores them.
-   */
+  /** Returns null for out-of-scope or soft-deleted records. */
   async getDeveloperById(scope: AccessScope, id: string): Promise<Developer | null> {
     if (!canViewDeveloper(scope, id)) return null
 
@@ -242,13 +172,6 @@ export class WorkTrackerService {
     return developer !== undefined && onTheRoster(developer) ? developer : null
   }
 
-  /**
-   * Mentors relevant to the signed-in person.
-   *
-   * An admin sees the full list. A mentor sees their own row. A developer sees
-   * whoever mentors them, so their feedback can be attributed, and nobody
-   * else's mentor.
-   */
   async getMentors(scope: AccessScope): Promise<Mentor[]> {
     const mentors = (await this.mentorLookup.get()).filter(onTheRoster)
     if (scope.visibleDeveloperIds === null) return mentors
@@ -257,9 +180,6 @@ export class WorkTrackerService {
       return mentors.filter((mentor) => mentor.id === scope.mentorId)
     }
 
-    // Reached only by a developer, who needs the mapping to learn which mentor
-    // is theirs. Read after the early returns rather than alongside the list,
-    // so an admin or a mentor never pays for a request their answer ignores.
     const assignments = await this.provider.getMentorAssignments()
     const mentorIds = new Set(
       assignments
@@ -270,14 +190,7 @@ export class WorkTrackerService {
     return mentors.filter((mentor) => mentorIds.has(mentor.id))
   }
 
-  /**
-   * Mentor mapping rows visible to `user`.
-   *
-   * Takes a user rather than a scope because this is what the scope is built
-   * from, and so it cannot depend on it. An admin sees the whole mapping, a
-   * mentor sees their own assignments, and a developer sees only the row that
-   * names their own mentor.
-   */
+  /** Takes AppUser, not AccessScope, because scope is built from these rows. */
   async getMentorAssignments(user: AppUser | null): Promise<MentorAssignment[]> {
     if (user === null) return []
 
@@ -291,21 +204,8 @@ export class WorkTrackerService {
     return assignments.filter((assignment) => assignment.developerId === user.developerId)
   }
 
-  /**
-   * Projects the signed-in person is involved in.
-   *
-   * Involvement means assigned to the project, or having a task or a work
-   * entry on it. Derived rather than taken from the assignment column alone,
-   * because work often lands on a project before the column is updated, and a
-   * developer must still see the project their own task belongs to.
-   */
+  /** Project involvement is derived from tasks and entries; memoised per scope because it is expensive. */
   getProjects(scope: AccessScope): Promise<Project[]> {
-    // Memoised per scope because deriving involvement is the most expensive
-    // read in the service — every task and every daily update the viewer can
-    // see, with no date bound, since a project worked on last year is still
-    // one they were involved in. `getActiveProjects` is only a filter over
-    // this, and the two are separate queries to the screens above, so without
-    // this a page mounting both paid for the derivation twice.
     return this.scopedProjectLookup.get(describeScope(scope), () =>
       this.readInvolvedProjects(scope),
     )
@@ -321,9 +221,6 @@ export class WorkTrackerService {
       this.provider.getDailyWorkEntries({ developerIds: visibleIds }),
     ])
 
-    // Re-filtered rather than trusted: if the provider ignored the developer
-    // predicate, deriving involvement from its rows would widen the project
-    // list to include projects the viewer has nothing to do with.
     const involved = new Set<string>([
       ...filterByScope(scope, tasks).map((task) => task.projectId),
       ...filterByScope(scope, entries).map((entry) => entry.projectId),
@@ -341,7 +238,6 @@ export class WorkTrackerService {
     return projects.filter((project) => project.active)
   }
 
-  /** Entries with names resolved, newest first, narrowed to `scope`. */
   async getDailyWorkEntryViews(
     scope: AccessScope,
     query?: DailyWorkQuery,
@@ -394,8 +290,6 @@ export class WorkTrackerService {
   ): Promise<MentorCommentView[]> {
     const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
 
-    // Tasks are read for the same people the comments are, so naming the work
-    // a note is about costs one more scoped query rather than one per comment.
     const [comments, developers, projects, mentors, tasks] = await Promise.all([
       this.provider.getComments({ ...query, ...withDeveloperIds(effectiveIds) }),
       this.developerLookup.get(),
@@ -415,9 +309,6 @@ export class WorkTrackerService {
           developerName: resolveName(developers, comment.developerId, 'developer'),
           mentorName: resolveName(mentors, comment.mentorId, 'mentor'),
           ...(project === undefined ? {} : { projectName: project.name }),
-          // Left off rather than reported as unknown: feedback predating the
-          // task link, and feedback whose task has been deleted, both legibly
-          // have no task — unlike an orphaned lookup, which is a fault.
           ...(task === undefined ? {} : { taskName: task.name }),
         }
       })
@@ -508,9 +399,6 @@ export class WorkTrackerService {
   async getDayOverview(scope: AccessScope, isoDate: string): Promise<DayOverview> {
     const entries = await this.readScopedEntries(scope, { dateFrom: isoDate, dateTo: isoDate })
 
-    // Together rather than in sequence. Neither needs the other's answer, and
-    // run one after the other this method cost three round trips to build one
-    // card row.
     const [views, developers] = await Promise.all([
       this.decorateEntries(entries),
       this.getDevelopers(scope),
@@ -546,24 +434,16 @@ export class WorkTrackerService {
     }
   }
 
-  /** Overview for the Monday-to-Sunday week containing `isoDate`. */
   getWeekOverview(scope: AccessScope, isoDate: string): Promise<RangeOverview> {
     return this.getRangeOverview(scope, getWeekRange(isoDate))
   }
 
-  /**
-   * Falls back to the previous working day so that opening the dashboard on a
-   * Sunday shows Friday's work instead of an empty screen.
-   */
+  /** Falls back to the previous working day so weekend dashboards are not empty. */
   getWorkingDayOverview(scope: AccessScope, isoDate: string): Promise<DayOverview> {
     return this.getDayOverview(scope, toNearestWorkingDay(isoDate))
   }
 
-  /**
-   * Reads entries with the scope applied twice: once as a query predicate so
-   * a capable backend can filter server-side, and once in memory so this
-   * layer never depends on it having done so.
-   */
+  /** Passes developerIds to the provider and re-filters in memory. */
   private async readScopedEntries(
     scope: AccessScope,
     query?: DailyWorkQuery,
@@ -598,29 +478,14 @@ export class WorkTrackerService {
   }
 }
 
-/**
- * Omits the key entirely for unrestricted access.
- *
- * Setting `developerIds: undefined` explicitly would still create the
- * property, and a provider checking `'developerIds' in query` would then see
- * a filter that matches nothing.
- */
+/** Omits developerIds key when unrestricted; explicit undefined would look like an empty filter. */
 function withDeveloperIds(
   developerIds: readonly string[] | undefined,
 ): { developerIds?: readonly string[] } {
   return developerIds === undefined ? {} : { developerIds }
 }
 
-/**
- * Re-applies the developer filter in memory after the provider has answered.
- *
- * The same set is passed to the provider as a query predicate so a capable
- * backend can filter at source, but the guarantee cannot rest on that: a
- * provider that ignores the predicate, or a future backend that implements it
- * incorrectly, must still not be able to widen the result.
- *
- * `undefined` means unrestricted access with no filter requested.
- */
+/** Re-filters by developer in memory even when the provider accepts developerIds. */
 function narrowToDevelopers<TRecord extends { developerId: string }>(
   effectiveIds: readonly string[] | undefined,
   records: readonly TRecord[],
@@ -629,35 +494,12 @@ function narrowToDevelopers<TRecord extends { developerId: string }>(
   return records.filter((record) => effectiveIds.includes(record.developerId))
 }
 
-/**
- * Whether a roster record is still on the roster.
- *
- * The one place the two halves of soft-deleted roster data are told apart, and it
- * is a filter on the *lists* only. Under Supabase, deleting an employee, a mentor
- * or a project sets `deletedAt` and leaves the row where it is, so the read behind
- * the three lookups returns it — which is what `resolveName` below needs, and why
- * it does not call this. A task written for somebody whose record was deleted this
- * morning still says who it was for.
- *
- * Every list that is offered to somebody — the roster tables, the pickers, a
- * developer's own details screen — goes through this instead. Nothing under the
- * other data sources is affected: they delete the row, so `deletedAt` is never set
- * and this is always true.
- */
+/** Soft-deleted roster rows stay in lookups for resolveName but are filtered from lists. */
 function onTheRoster(record: { deletedAt?: string }): boolean {
   return record.deletedAt === undefined
 }
 
-/**
- * Resolves a display name, tolerating ids with no matching lookup row.
- *
- * A missing lookup is surfaced in the UI rather than hidden, because a blank
- * name would conceal the fact that the workbook has an orphaned row.
- *
- * Reads the unfiltered lookup on purpose — see `onTheRoster`. A deleted record is
- * still the answer to "whose work was this", and `Unknown (4f6c…)` against last
- * month's entries would be a worse answer than a name that is no longer current.
- */
+/** Uses unfiltered lookups so deleted roster members still show names on historical work. */
 function resolveName(
   records: readonly { id: string; name: string }[],
   id: string | undefined,
@@ -667,28 +509,9 @@ function resolveName(
   return records.find((record) => record.id === id)?.name ?? `Unknown (${id})`
 }
 
-/**
- * How long a lookup read is reused.
- *
- * Long enough to cover one page assembling its views, which is not a single
- * instant: a day overview reads its entries before it resolves any names, so
- * its roster read starts a round trip after the task list's. Short enough
- * that a colleague's change is never more than a moment away, and it is
- * dropped outright after any write regardless.
- */
 const LOOKUP_TTL_MS = 2_000
 
-/**
- * One in-progress or just-completed read of a whole table, reused briefly.
- *
- * The promise is shared, so callers arriving while a read is in flight join it
- * rather than starting a second one. Each caller is handed its own array: the
- * rows are shared but the list is not, so a caller that sorts what it got
- * cannot reorder the copy another one is still reading.
- *
- * A failed read is forgotten immediately rather than held for the full
- * window, so a retry actually retries.
- */
+/** Shares one in-flight read per table for ~2s; callers get a copied array. */
 class ShortLivedRead<TRow> {
   private entry: { readAt: number; rows: Promise<readonly TRow[]> } | null = null
 
@@ -706,8 +529,6 @@ class ShortLivedRead<TRow> {
       const entry = { readAt: now, rows }
       this.entry = entry
 
-      // Attached here rather than left to the caller, so a rejection is
-      // handled even if every caller has already given up on it.
       void rows.catch(() => {
         if (this.entry === entry) this.entry = null
       })
@@ -721,13 +542,7 @@ class ShortLivedRead<TRow> {
   }
 }
 
-/**
- * The same, for a read whose answer depends on who is asking.
- *
- * One entry per scope rather than one overall, because a mentor and an admin
- * asking the same question must not be served each other's answer. In practice
- * a session holds one scope, so the map holds one entry.
- */
+/** Per-scope memo for reads whose answer depends on access scope. */
 class ShortLivedReadByKey<TRow> {
   private readonly reads = new Map<string, ShortLivedRead<TRow>>()
 

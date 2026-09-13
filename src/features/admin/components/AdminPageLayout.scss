@@ -32,8 +32,6 @@
   }
 }
 
-// Shown once, immediately after a login is provisioned. Deliberately hard to
-// miss and hard to mistake for anything retrievable later.
 .credentials {
   @include grid($gap: $space-2);
   margin: 0 0 $space-4;

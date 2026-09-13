@@ -1,30 +1,6 @@
 import { WORKBOOK_TEMPLATE } from './workbook-template'
 import type { WorkbookGateway, WorkbookStructure } from './workbook-gateway'
 
-/**
- * Brings the Admin workbook up to the agreed structure.
- *
- * The workbook is edited by people as well as by this application, so it can
- * be missing a sheet, missing a table, or missing a column that was added to
- * the contract after the file was created. Rather than let that surface as
- * every screen failing on read, the structure is checked in one place and
- * repaired where the transport allows it.
- *
- * The operation is idempotent, and deliberately conservative about how:
- *
- * - a table is created only when `describeStructure` did not report it, so a
- *   second run finds it and does nothing
- * - a column is added only when absent from that table's header, so headers
- *   cannot be duplicated
- * - nothing is ever deleted, renamed, reordered or rewritten, so no existing
- *   row or hand-made column can be lost
- * - columns present in the workbook but absent from the template are left
- *   alone, matching the read rule that unknown columns are ignored
- *
- * Running it against a correct workbook therefore changes nothing and reports
- * nothing, which is what makes it safe to call on every admin sign-in.
- */
-
 /** A table that exists but is missing columns the template defines. */
 export interface MissingColumns {
   tableName: string
@@ -47,12 +23,6 @@ export interface WorkbookStructureReport {
   addedColumns: MissingColumns[]
 }
 
-/**
- * Reports what the workbook is missing, without changing anything.
- *
- * Separate from the repair so the answer can be shown to an administrator on
- * a read-only connection, where creating anything would fail.
- */
 export async function inspectAdminWorkbookStructure(
   gateway: WorkbookGateway,
 ): Promise<{ missingTables: string[]; missingColumns: MissingColumns[] }> {
@@ -62,8 +32,6 @@ export async function inspectAdminWorkbookStructure(
 export async function ensureAdminWorkbookStructure(
   gateway: WorkbookGateway,
 ): Promise<WorkbookStructureReport> {
-  // Checked first so an unreachable or unauthorised workbook is reported as a
-  // connection problem rather than as a workbook missing all eight tables.
   await gateway.validateConnection()
 
   const initial = await inspectAdminWorkbookStructure(gateway)
@@ -90,8 +58,6 @@ export async function ensureAdminWorkbookStructure(
     }
   }
 
-  // Re-read rather than assume the writes landed: the report is what an
-  // administrator acts on, so it has to describe the workbook as it now is.
   const remaining = gateway.canManageStructure
     ? await inspectAdminWorkbookStructure(gateway)
     : initial
@@ -122,9 +88,6 @@ function diffAgainstTemplate(structure: WorkbookStructure): {
       continue
     }
 
-    // Compared case-insensitively because Excel treats column names that way,
-    // so a header of "email" already satisfies "Email" and adding a second
-    // one would be rejected by Excel itself.
     const present = new Set(existing.columns.map((column) => column.trim().toLowerCase()))
     const columns = template.columns.filter(
       (column) => !present.has(column.trim().toLowerCase()),

@@ -12,12 +12,6 @@ interface AdminPageLayoutProps {
   onCreate: () => void
 }
 
-/**
- * Common frame for the administration screens.
- *
- * Each of them is a heading, a primary "add" action and a table, so the shape
- * lives here and the pages differ only in their content.
- */
 export function AdminPageLayout({
   children,
   createLabel,

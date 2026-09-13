@@ -5,27 +5,13 @@ import { Icon, type IconName } from '@components/ui/icons/Icon'
 
 import './Feedback.scss'
 
-/**
- * Why there is nothing to show.
- *
- * `empty` means nothing has been created yet, and the reader's next move is to
- * create something. `filtered` means the data exists but the current filters
- * exclude it, and the next move is to widen them. Saying which one it is saves
- * the reader working it out, and they are the two cases people confuse.
- */
 type EmptyStateVariant = 'empty' | 'filtered'
 
 interface EmptyStateProps {
-  /** The one line that explains the absence, and what would fill it. */
   message: string
-
-  /** A short headline above the message, for a whole panel that is empty. */
   title?: string
-
   icon?: IconName
   variant?: EmptyStateVariant
-
-  /** Whatever the reader should do next — usually a single `Button`. */
   action?: ReactNode
 }
 
@@ -34,7 +20,6 @@ const DEFAULT_ICON: Readonly<Record<EmptyStateVariant, IconName>> = {
   filtered: 'filter',
 }
 
-/** Explains that there is genuinely nothing to show, rather than a failure. */
 export function EmptyState({ action, icon, message, title, variant = 'empty' }: EmptyStateProps) {
   return (
     <div className="feedback feedback--empty">
@@ -75,13 +60,6 @@ interface SkeletonProps {
   label?: string
 }
 
-/**
- * Placeholder shown while data loads.
- *
- * The visual bars are hidden from assistive technology and a single polite
- * status message is announced instead, so a screen reader hears "Loading"
- * once rather than a run of meaningless elements.
- */
 export function Skeleton({ label = 'Loading…', rows = 3 }: SkeletonProps) {
   return (
     <div className="feedback__skeleton">

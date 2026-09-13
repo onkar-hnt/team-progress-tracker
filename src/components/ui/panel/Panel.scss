@@ -12,9 +12,6 @@
     margin-bottom: $space-5;
   }
 
-  /// Semibold rather than the browser's bold. At 1.75rem a bold heading is
-  /// heavy enough to fight the content under it, and the weight was the last
-  /// piece of typography in the application still left to the user agent.
   &__title {
     margin: 0;
     color: $color-text;
@@ -37,33 +34,7 @@
     @include flex($gap: $space-3, $wrap: wrap);
   }
 
-  /// The panel that takes what the screen has left over.
-  ///
-  /// A column, so the height can be passed on rather than stopping here: the header keeps
-  /// its own size and the box of records below it takes the rest. Without that the panel
-  /// would grow and its content would stay where it was, which is the empty card this
-  /// exists to remove rather than a fix for it.
-  ///
-  /// Every direct child holds its own size and only the scrolling box flexes. The header,
-  /// the search field and the "show more" button under the records each have one height
-  /// and want it. `min-height: 0` goes on all of them because a flex item will not shrink
-  /// below its content's height without it, and the box is the item that has to.
-  ///
-  /// ## The height goes to the box, not to what is in it
-  ///
-  /// The ten-row cap on a table, and the 31rem on a list of entries or a timeline, are
-  /// lifted here and only here. Those caps stop a hundred records making a hundred-row
-  /// page, and inside a panel that has been given a height the height does that better:
-  /// the cap becomes however many rows this window can show rather than a number chosen
-  /// on somebody's laptop. See `.data-table__scroll`, `.entry-list` and
-  /// `.comment-timeline`.
-  ///
-  /// What is inside keeps its own size. A list of entries and a timeline of comments are
-  /// both grids, and a grid stretches its rows to fill a box taller than they are, which
-  /// turned a single comment into one card the height of the panel with its text at the
-  /// top. `align-content: start` is what stops that: the cards stay card-sized and the box
-  /// scrolls through them, so what a taller window buys is more records rather than
-  /// taller ones.
+  // Fills remaining screen height; scrolling list/table gets flex: 1 and max-height: none.
   &--fill {
     @include flex(column, $align: stretch);
     @include page-fill;

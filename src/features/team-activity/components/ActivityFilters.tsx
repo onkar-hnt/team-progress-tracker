@@ -22,7 +22,6 @@ interface ActivityFiltersProps {
   onChange: (filters: ActivityFilterState) => void
   developers: readonly Developer[]
   projects: readonly Project[]
-  /** Shown next to the reset control so the filtering is self-explanatory. */
   resultCount: number
 }
 

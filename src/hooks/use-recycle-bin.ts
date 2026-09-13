@@ -15,15 +15,6 @@ import { getWorkTrackerService } from '@services/work-tracker.service'
 
 import { queryKeys } from './query-keys'
 
-/**
- * Reading and emptying the bin.
- *
- * Unscoped, unlike the work-tracker hooks. The select policies on the six tables
- * decide what comes back — a developer's own deleted entries, a mentor's
- * developers', an administrator's everything — so there is nothing here for an
- * access scope to narrow and no id for a caller to pass.
- */
-
 export function useDeletedRecords(): UseQueryResult<DeletedRecord[]> {
   const { isRestoring, user } = useAuth()
 
@@ -39,20 +30,6 @@ export interface BinAction {
   id: string
 }
 
-/**
- * Everything a restore could put back on a screen.
- *
- * Broad on purpose. Restoring one work entry changes the dashboard, the team
- * activity list, the developer's own history and every report covering that date —
- * and the bin has no way to know which of those are mounted. The root key covers
- * all of it in one call, which for a screen used this rarely is the right trade
- * against enumerating five families and forgetting the sixth.
- *
- * The lookup memos are dropped first, for the same reason every other write drops
- * them: the roster reads behind them return deleted rows and the service filters on
- * `deletedAt`, so a refetch through a memo taken before the restore would rebuild
- * the same list without the record that has just come back.
- */
 function useRefreshEverything(): () => Promise<void> {
   const queryClient = useQueryClient()
 
@@ -74,8 +51,6 @@ export function useRestoreRecord(): UseMutationResult<void, Error, BinAction> {
       snackbar.error(toUserMessage(error, 'That record could not be restored. Please try again.'))
     },
 
-    // Whether it worked or not: a failure is often somebody else having got there
-    // first, and the bin should stop offering what is no longer in it.
     onSettled: refresh,
   })
 }

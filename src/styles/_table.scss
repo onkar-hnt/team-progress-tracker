@@ -1,11 +1,6 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-/// Shared table styling.
-///
-/// Screens use a plain semantic `<table>` with this class rather than a grid
-/// component, which keeps headers, captions and keyboard navigation working
-/// for free and adds nothing to the bundle.
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -26,9 +21,7 @@
     vertical-align: top;
   }
 
-  /// The header sits on the subtle surface rather than white, and closes with a
-  /// heavier rule than the rows use, so that when it is stuck to the top of a
-  /// scrolled table it still reads as a header rather than as the first row.
+  /// Sticky header: inset shadow travels with the cell when rows scroll underneath.
   thead th {
     @include overline;
 
@@ -37,28 +30,13 @@
     z-index: $z-sticky;
     border-bottom-color: $color-neutral-border;
 
-    /// The same rule again, painted inside the cell. A collapsed border belongs to the
-    /// table's own border grid rather than to the cell, and a browser scrolling rows
-    /// under a stuck header commonly leaves it behind — so the line under the header
-    /// vanished exactly when it was doing the most work, with rows appearing to slide
-    /// out of it. An inset shadow is drawn by the cell and travels with it.
     box-shadow: inset 0 -1px 0 $color-neutral-border;
 
     white-space: nowrap;
     background: $color-surface-subtle;
   }
 
-  /// A row fades in when it is a row that was not there before.
-  ///
-  /// Which is the useful property of animating on mount: typing in the search box, or
-  /// pressing Show more, brings new rows in gently, while sorting and editing do not
-  /// flicker at all — React keeps those elements and only moves or updates them, so
-  /// there is no mount for the animation to hang off. A cue that fires exactly when the
-  /// set of rows changed, without anything having to detect that.
-  ///
-  /// No movement and no stagger. Ten rows sliding up in sequence is a small performance
-  /// on a screen somebody is searching through repeatedly, and the row's position is
-  /// information here in a way that a card's is not.
+  /// Fade-in on mount only; sorting and edits do not remount rows.
   tbody tr {
     @include enter(fade-in, $duration-base);
 
@@ -82,7 +60,6 @@
     white-space: nowrap;
   }
 
-  /// Sortable headers are real buttons so they are reachable by keyboard.
   &__sort {
     @include flex($gap: $space-1, $inline: true);
 
@@ -109,32 +86,7 @@
     color: $color-brand;
   }
 
-  /// The window every table is read through.
-  ///
-  /// Ten rows and then it scrolls, in both directions. Before this the height was
-  /// whatever the data happened to be: a hundred entries made a hundred-row table, and
-  /// the page it sat on grew with it until the filters, the totals and the search box
-  /// above were all a long way above the window — so the one control that would have
-  /// made the table shorter was the one thing scrolled off the screen.
-  ///
-  /// Counted in rows rather than set in pixels, and derived rather than guessed, so it
-  /// stays ten rows if the cell padding or the font ever changes:
-  ///
-  ///   row    = line-height of $font-size-sm + $space-3 top and bottom + 1px rule
-  ///   header = the same, in the smaller overline face
-  ///
-  /// Ten rows of one line each, that is. A row whose cell wraps — a change with three
-  /// fields in it, a long blocker — is taller, so such a table shows fewer than ten and
-  /// scrolls sooner. That is the right way round: the cap is really "about a screenful",
-  /// and a fixed count of tall rows would be the thing that grew without limit.
-  ///
-  /// No minimum. A table of two rows is two rows tall, which is the honest size for it;
-  /// a floor would only put empty space inside the panel to make short lists look like
-  /// long ones.
-  ///
-  /// The header stays put while the body moves under it — `thead th` above is already
-  /// `position: sticky`, which was there for the horizontal case and is what makes the
-  /// vertical one legible rather than a list of unlabelled values.
+  /// Max height derived from ten single-line rows plus the header.
   &__scroll {
     --data-table-row: calc(#{$font-size-sm} * #{$line-height-base} + #{$space-3} * 2 + 1px);
     --data-table-header: calc(#{$font-size-xs} * #{$line-height-base} + #{$space-3} * 2 + 1px);
@@ -142,32 +94,10 @@
     max-height: calc(var(--data-table-header) + var(--data-table-row) * 10);
     overflow: auto;
 
-    /// Reaching the last row hands the scroll back to the page, which is what the reader
-    /// is on their way through. This was `contain` and the wheel stopped dead at row ten,
-    /// on a page that had a summary panel and three more sections below the table. See
-    /// `_reset.scss` for the rule this follows and the one case that goes the other way.
+    /// Chain scroll to the page at the last row; see _reset.scss for the general rule.
     overscroll-behavior: auto;
 
-    /// Sideways only, for a table whose length is fixed by something other than the data.
-    ///
-    /// The cap above exists because a list of records grows without limit: a hundred work
-    /// entries would otherwise be a hundred-row table. A table with one row per table in
-    /// the database schema is not that — it grows when somebody writes a migration, which
-    /// is a handful of rows a year — so capping it buys nothing and costs the thing every
-    /// nested scroller costs.
-    ///
-    /// That cost is why this modifier exists rather than a slightly taller cap. Even with
-    /// chaining allowed, a browser latches a wheel gesture to the scroller it started in
-    /// and only releases it after a pause, so an inner scroller in the middle of a page
-    /// stops the reader on their way down to whatever is below it. Where the height is
-    /// bounded anyway, the honest answer is to have no inner scroller at all and leave the
-    /// page as the only thing that scrolls.
-    ///
-    /// Horizontal scrolling stays, because narrow windows are not bounded by anything.
-    /// `overflow-y` goes back to `visible`, which pairs with `auto` by becoming `auto`
-    /// itself — harmless, because without a height there is no vertical overflow to
-    /// scroll, and the sticky header simply sits at the top of a scrollport that never
-    /// moves vertically.
+    /// Fixed row count; no vertical inner scroller. Horizontal scroll only.
     &--uncapped {
       max-height: none;
       overflow: auto visible;
@@ -175,15 +105,7 @@
   }
 }
 
-/// A table with row actions keeps them against the right edge while the rest of
-/// it scrolls underneath.
-///
-/// Those buttons are the reason the row is on screen, and they sit in the last
-/// column — so on any window too narrow for every column they were the first
-/// thing to disappear, and reaching Edit meant scrolling to find it.
-///
-/// Selected by having actions rather than by a modifier class, so the five
-/// screens that render them do not each have to remember to ask.
+/// Pin the actions column when present; selected via :has so callers need not opt in.
 .data-table:has(.row-actions) {
   th:last-child,
   td:last-child {
@@ -193,15 +115,11 @@
     background: $color-white;
   }
 
-  /// The corner cell is stuck to both the top and the right, so it has to sit
-  /// above the header row and the pinned column it belongs to.
   thead th:last-child {
     z-index: $z-sticky-corner;
     background: $color-surface-subtle;
   }
 
-  /// The pinned cell paints over the row, so it has to be told about the hover
-  /// as well, or the highlight stops short of the right edge.
   tbody tr:hover td:last-child {
     background: $color-surface-subtle;
   }

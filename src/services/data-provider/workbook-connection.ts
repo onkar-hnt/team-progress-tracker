@@ -9,25 +9,11 @@ import {
 } from './excel/file-handle-store'
 import type { WorkbookFileStore } from './excel/file-workbook-gateway'
 
-/**
- * Tracks which workbook the application is reading and writing.
- *
- * Only relevant to the `local-excel` data source, where the file is chosen by
- * the person using the app rather than fixed by configuration. It is a small
- * observable store rather than React state because the data provider — which
- * is not a component — has to read the same value.
- */
-
 export type WorkbookConnectionStatus =
-  /** Checking for a previously chosen workbook. */
   | 'checking'
-  /** Ready to read and write. */
   | 'connected'
-  /** No workbook chosen yet. */
   | 'disconnected'
-  /** Chosen before, but the browser needs a click to restore access. */
   | 'needs-permission'
-  /** The browser cannot open files directly. */
   | 'unsupported'
 
 export interface WorkbookConnection {
@@ -55,7 +41,6 @@ export function getWorkbookConnection(): WorkbookConnection {
   return connection
 }
 
-/** The connected file, or `null`. Read by the data provider factory. */
 export function getWorkbookFileStore(): WorkbookFileStore | null {
   return store
 }
@@ -66,18 +51,11 @@ function connect(next: WorkbookFileStore): void {
 }
 
 function describe(error: unknown): string {
-  // An aborted file picker is the person changing their mind, not a fault.
   if (error instanceof DOMException && error.name === 'AbortError') return ''
   return error instanceof Error ? error.message : 'The workbook could not be opened.'
 }
 
-/**
- * Reconnects to the workbook chosen last time, without prompting.
- *
- * Runs at startup. Browsers only re-grant file permission after a gesture, so
- * a remembered file that has lost permission resolves to `needs-permission`
- * and the UI offers a button rather than failing outright.
- */
+/** Restores remembered file at startup; lost permission yields needs-permission. */
 export async function initialiseWorkbookConnection(): Promise<void> {
   if (!isFileSystemAccessSupported()) {
     set({ status: 'unsupported', fileName: null, error: null })
@@ -102,7 +80,6 @@ export async function initialiseWorkbookConnection(): Promise<void> {
   }
 }
 
-/** Re-grants access to the remembered workbook. Must be called from a click. */
 export async function reconnectWorkbook(): Promise<void> {
   try {
     const restored = await restoreWorkbookFile(true)
@@ -122,7 +99,6 @@ export async function reconnectWorkbook(): Promise<void> {
   }
 }
 
-/** Prompts for a workbook. Must be called from a click. */
 export async function chooseWorkbook(): Promise<void> {
   try {
     connect(await chooseWorkbookFile())
@@ -133,11 +109,6 @@ export async function chooseWorkbook(): Promise<void> {
   }
 }
 
-/**
- * Creates a correctly structured, empty workbook and connects to it.
- *
- * Saving it inside the OneDrive folder is what publishes it to SharePoint.
- */
 export async function createAndConnectWorkbook(suggestedName: string): Promise<void> {
   try {
     connect(await createWorkbookFile(buildStarterWorkbook, suggestedName))

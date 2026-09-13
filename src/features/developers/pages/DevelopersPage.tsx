@@ -64,8 +64,6 @@ export function DevelopersPage() {
     )
   }
 
-  // Inactive developers are kept visible but pushed to the end, so history
-  // stays reachable without cluttering the active team.
   const ordered = [...summaries].sort((left, right) => {
     if (left.developer.active !== right.developer.active) return left.developer.active ? -1 : 1
     return left.developer.name.localeCompare(right.developer.name)

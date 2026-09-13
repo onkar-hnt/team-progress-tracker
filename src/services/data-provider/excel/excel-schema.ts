@@ -2,22 +2,8 @@ import type { TaskPriority, TaskStatus } from '@models/daily-work.model'
 import type { ProjectStatus } from '@models/project.model'
 import type { UserRole } from '@models/user.model'
 
-/**
- * The workbook contract.
- *
- * Every value in this file is a published interface shared with the Excel
- * file itself. Changing a table name, a column name or an accepted cell value
- * breaks existing data, so treat these as frozen. New columns may be appended
- * to the workbook without changes here; unknown columns are ignored on read.
- */
 export const WORKBOOK_FILE_NAME = 'Team-Progress-Tracker.xlsx'
 
-/**
- * Excel table (ListObject) names, not worksheet names.
- *
- * Tables are addressed by name so that rows can be read without depending on
- * worksheet layout, cell ranges or row numbers.
- */
 export const EXCEL_TABLES = {
   admin: 'tblAdmin',
   /** The Employees table of the workbook. */
@@ -30,14 +16,6 @@ export const EXCEL_TABLES = {
   dailyWork: 'tblDailyWork',
 } as const
 
-/**
- * Worksheet names, paired with the table each sheet holds.
- *
- * Two names exist for the same data because the two transports address it
- * differently: Microsoft Graph reads a named Excel *table*, while a file read
- * directly from disk has only worksheets to go on. Keeping both here means
- * one workbook satisfies either route.
- */
 export const EXCEL_SHEETS: Readonly<Record<keyof typeof EXCEL_TABLES, string>> = {
   admin: 'Admin',
   developers: 'Developers',
@@ -55,18 +33,9 @@ export function sheetNameForTable(tableName: string): string {
     (candidate) => EXCEL_TABLES[candidate] === tableName,
   )
 
-  // Falling back to the table name keeps an unknown table addressable rather
-  // than silently reading the wrong sheet.
   return key === undefined ? tableName : EXCEL_SHEETS[key]
 }
 
-/**
- * Administrator records.
- *
- * Read-only as far as access is concerned: the bootstrap administrator built
- * into the application is what guarantees somebody can always sign in, and
- * this sheet is the register of everyone who has been granted the role since.
- */
 export const ADMIN_COLUMNS = {
   adminId: 'AdminID',
   adminName: 'AdminName',
@@ -175,12 +144,6 @@ export const DAILY_WORK_COLUMNS = {
   updatedDate: 'UpdatedDate',
 } as const
 
-/**
- * Columns that must exist for a table to be mappable at all.
- *
- * Descriptive columns are omitted deliberately: a blank `Remarks` column is
- * normal, whereas a missing `EntryId` column means the workbook is wrong.
- */
 export const REQUIRED_ADMIN_COLUMNS: readonly string[] = [
   ADMIN_COLUMNS.adminId,
   ADMIN_COLUMNS.adminName,
@@ -237,12 +200,6 @@ export const REQUIRED_DAILY_WORK_COLUMNS: readonly string[] = [
   DAILY_WORK_COLUMNS.progress,
 ]
 
-/**
- * Cell values used by the `Status` column, paired with their domain codes.
- *
- * Read accepts these case-insensitively; write always emits exactly these
- * strings so the workbook stays consistent and filterable by humans.
- */
 export const EXCEL_STATUS_VALUES: Readonly<Record<TaskStatus, string>> = {
   'not-started': 'Not Started',
   'in-progress': 'In Progress',
@@ -274,30 +231,8 @@ export const EXCEL_ACCESS_ROLE_VALUES: Readonly<Record<UserRole, string>> = {
 /** Canonical strings written to yes/no columns such as `IsBlocked`. */
 export const EXCEL_BOOLEAN_VALUES = { true: 'Yes', false: 'No' } as const
 
-/**
- * Canonical strings for the `Status` column on people and mappings.
- *
- * Distinct from `EXCEL_BOOLEAN_VALUES` because "Active" reads far better than
- * "Yes" against a person's name, and because this is the column that revokes
- * access: setting it to `Inactive` is how somebody is off-boarded without
- * deleting their history. Reads also accept Yes/No/true/false.
- */
 export const EXCEL_RECORD_STATUS_VALUES = { true: 'Active', false: 'Inactive' } as const
 
-/**
- * Separator for columns holding several ids in one cell.
- *
- * A comma is the natural choice but is also what a person typing into Excel
- * would use inside prose, so a semicolon is less likely to appear by accident.
- * Reads accept either.
- */
 export const EXCEL_LIST_SEPARATOR = '; '
 
-/**
- * A row as it arrives from the workbook: column name to raw cell value.
- *
- * Values are `unknown` because Excel returns numbers, strings, booleans or
- * error values for the same column depending on cell formatting. Nothing is
- * trusted until it has been through the row schemas.
- */
 export type RawExcelRow = Record<string, unknown>

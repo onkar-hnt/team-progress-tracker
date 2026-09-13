@@ -1,19 +1,12 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// Search box and result count, on one line above a table.
-///
-/// Wraps rather than shrinks: the count moving under the field on a narrow window
-/// is better than a search box too small to read what has been typed into it.
 .table-search {
   @include flex($align: baseline, $gap: $space-4, $wrap: wrap);
 
   margin-bottom: $space-4;
 
   input {
-    // Wide enough for a name and an address, since those are what gets typed
-    // here, and capped so the field does not stretch across a wide window on its
-    // own.
     width: min(22rem, 100%);
   }
 

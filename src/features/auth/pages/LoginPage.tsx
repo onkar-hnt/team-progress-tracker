@@ -15,10 +15,6 @@ import { logFailure, toUserMessage } from '@services/errors/error-message'
 
 import './LoginPage.scss'
 
-/**
- * A permissive email check. The workbook is the real gate, so this only needs
- * to catch obvious typos before a pointless sign-in attempt.
- */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const loginFormSchema = z.object({
@@ -36,14 +32,6 @@ interface LocationState {
   from?: string
 }
 
-/**
- * Sign-in screen.
- *
- * Renders one of two things depending on how the deployment is configured: a
- * Microsoft sign-in button, or the workbook password form used before an app
- * registration exists. The choice comes from the auth provider rather than
- * from configuration read here, so there is one source of truth for it.
- */
 export function LoginPage() {
   const { isAuthenticated, isOffline, isRestoring, signIn, usesCredentials } = useAuth()
   const navigate = useNavigate()
@@ -52,24 +40,11 @@ export function LoginPage() {
   const [signInError, setSignInError] = useState<string | null>(null)
   const [isSigningIn, setIsSigningIn] = useState(false)
 
-  // Where the user was heading before the guard intercepted them.
   const redirectTo = (location.state as LocationState | null)?.from ?? '/dashboard'
 
   if (isRestoring) return <FullPageLoader label="Checking your session…" />
   if (isAuthenticated) return <Navigate replace to={redirectTo} />
 
-  /**
-   * Said in two places, for two different jobs.
-   *
-   * The message beside the form stays put: a rejected sign-in is about the two
-   * fields directly above it and has to remain readable while they are being
-   * corrected, which is the opposite of what a message that fades is for.
-   *
-   * The snackbar is what catches the eye. The alert sits below the button, and
-   * somebody who submitted with Enter while looking at the password field can
-   * miss it appearing — a form that looks unchanged reads as a form that did
-   * nothing.
-   */
   const reportError = (error: unknown) => {
     logFailure('sign in', error)
 
@@ -110,8 +85,6 @@ export function LoginPage() {
           <PasswordForm onError={reportError} onSignedIn={() => void navigate(redirectTo, { replace: true })} />
         ) : (
           <div className="login__form">
-            {/* Microsoft's brand guidance requires their mark in full colour on
-                a neutral surface, which is what `secondary` is. */}
             <Button
               disabled={isSigningIn}
               onClick={() => void signInWithMicrosoft()}
@@ -127,19 +100,8 @@ export function LoginPage() {
           </div>
         )}
 
-        {/* No longer a live region. The snackbar reporting the same sentence is
-            already `role="alert"`, and two of them between one message means a
-            screen reader says it twice. This copy is here to be re-read, not
-            announced — and it renders nothing when there is nothing to say, so
-            the card does not carry an empty gap. */}
         {signInError === null ? null : <p className="form__alert">{signInError}</p>}
 
-        {/*
-          The built-in administrator only exists in the offline workbook
-          provider. Under Supabase Auth the password is held in the database
-          and is not in this bundle, so advertising it here would be both
-          wrong and a standing invitation to try it.
-        */}
         <footer className="login__footer">
           {usesCredentials && isOffline && bootstrapAdmin.isUsingDefaultPassword ? (
             <>
@@ -156,7 +118,6 @@ export function LoginPage() {
   )
 }
 
-/** The fallback form, used only when single sign-on is not configured. */
 function PasswordForm({
   onError,
   onSignedIn,
@@ -196,9 +157,6 @@ function PasswordForm({
         {...register('email')}
       />
 
-      {/* No minimum length checked here, deliberately. This field takes a
-          password that already exists, and refusing a short one would only
-          replace "that was wrong" with a rule the account may predate. */}
       <PasswordField
         autoComplete="current-password"
         error={errors.password?.message}
@@ -214,7 +172,6 @@ function PasswordForm({
   )
 }
 
-/** The Microsoft mark, whose four squares are required to be shown in colour. */
 function MicrosoftLogo() {
   return (
     <svg aria-hidden="true" height="18" viewBox="0 0 23 23" width="18">

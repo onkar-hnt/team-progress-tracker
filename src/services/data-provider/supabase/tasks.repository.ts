@@ -13,38 +13,6 @@ import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 import { TASK_COLUMNS, taskRowSchema, toAssignedTask, toTaskInsert, toTaskUpdate } from './task.mappers'
 
-/**
- * `public.tasks`: work assigned to a developer.
- *
- * Unlike the earlier slices this one filters at source. The query the
- * interface already defines maps cleanly onto SQL, and the schema carries
- * indexes built for exactly these predicates — `tasks_developer_status_idx`
- * and `tasks_due_date_idx` — which only earn their keep if the filtering
- * reaches the database.
- *
- * The filtered read goes through `list_tasks` rather than a filter chain, for
- * the reasons recorded in `20260913060000_filtered_list_functions.sql`. Every
- * other statement here is a single-row lookup or a write, and stays an
- * ordinary PostgREST call: there is nothing about `where id = …` that a
- * function would express better.
- *
- * The translation must agree with `matchesTaskQuery`, the in-memory
- * evaluation both other providers use. `WorkTrackerService` re-applies the
- * developer filter over whatever comes back, so a mistake here could not
- * widen a result beyond the caller's scope, but it could still narrow one
- * wrongly, and the two implementations are checked against each other during
- * verification.
- */
-
-/**
- * An empty list in the query means "nothing matches".
- *
- * `matchesTaskQuery` reaches that answer naturally, since `[].includes(x)` is
- * false. Asking the database instead would rely on the difference between an
- * empty list and no list surviving the round trip, so the answer is given
- * here — and it saves a request. This is a real case, not a defensive one: a
- * mentor with no assigned developers has exactly this scope.
- */
 function matchesNothing(query: AssignedTaskQuery): boolean {
   return (
     query.developerIds?.length === 0 ||
@@ -61,10 +29,6 @@ export async function selectTasks(
 ): Promise<AssignedTask[]> {
   if (query !== undefined && matchesNothing(query)) return []
 
-  // A task with no mentor matches no list of mentor ids, and one with no due
-  // date is never past one. Both fall out of how the function compares them —
-  // null satisfies neither `= any (…)` nor `<=` — rather than needing a case
-  // here, which is the same thing the filter chain relied on.
   const request = client.rpc('list_tasks', {
     p_developer_ids: filterList(query?.developerIds),
     p_mentor_ids: filterList(query?.mentorIds),
@@ -74,9 +38,6 @@ export async function selectTasks(
     p_due_on_or_before: query?.dueOnOrBefore ?? null,
   })
 
-  // Most recently updated first, which is the order the task lists draw and the
-  // order `AssignedTaskQuery.limit` promises. Added to the select over the function
-  // rather than inside it, so one definition serves the paged and unpaged reads.
   const { data, error } =
     query?.limit === undefined
       ? await request
@@ -142,12 +103,6 @@ export async function updateTaskRow(
 
   if (changed.length === 0) return requireTask(client, id)
 
-  // A developer may change the status of their own task and nothing else — a
-  // distinction row-level security cannot draw, because a policy is evaluated
-  // per row and sees no columns. So a status-only edit goes through
-  // `set_task_status`, which checks the caller and writes just that column,
-  // while every other edit takes the direct path where `tasks_update` now
-  // admits only admins and mentors.
   if (changed.length === 1 && payload.status !== undefined) {
     return setTaskStatus(client, id, payload.status)
   }
@@ -168,22 +123,9 @@ export async function updateTaskRow(
   return parseRows('Tasks', taskRowSchema, [data], toAssignedTask)[0]!
 }
 
-/**
- * Moves a task along, as the assignee, their mentor, or an admin.
- *
- * The function returns the whole row, so the result is parsed with the same
- * schema a select goes through rather than trusted because it came from a
- * write. It returns null for a task that does not exist, which is reported
- * here as the not-found it is; a caller who may not touch an existing task
- * gets a privilege error from the function instead, which the error mapper
- * turns into "you do not have permission to change this record".
- */
 async function setTaskStatus(
   client: AppSupabaseClient,
   id: string,
-  // `string` rather than `TaskStatus`, matching the insert payload: this is a
-  // column value on its way to a `text` parameter, and the table's check
-  // constraint is what decides which values are legal.
   status: string,
 ): Promise<AssignedTask> {
   const { data, error } = await client.rpc('set_task_status', {
@@ -200,14 +142,6 @@ async function setTaskStatus(
   return parseRows('Tasks', taskRowSchema, [data], toAssignedTask)[0]!
 }
 
-/**
- * Puts a task aside rather than destroying it.
- *
- * The daily updates logged against it are left exactly as they are, still naming
- * it. They are a record of work that happened, and they still resolve the task's
- * title — a report of last month must not develop gaps because somebody tidied up
- * afterwards. See `soft-delete.ts`.
- */
 export async function deleteTaskRow(client: AppSupabaseClient, id: string): Promise<void> {
   await softDeleteRow(client, 'tasks', id)
 }
@@ -218,12 +152,6 @@ async function requireTask(client: AppSupabaseClient, id: string): Promise<Assig
   return task
 }
 
-/**
- * Checks the references a task makes, for whichever of them are being set.
- *
- * A clearing `mentorId` is skipped rather than looked up: `undefined` means
- * "no mentor", and there is nothing to confirm the existence of.
- */
 async function assertTaskReferences(
   client: AppSupabaseClient,
   request: {

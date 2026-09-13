@@ -1,14 +1,5 @@
 import type { ReactElement } from 'react'
 
-/**
- * Inline icon set.
- *
- * Hand-written SVG rather than an icon package: the application needs a
- * dozen glyphs, and inlining them avoids a dependency and a second network
- * request. Icons are decorative here because every one sits next to a text
- * label or an accessible name on the control itself.
- */
-
 export type IconName =
   | 'activity'
   | 'alert'
@@ -60,8 +51,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
   ),
   activity: <path d="M3 12h4l3 7 4-14 3 7h4" />,
 
-  /// A clock with its hands, wound anticlockwise: the arrow on the left is what
-  /// says "back through time" rather than "what time is it".
   history: (
     <>
       <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
@@ -113,10 +102,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M3 9h18M9 9v11" />
     </>
   ),
-
-  /// Stacked discs, the way a database has been drawn since the disc pack. The two
-  /// lower arcs are half-ellipses rather than full ones, because the top of each is
-  /// hidden by the disc above it — drawing them whole reads as three rings.
   database: (
     <>
       <ellipse cx="12" cy="6" rx="8" ry="3" />
@@ -126,8 +111,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
   ),
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
 
-  // The clapper is a separate arc below the bell so it still reads at 16px,
-  // where a closed bell outline turns into a blob.
   bell: (
     <>
       <path d="M6 9.5a6 6 0 0 1 12 0c0 3.8 1 5.1 1.7 5.9.4.4.1 1.1-.5 1.1H4.8c-.6 0-.9-.7-.5-1.1C5 14.6 6 13.3 6 9.5z" />
@@ -141,9 +124,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
     </>
   ),
   check: <path d="M5 12.5 9.5 17 19 7.5" />,
-
-  // A triangle for a warning and the circle above for an error, which is the
-  // one distinction between the two that is legible without reading the label.
   warning: (
     <>
       <path d="M12 4.5 21 19.5H3z" />
@@ -164,10 +144,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M5 19h14" />
     </>
   ),
-
-  // The pair on the password toggle. Drawn as one lens shape so the two read as
-  // the same object with and without a line through it, which is what makes the
-  // state legible at a glance rather than only from the label.
   eye: (
     <>
       <path d="M2.5 12C4.8 8 8.1 6 12 6s7.2 2 9.5 6c-2.3 4-5.6 6-9.5 6s-7.2-2-9.5-6z" />
@@ -182,9 +158,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M3.5 3.5l17 17" />
     </>
   ),
-
-  // Narrowing rules rather than a funnel outline: the same idea, and it stays
-  // legible at the size the filter labels use it.
   filter: <path d="M4 6.5h16M7 12h10M10 17.5h4" />,
   inbox: (
     <>
@@ -192,10 +165,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M3 13h5l1.2 2h5.6L16 13h5" />
     </>
   ),
-
-  // A bin with a lid, and the two lines that make it read as one rather than as a
-  // cup: the same shape every application uses for this, which is the point —
-  // nothing about "the things you deleted" is worth being inventive with.
   trash: (
     <>
       <path d="M4 7.5h16" />
@@ -204,9 +173,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M10.5 11.5v5M13.5 11.5v5" />
     </>
   ),
-
-  // Two three-quarter arcs rather than a full circle, so the arrowheads read
-  // as direction of travel instead of decoration on a ring.
   refresh: (
     <>
       <path d="M20 12a8 8 0 0 1-8 8 8 8 0 0 1-6.7-3.6" />
@@ -214,9 +180,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M18.7 3.5v4.4h-4.4M5.3 20.5v-4.4h4.4" />
     </>
   ),
-  // An arrow leaving an enclosure, with the open side facing the direction of
-  // travel. A power symbol was the alternative and says something else: this ends
-  // a session, not the machine.
   'sign-out': (
     <>
       <path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
@@ -224,9 +187,6 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <path d="M20 12h-9" />
     </>
   ),
-  // A key, for the screen that administers logins. A padlock was the obvious
-  // alternative and says the wrong thing: this is about who holds a way in, not
-  // about something being shut.
   key: (
     <>
       <circle cx="8" cy="8" r="4" />

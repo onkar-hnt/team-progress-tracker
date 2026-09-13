@@ -13,31 +13,6 @@ import { assertDevelopersExist, assertMentorExists } from './references'
 import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
-/**
- * `public.projects`, together with the membership rows in
- * `public.project_developers`.
- *
- * One repository for both, because the domain treats them as one record: a
- * `Project` carries `assignedDeveloperIds`, and there is no separate
- * `DataProvider` method for membership. Splitting them into two modules would
- * mean neither could return a complete project.
- *
- * Membership is read with an embedded select and written as a difference
- * against the current rows, which is what makes re-saving an unchanged set a
- * no-op rather than a delete and reinsert. The difference itself is applied by
- * `set_project_members`, in one transaction, so a failure between removing the
- * old members and adding the new ones can no longer leave a project with a
- * team that is neither.
- */
-
-/**
- * Every project the caller may see, including the ones in the bin.
- *
- * As with the other two roster reads: the lists and the pickers drop deleted rows
- * in `WorkTrackerService`, and the lookup a project *name* is resolved from does
- * not, so last month's entries do not start reading `Unknown (…)` because somebody
- * tidied up a duplicate project this morning.
- */
 export async function selectProjects(client: AppSupabaseClient): Promise<Project[]> {
   const { data, error } = await client.from('projects').select(PROJECT_WITH_MEMBERS).order('code')
 
@@ -46,13 +21,6 @@ export async function selectProjects(client: AppSupabaseClient): Promise<Project
   return parseRows('Projects', projectRowSchema, data ?? [], toProject)
 }
 
-/**
- * Checks the references a project makes before any of it is written.
- *
- * The foreign keys would catch each of these, but a project is written in
- * two statements, and a member id rejected after the row exists would leave a
- * project half-saved. Checking first means a bad request changes nothing.
- */
 async function assertProjectReferences(
   client: AppSupabaseClient,
   references: { mentorId?: string | undefined; assignedDeveloperIds?: readonly string[] },
@@ -82,10 +50,6 @@ export async function insertProject(
 
   const id = (data as { id: string }).id
 
-  // Skipped for an empty team, unlike on update. A project created without
-  // members has nothing to remove and nothing to add, so the call would be a
-  // round trip to do nothing — whereas an empty list on update is an
-  // instruction to clear the team, and has to be sent.
   if (request.assignedDeveloperIds.length > 0) {
     await setMembers(client, id, request.assignedDeveloperIds)
   }
@@ -98,10 +62,6 @@ export async function updateProjectRow(
   id: string,
   request: UpdateProjectRequest,
 ): Promise<Project> {
-  // Read before anything is written, so a mistyped id is reported as the
-  // missing project it is rather than after a partial save. The membership
-  // difference no longer needs the current list — `set_project_members` works
-  // that out for itself — but this check does.
   await requireProject(client, id)
 
   await assertProjectReferences(client, request)
@@ -113,9 +73,6 @@ export async function updateProjectRow(
       .from('projects')
       .update(payload)
       .eq('id', id)
-      // Belt and braces with the `requireProject` above, which has already refused a
-      // project in the bin: this is the statement that would write, and a check on
-      // the row it writes cannot be raced by a delete arriving in between.
       .is('deleted_at', null)
       .select('id')
       .maybeSingle()
@@ -127,9 +84,6 @@ export async function updateProjectRow(
     if (data === null) throw new RecordNotFoundError('Projects', id)
   }
 
-  // Membership is only touched when the caller mentioned it. An update that
-  // changes a project's status must not empty its team as a side effect,
-  // which is what reading an absent list as "assign nobody" would do.
   if (request.assignedDeveloperIds !== undefined) {
     await setMembers(client, id, request.assignedDeveloperIds)
   }
@@ -137,22 +91,6 @@ export async function updateProjectRow(
   return requireProject(client, id)
 }
 
-/**
- * Puts a project in the bin, with the schema deciding what may go in.
- *
- * The delete actions differ per table, and each was chosen deliberately:
- * `project_developers` cascades because the team list is the project's own
- * and means nothing without it; `developers.primary_project_id` and
- * `feedback.project_id` fall to null because those records outlive the
- * project; `tasks` and `daily_updates` restrict, because they are the work
- * history and deleting a project must not erase it.
- *
- * That last restriction is the one a soft delete would have walked past, so
- * `guard_roster_deletion` restates it and it still arrives as `RecordInUseError`
- * — the same answer the Excel provider reached by counting rows itself. The other
- * two are unchanged and still apply when the project is destroyed from the bin,
- * which is the only real DELETE left here.
- */
 export async function deleteProjectRow(client: AppSupabaseClient, id: string): Promise<void> {
   return softDeleteRow(client, 'projects', id)
 }
@@ -175,20 +113,6 @@ export async function requireProject(client: AppSupabaseClient, id: string): Pro
   return parseRows('Projects', projectRowSchema, [data], toProject)[0]!
 }
 
-/**
- * Brings the membership rows in line with the requested set.
- *
- * Still a difference rather than a delete-and-reinsert, so that saving an
- * unchanged list writes nothing and `created_at` on a row that was already
- * there is not restamped by somebody opening the dialog and pressing save.
- * What changed is where the difference is worked out: `set_project_members`
- * does it in one transaction, where a duplicate id is a redundant instruction
- * rather than a conflict, and where a failure cannot leave the old members
- * removed and the new ones unadded.
- *
- * Reported as an update, because that is what it is from the caller's side
- * even when the statements underneath are a delete and an insert.
- */
 async function setMembers(
   client: AppSupabaseClient,
   projectId: string,

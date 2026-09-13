@@ -11,25 +11,6 @@ import type {
   WorkbookTableInfo,
 } from './workbook-gateway'
 
-/**
- * Reads and writes a real `.xlsx` file.
- *
- * Used against the OneDrive-synced copy of the workbook on disk, which the
- * sync client then pushes back to SharePoint. That is what makes the
- * application Excel-driven without a Microsoft app registration: the browser
- * never talks to SharePoint, it talks to a file the user chose.
- *
- * Design notes:
- *
- * - Rows are addressed by matching a key column, never by row number, so
- *   sorting or inserting rows in Excel cannot corrupt a write.
- * - The whole file is loaded, modified and written back. That preserves
- *   sheets, formatting and formulas this application knows nothing about,
- *   which matters because people edit the file by hand as well.
- * - Reads are cached for the lifetime of one operation only. Anything longer
- *   would show stale data after somebody edits the file in Excel.
- */
-
 /** Where the bytes come from and go back to. */
 export interface WorkbookFileStore {
   readonly name: string
@@ -45,12 +26,6 @@ export interface WorkbookFileStore {
 /** Cell values this gateway is prepared to write. */
 type WritableCell = boolean | number | string | null
 
-/**
- * ExcelJS is loaded on demand.
- *
- * It is a large library, and only this data source needs it, so it must not
- * be in the initial bundle.
- */
 async function loadExcelJs() {
   const module = await import('exceljs')
   // The package ships a CommonJS default export under some bundler configs.
@@ -74,12 +49,6 @@ export class FileWorkbookGateway implements WorkbookGateway {
     return this.store.canWrite
   }
 
-  /**
-   * ExcelJS can create a table but cannot extend one when reloading a file,
-   * so rows this application appended would fall outside the table range and
-   * disappear from anything reading it. Structure is therefore reported and
-   * never altered here; the Graph transport is what repairs it.
-   */
   get canManageStructure(): boolean {
     return false
   }
@@ -88,13 +57,6 @@ export class FileWorkbookGateway implements WorkbookGateway {
     await this.open()
   }
 
-  /**
-   * Reports each template sheet that exists, under its table name.
-   *
-   * This transport has only worksheets to go on, so "the table exists" means
-   * "the sheet exists and has a header row". Sheets outside the template are
-   * still listed, because an unexpected sheet is useful diagnostic detail.
-   */
   async describeStructure(): Promise<WorkbookStructure> {
     const { workbook } = await this.open()
     const sheetNames = workbook.worksheets.map((sheet) => sheet.name)
@@ -195,8 +157,6 @@ export class FileWorkbookGateway implements WorkbookGateway {
         if (cellToString(row.getCell(keyIndex + 1).value) === keyValue) matching.push(rowNumber)
       })
 
-      // Removed from the bottom up, because splicing a row renumbers every
-      // row below it and would invalidate the remaining positions.
       for (const rowNumber of [...matching].reverse()) {
         sheet.spliceRows(rowNumber, 1)
       }
@@ -223,14 +183,6 @@ export class FileWorkbookGateway implements WorkbookGateway {
     return { workbook }
   }
 
-  /**
-   * Loads the file, applies a change and writes it back.
-   *
-   * Read-modify-write on every operation is deliberately simple: the tables
-   * are small, and it means a change somebody makes in Excel between two
-   * application writes is never silently overwritten by a stale copy held in
-   * memory.
-   */
   private async mutate(
     tableName: string,
     apply: (sheet: Worksheet, columns: string[]) => void,
@@ -274,12 +226,6 @@ function requireSheet(workbook: Workbook, sheetName: string): Worksheet {
   return sheet
 }
 
-/**
- * Reads the header row.
- *
- * Blank trailing cells are dropped so a sheet with formatting applied beyond
- * the data does not produce a run of empty column names.
- */
 function readHeader(sheet: Worksheet, sheetName: string): string[] {
   const header = sheet.getRow(1)
   const columns: string[] = []
@@ -303,13 +249,6 @@ function readHeader(sheet: Worksheet, sheetName: string): string[] {
   return columns
 }
 
-/**
- * The header row, or an empty list when the sheet has none.
- *
- * Unlike `readHeader` this does not throw: structure reporting exists to
- * describe a broken workbook, so a sheet with no header is an answer rather
- * than a failure.
- */
 function readOptionalHeader(sheet: Worksheet): string[] {
   const columns: string[] = []
 
@@ -338,21 +277,12 @@ function readSheet(workbook: Workbook, sheetName: string): WorkbookTable {
       if (value !== null && value !== '') hasValue = true
     })
 
-    // Excel files routinely carry blank rows below the data once somebody has
-    // deleted content. Skipping them avoids a run of phantom records.
     if (hasValue) rows.push(record)
   })
 
   return { columns, rows }
 }
 
-/**
- * Reduces an ExcelJS cell to a plain value.
- *
- * ExcelJS represents rich text, formulas, hyperlinks and errors as objects.
- * The mapping layer above expects primitives, so each is reduced to the value
- * a person would see in the cell.
- */
 function normaliseCell(value: unknown): boolean | number | string | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'boolean' || typeof value === 'number') return value
@@ -370,8 +300,6 @@ function normaliseCell(value: unknown): boolean | number | string | null {
       text?: string
     }
 
-    // A formula cell carries its computed result, which is the value that
-    // matters; an error cell has no usable value at all.
     if (candidate.error !== undefined) return null
     if (candidate.result !== undefined) return normaliseCell(candidate.result)
     if (candidate.richText !== undefined) {
@@ -407,13 +335,6 @@ function findRowNumber(
   return match
 }
 
-/**
- * Lays a record out in the sheet's own column order.
- *
- * Columns the record does not mention are written as `null` rather than
- * skipped, so an update clears a value that was removed instead of leaving
- * the previous one in place.
- */
 function toCellArray(columns: readonly string[], row: RawExcelRow): WritableCell[] {
   return columns.map((column) => {
     const value = row[column]

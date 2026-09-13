@@ -18,18 +18,6 @@ export const AUTH_MODES = ['entra', 'local', 'supabase'] as const
 
 export type AuthMode = (typeof AUTH_MODES)[number]
 
-/**
- * Which identity source to use.
- *
- * `VITE_AUTH_MODE` pins the choice; otherwise the most capable configured
- * source wins. Supabase outranks Entra because Supabase Auth is what makes
- * the database enforce access, and Entra only ever secured the workbook.
- *
- * `local` is last and reachable by configuration alone. That ordering is the
- * point: the built-in administrator credentials must never be something the
- * application falls back to because something else failed, only something an
- * operator asked for.
- */
 export function resolveAuthMode(): AuthMode {
   const configured = appConfig.authMode
 
@@ -41,16 +29,6 @@ export function resolveAuthMode(): AuthMode {
   return 'local'
 }
 
-/**
- * Builds the configured identity source.
- *
- * The data provider is passed as a getter rather than an instance: the Excel
- * provider needs a Graph token, which comes from the same sign-in the Entra
- * provider performs, and a lazy accessor keeps that from being a construction
- * cycle. `SupabaseAuthProvider` needs none of it — it reads identity from the
- * database directly, so it stays independent of whichever data source the
- * rest of the application is using.
- */
 export function createAuthProvider(): AuthProvider {
   switch (resolveAuthMode()) {
     case 'supabase':

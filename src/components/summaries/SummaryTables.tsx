@@ -3,14 +3,6 @@ import { Link } from 'react-router-dom'
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import type { DeveloperSummary, ProjectSummary } from '@utils/work-summary.utils'
 
-/**
- * Tabular summaries used by both the dashboard and the reports screen.
- *
- * Developers and projects with no activity in the period are dropped, since a
- * row of zeroes crowds out the rows that matter. The caller states the period
- * in the surrounding panel.
- */
-
 interface DeveloperSummaryTableProps {
   summaries: readonly DeveloperSummary[]
   caption?: string

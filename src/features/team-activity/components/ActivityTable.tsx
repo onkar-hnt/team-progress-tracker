@@ -55,33 +55,10 @@ interface ActivityTableProps {
   deletingId: string | null
 }
 
-/**
- * How many rows are drawn before the rest are offered.
- *
- * The whole point of the filters above this table is that the answer is usually
- * far smaller than this, so most periods never see the button. A month of a busy
- * team does, and it is the case that matters: five hundred rows of tooltips and
- * badges is a second of layout on every sort, for a table nobody reads past the
- * first screen of.
- *
- * The rows are all fetched and all sorted — this caps rendering, not data. So the
- * figures above the table, and the order the first page appears in, are those of
- * the whole period rather than of what happens to be drawn.
- */
+// Caps rendered rows, not fetched or sorted data.
 const ROWS_PER_PAGE = 100
 
-/**
- * Sortable table of work entries.
- *
- * A semantic table with button headings rather than a data-grid dependency: for one
- * team the row count never justifies the bundle, and this keeps sorting, focus
- * order and screen-reader output predictable. The headings are `SortableHeader`,
- * which started here and now serves five other tables — this one kept its own copy
- * for a while after that, with its own `aria-sort` ternary to get wrong.
- */
 export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: ActivityTableProps) {
-  // Dates, counts and hours read newest-and-largest first; names and statuses read
-  // alphabetically. The hook holds that rule for every table that sorts.
   const { sort, toggle } = useTableSort<SortKey>({ key: 'date', direction: 'desc' }, [
     'date',
     'hours',
@@ -92,8 +69,6 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
 
   const sorted = useMemo(
     () =>
-      // Ties fall back to the work date so the order never jitters between renders
-      // for rows that are otherwise equal.
       sortRows(entries, sort, compareEntries, (left, right) =>
         right.date.localeCompare(left.date),
       ),
@@ -156,11 +131,6 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
                 <td className="data-table__numeric">
                   {entry.hoursSpent === undefined ? '—' : entry.hoursSpent}
                 </td>
-                {/* A line each, cut off rather than wrapped. Somebody who
-                    pasted four sentences into one update used to make their row
-                    six times the height of every other, and a table whose rows
-                    are all different heights cannot be scanned down a column.
-                    The whole text is a hover away. */}
                 <td className="activity-table__task">
                   <p className="activity-table__title">
                     <Tooltip clips label={entry.taskTitle}>
@@ -197,12 +167,6 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
                       </Button>
                     ) : null}
 
-                    {/* One Delete, which opens the confirmation dialog every other
-                        delete in the application opens. This row used to hold its
-                        own two-click confirm — press Delete, press Confirm — from
-                        before there was a dialog, and once the screen grew one the
-                        two stacked up: three presses to remove one entry, the
-                        second of them a button that looked like the deed itself. */}
                     {canDeleteEntry(user, entry) ? (
                       <Button
                         isLoading={isDeleting}
@@ -222,9 +186,6 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
       </table>
 
       {remaining === 0 ? null : (
-        // Inside the horizontally scrolling wrapper, so it stays with the table it
-        // belongs to. `sticky` on the left edge keeps it visible on a narrow
-        // window, where the table itself is wider than the panel.
         <div className="activity-table__more">
           <p>
             Showing {shown} of {sorted.length} entries.

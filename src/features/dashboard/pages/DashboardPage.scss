@@ -8,10 +8,6 @@
     @include grid($gap: $space-6);
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
-    /// The leading panel gets more room than an even split, and it is the one
-    /// each reader opens the screen for: blockers for a mentor, their own recent
-    /// work for a developer — which also needs the width, since its rows carry a
-    /// status control and an Edit action.
     &--priority {
       grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     }
@@ -21,25 +17,11 @@
     }
   }
 
-  /// A fixed height rather than a maximum, so the two panels beside each other
-  /// are the same height whether one of them is empty and the other full. Tall
-  /// enough for three entries, which is what makes it read as a list that
-  /// continues rather than one that has been cut off.
-  ///
-  /// This did contain its scroll, on the theory that a flick carrying into the page
-  /// behind would cost the reader their place. It costs them more the other way: these
-  /// panels are a third of the way down a long dashboard, and stopping the wheel at the
-  /// end of a three-entry list meant the charts below could not be reached from here at
-  /// all. See `_reset.scss` for where containment does belong.
   &__panel-scroll {
     height: 21rem;
     overflow-y: auto;
     overscroll-behavior: auto;
 
-    /// The list inside caps itself at a screenful elsewhere, and here that would be a
-    /// scrolling box inside a scrolling box — where a flick either moves the wrong one
-    /// or stops at an inner end that looks like the end of the list. This panel is
-    /// shorter than that cap anyway, so it is the one that should do the scrolling.
     .entry-list {
       max-height: none;
       overflow-y: visible;
@@ -81,9 +63,6 @@
     font-size: $font-size-xs;
   }
 
-  /// The entry panels are narrow, so the control keeps to the compact sizing
-  /// the task list uses and is allowed to wrap under the badges. That sizing
-  /// lives on the control itself, as `Dropdown`'s compact variant.
   &__entry-status {
     @include flex($inline: true, $gap: $space-2);
   }

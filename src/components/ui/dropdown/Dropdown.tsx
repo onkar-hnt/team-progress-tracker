@@ -4,27 +4,8 @@ import { Icon } from '@components/ui/icons/Icon'
 
 import './Dropdown.scss'
 
-/**
- * A dropdown built out of ordinary elements instead of `<select>`.
- *
- * A native `<select>` renders its list with the operating system, which is
- * why its options cannot be styled, cannot be grouped visually beyond
- * `<optgroup>`, and — the reason this exists — cannot be given a height. A
- * developer with thirty tasks got a list as tall as the screen, drawn outside
- * the page and looking nothing like the rest of it.
- *
- * What a native select does well is worth keeping, so this reproduces it
- * rather than settling for a styled box: full keyboard control, type-ahead,
- * and the list closing on Escape or a click elsewhere. Anything less is a
- * downgrade for whoever fills the form in without a mouse.
- *
- * The list is `position: fixed`, which is what lets it hang outside the modal
- * body and the scrolling admin tables. Both clip their overflow, and an
- * absolutely positioned list inside them would be cut off at the edge. It
- * stays in the DOM where it was written rather than being moved to the end of
- * the document, because the forms that use it are opened inside a `<dialog>`,
- * and anything rendered outside that dialog would sit behind its backdrop.
- */
+// Native select cannot style options or cap list height; this keeps keyboard and type-ahead.
+// List is position: fixed to escape modal/table overflow but stays inside the dialog subtree.
 
 export interface DropdownOption {
   readonly value: string
@@ -37,12 +18,7 @@ export interface DropdownOption {
 }
 
 interface DropdownProps {
-  /**
-   * Options in display order. Include the empty choice — `{ value: '', label:
-   * 'Select a project' }` — rather than passing a placeholder separately, so
-   * the caller decides whether clearing the field is allowed at all. An empty
-   * value is styled as a placeholder automatically.
-   */
+  /** Include the empty choice in options when clearing is allowed. */
   options: readonly DropdownOption[]
 
   value: string
@@ -54,12 +30,7 @@ interface DropdownProps {
   disabled?: boolean
   isInvalid?: boolean
 
-  /**
-   * Smaller, for a control that sits inside a table row or a list item rather
-   * than on a form. Here rather than left to each page's stylesheet, because
-   * two screens wanted the same thing and were overriding the same properties
-   * in two places.
-   */
+  /** Smaller variant for table rows and list items. */
   isCompact?: boolean
 
   /** For react-hook-form's touched tracking. */
@@ -69,51 +40,20 @@ interface DropdownProps {
   ariaLabel?: string
 }
 
-/**
- * The height of one row, in pixels, matching the `2.25rem` in `Dropdown.scss`.
- *
- * Every row is stated to be exactly this tall there, so this is a fact about
- * the list rather than a guess at it. Duplicated here because the list is cut
- * to a whole number of rows, and a height only the stylesheet knows cannot be
- * divided.
- */
+// Must match 2.25rem row height in Dropdown.scss.
 const OPTION_HEIGHT = 36
 
-/** The list's own padding, top and bottom together. Also from the stylesheet. */
 const LIST_PADDING = 8
 
-/**
- * How many rows are visible before the list scrolls instead of growing.
- *
- * Low on purpose. The list has to stop growing early enough that adding options
- * stops changing how tall it is — a list that only scrolls once it is most of
- * the screen tall has a limit in name only.
- */
 const VISIBLE_OPTIONS = 6
 
-/**
- * Cut to whole rows rather than a round number of pixels, so a list that
- * scrolls never opens with a half row at the bottom — which reads as the list
- * being clipped rather than as there being more to see.
- */
 const MAX_LIST_HEIGHT = OPTION_HEIGHT * VISIBLE_OPTIONS + LIST_PADDING
 
-/** Breathing room between the control and its list, and the viewport edge. */
 const GAP = 4
 
 interface Placement {
   left: number
-
-  /**
-   * The control's width, exactly.
-   *
-   * The list is not allowed to be wider than what opened it. Sized to its own
-   * content it came out wider than the control and the two read as unrelated —
-   * so the control reserves the width its options need instead, and the list
-   * simply follows. See `dropdown__sizer`.
-   */
   width: number
-
   maxHeight: number
 
   /** Set when the list opens downwards. */
@@ -123,7 +63,6 @@ interface Placement {
   bottom?: number
 }
 
-/** The gap between two options that are not in the same group. */
 function startsGroup(options: readonly DropdownOption[], index: number): boolean {
   const group = options[index]?.group
   if (group === undefined) return false
@@ -152,18 +91,13 @@ export function Dropdown({
   const [isOpen, setIsOpen] = useState(false)
   const [placement, setPlacement] = useState<Placement | null>(null)
 
-  /** Which option the keyboard is on, which is not yet which one is chosen. */
   const [activeIndex, setActiveIndex] = useState(-1)
 
-  /** Accumulated type-ahead, and when it was last added to. */
   const searchRef = useRef({ term: '', at: 0 })
 
   const selectedIndex = options.findIndex((option) => option.value === value)
   const selected = selectedIndex === -1 ? undefined : options[selectedIndex]
 
-  // Measured by character count rather than by rendering each one: the point is
-  // to reserve a sensible width, not an exact one, and laying out every option
-  // to find the widest would cost a reflow on each render.
   const widestLabel = useMemo(
     () =>
       options.reduce(
@@ -175,14 +109,6 @@ export function Dropdown({
 
   const optionId = (index: number) => `${generatedId}-option-${String(index)}`
 
-  /**
-   * Measures the control and decides where the list goes.
-   *
-   * Re-run on scroll and resize while open rather than once: a fixed list is
-   * placed against the viewport, so anything that moves the control leaves it
-   * behind. Scroll is captured so an inner scroller — the modal body — counts
-   * too, since those events do not bubble to the window.
-   */
   const place = useCallback(() => {
     const trigger = triggerRef.current
     if (trigger === null) return
@@ -191,9 +117,6 @@ export function Dropdown({
     const below = window.innerHeight - rect.bottom - GAP * 2
     const above = rect.top - GAP * 2
 
-    // Downwards unless it genuinely does not fit and there is more room the
-    // other way. Flipping as soon as the list is merely taller than the space
-    // would send it upwards on a nearly full screen, which reads as a glitch.
     const opensUp = below < Math.min(MAX_LIST_HEIGHT, above) && above > below
 
     setPlacement({
@@ -225,8 +148,7 @@ export function Dropdown({
 
     const reposition = () => place()
 
-    // `capture` so scrolling inside the modal body reaches this, and `passive`
-    // because it only reads layout.
+    // capture: modal body scroll; passive: read-only layout.
     window.addEventListener('scroll', reposition, { capture: true, passive: true })
     window.addEventListener('resize', reposition)
 
@@ -239,8 +161,7 @@ export function Dropdown({
   useEffect(() => {
     if (!isOpen) return
 
-    // `pointerdown` rather than `click`, so pressing outside dismisses the
-    // list before the thing underneath reacts to being pressed.
+    // pointerdown dismisses before the element underneath receives click.
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target
       if (target instanceof Node && containerRef.current?.contains(target) === true) return
@@ -252,9 +173,6 @@ export function Dropdown({
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [close, isOpen])
 
-  // Keeps the highlighted option inside the scrolling area. `nearest` so
-  // stepping through the list moves it one row at a time instead of jumping
-  // the highlighted option to the middle.
   useEffect(() => {
     if (!isOpen || activeIndex < 0) return
 
@@ -282,9 +200,6 @@ export function Dropdown({
 
     onChange(option.value)
     close()
-
-    // Focus never left the trigger — the list is driven by
-    // `aria-activedescendant` — so there is nothing to restore.
   }
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -295,8 +210,6 @@ export function Dropdown({
         const direction = event.key === 'ArrowDown' ? 1 : -1
 
         if (!isOpen) {
-          // Opening onto whatever is already chosen, so arrowing from a set
-          // value continues from there rather than from the top.
           open(selectedIndex === -1 ? firstEnabled(direction) : selectedIndex)
           return
         }
@@ -331,8 +244,7 @@ export function Dropdown({
       case 'Escape': {
         if (!isOpen) return
 
-        // Stopped here so Escape closes the list and not the dialog the form
-        // is sitting in.
+        // stopPropagation so Escape closes the list, not the parent dialog.
         event.preventDefault()
         event.stopPropagation()
         close()
@@ -340,14 +252,11 @@ export function Dropdown({
       }
 
       case 'Tab': {
-        // Not prevented: moving on should move on. The list is only dismissed.
         if (isOpen) close()
         return
       }
 
       default: {
-        // Type-ahead. A single printable character, with modifiers excluded so
-        // browser shortcuts still work.
         if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return
 
         event.preventDefault()
@@ -367,9 +276,7 @@ export function Dropdown({
 
         if (match === -1) return
 
-        // Highlighted rather than chosen, even when closed. A native select
-        // changes the value as you type, which on a form that saves what it is
-        // given is a change nobody asked for.
+        // Type-ahead highlights only; native select would commit on each keystroke.
         if (!isOpen) open(match)
         else setActiveIndex(match)
       }
@@ -405,13 +312,7 @@ export function Dropdown({
             {selected?.label ?? ''}
           </span>
 
-          {/* Holds the control open to the width of its longest option, so the
-              list — which is exactly as wide as the control — has room for all
-              of them. Stacked behind the label rather than beside it, and zero
-              height, so it takes part in width and in nothing else.
-
-              Only has an effect where the control is free to grow. In a form
-              field of a fixed width it is clipped and changes nothing. */}
+          {/* Hidden sizer reserves width for the longest option. */}
           <span aria-hidden="true" className="dropdown__sizer">
             {widestLabel}
           </span>
@@ -423,9 +324,7 @@ export function Dropdown({
         <ul
           className="dropdown__list"
           id={listId}
-          // Kept out of the tab order and off the focus path: the trigger keeps
-          // focus and points at the active option instead, which is what makes
-          // typing and arrowing work without a focus trap.
+          // Trigger keeps focus; aria-activedescendant drives keyboard selection.
           onPointerDown={(event) => event.preventDefault()}
           ref={listRef}
           role="listbox"
@@ -453,14 +352,7 @@ export function Dropdown({
                 data-index={index}
                 id={optionId(index)}
                 onClick={(event) => {
-                  // The list stays in the DOM where it was written, so it can
-                  // find itself inside an implicit `<label>` — `FilterField`
-                  // wraps its caption and its control in one. An `<li>` is not
-                  // interactive content, so a click on it runs that label's
-                  // activation behaviour: a second click, synthesised onto the
-                  // trigger, arriving after `commit` has closed the list and
-                  // therefore re-opening it. Cancelling the event is what stops
-                  // the label acting on it.
+                  // preventDefault stops implicit label activation from re-opening the list.
                   event.preventDefault()
                   commit(index)
                 }}

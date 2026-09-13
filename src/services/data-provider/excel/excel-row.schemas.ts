@@ -7,15 +7,6 @@ import { USER_ROLES } from '@models/user.model'
 
 import { isIsoDateString } from './excel-value.utils'
 
-/**
- * Schemas for the domain models produced by the Excel mappers.
- *
- * Cell-level coercion happens first, in `excel-value.utils`. These schemas are
- * the final gate: they assert that a mapped record satisfies the business
- * rules before it reaches the application, and they are reused to validate
- * records on the way back out to any backend.
- */
-
 const isoDateSchema = z
   .string()
   .refine(isIsoDateString, { message: 'must be a valid calendar date (yyyy-MM-dd)' })
@@ -26,10 +17,6 @@ const isoTimestampSchema = z
 
 const nonEmptyStringSchema = z.string().trim().min(1)
 
-/**
- * Lower-cased on the way in so that address comparisons during sign-in are
- * case-insensitive without every caller having to remember.
- */
 const emailSchema = z
   .string()
   .trim()

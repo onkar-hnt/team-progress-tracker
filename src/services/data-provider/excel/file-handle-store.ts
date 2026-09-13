@@ -1,31 +1,10 @@
 import { DataSourceUnavailableError } from '../data-provider.errors'
 import type { WorkbookFileStore } from './file-workbook-gateway'
 
-/**
- * Connects the application to a workbook on disk.
- *
- * Uses the File System Access API, which lets a page keep a handle to a file
- * the user picked and read and write it directly. Pointed at the
- * OneDrive-synced copy of the workbook, edits made here sync back to
- * SharePoint through the sync client, and edits made in Excel appear here on
- * the next read.
- *
- * The handle is stored in IndexedDB so the choice survives a refresh.
- * Browsers still require a gesture to re-grant permission after a restart,
- * which is a deliberate protection and cannot be bypassed — the UI asks for
- * one click rather than making the person find the file again.
- */
-
 const DB_NAME = 'team-progress-tracker'
 const STORE_NAME = 'workbook'
 const HANDLE_KEY = 'workbook-file-handle'
 
-/**
- * Minimal shape of the File System Access API.
- *
- * Declared locally because the DOM lib does not ship these types in every
- * TypeScript version, and a local declaration keeps the feature check honest.
- */
 interface FileSystemFileHandleLike {
   readonly name: string
   getFile: () => Promise<File>
@@ -93,8 +72,6 @@ async function withStore<TValue>(
 }
 
 async function rememberHandle(handle: FileSystemFileHandleLike): Promise<void> {
-  // The handle itself is structured-cloneable, which is what makes persisting
-  // the choice possible at all; the file contents are never stored.
   await withStore('readwrite', (store) => store.put(handle, HANDLE_KEY))
 }
 
@@ -178,14 +155,6 @@ export async function chooseWorkbookFile(): Promise<WorkbookFileStore> {
   return new FileHandleStore(handle, writable)
 }
 
-/**
- * Reconnects to the previously chosen workbook.
- *
- * `requestPermission` is only attempted when `interactive` is set, because
- * browsers reject a permission prompt that was not triggered by a click. On
- * startup this therefore returns `null` when permission has lapsed, and the
- * UI offers a button that calls it again interactively.
- */
 export async function restoreWorkbookFile(interactive: boolean): Promise<WorkbookFileStore | null> {
   const handle = await readStoredHandle()
   if (handle === null) return null
@@ -200,12 +169,6 @@ export async function hasRememberedWorkbook(): Promise<boolean> {
   return (await readStoredHandle()) !== null
 }
 
-/**
- * Creates a new workbook on disk and connects to it.
- *
- * Offered because the alternative — telling somebody to build seven sheets
- * with exact column names by hand — is slow and easy to get wrong.
- */
 export async function createWorkbookFile(
   build: () => Promise<ArrayBuffer>,
   suggestedName: string,

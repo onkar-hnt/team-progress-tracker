@@ -1,84 +1,34 @@
 import type { UserRole } from './user.model'
 
-/**
- * A team member: the Employees table of the workbook.
- *
- * `id` mirrors the `DeveloperId` column in `tblDevelopers` and is the only
- * valid relational key. Names are display data and must never be used to join
- * records.
- *
- * `email` and `accessRole` make this table the source of truth for who may
- * sign in and what they may see, so no account or role is held in code.
- * `role` is unrelated: it is the person's job title.
- */
 export interface Developer {
   id: string
   name: string
 
-  /**
-   * The human-readable reference, `DEV001` and up.
-   *
-   * Display and export data, never a key, and distinct from `employeeId`:
-   * this one is issued by this application, that one comes from HR.
-   *
-   * Optional because only a backend that issues codes populates it. It is
-   * not generated here — two browsers counting rows would both decide the
-   * next employee is DEV004 — but by a database sequence, which cannot
-   * collide.
-   */
+  /** code is assigned by the database sequence, not generated client-side. */
   code?: string
 
-  /**
-   * Payroll or HR reference.
-   *
-   * Kept separate from `id` so that the relational key stays under this
-   * application's control even if HR renumbers people.
-   */
   employeeId?: string
 
-  /** Job title, such as "Software Engineer". */
   role?: string
   location?: string
   active: boolean
 
-  /** Work address, matched against the signed-in identity. */
   email?: string
 
-  /** Access level. Absent rows are treated as developers. */
   accessRole?: UserRole
 
-  /**
-   * The login account this person owns, when one has been provisioned.
-   *
-   * Read-only here. It is set by the provisioning function, which holds the
-   * only credentials that can create the account it points at, and is never
-   * part of an insert or update sent from the browser.
-   */
+  /** profileId is set by provisioning only, never by client writes. */
   profileId?: string
 
-  /**
-   * Primary project.
-   *
-   * A convenience for reporting; the authoritative assignment list is
-   * `AssignedDevelopers` on each project, since people work on several.
-   */
   primaryProjectId?: string
 
-  /** ISO date the record was added. */
   createdDate?: string
 
-  /**
-   * When this record was deleted, for the few readers that see deleted records.
-   *
-   * Present only under the Supabase data source, where deleting sets a column
-   * instead of removing the row. Every list a screen shows is already free of
-   * these — `WorkTrackerService` drops them — so a caller finding this set is
-   * either resolving a name for historical work or is the Recently deleted screen.
-   */
+  /** deletedAt is set by soft-delete under Supabase; lists filter these out. */
   deletedAt?: string
 }
 
-/** `deletedAt` is excluded: deleting is its own operation, not a field to write. */
+/** Create types omit deletedAt and profileId. */
 export type CreateDeveloperRequest = Omit<Developer, 'deletedAt' | 'id'>
 
 export type UpdateDeveloperRequest = Partial<CreateDeveloperRequest>

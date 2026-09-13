@@ -47,22 +47,9 @@ const mentorFormSchema = z.object({
 
 type MentorFormValues = z.infer<typeof mentorFormSchema>
 
-/**
- * Logins only mean something against Supabase.
- *
- * The offline providers have no auth accounts to create, so the action is
- * hidden rather than offered and then refused by the server.
- */
+// Provisioning requires Supabase Auth.
 const CAN_PROVISION_LOGINS = appConfig.dataSource === 'supabase'
 
-/**
- * Why this mentor cannot be given a login, or null when they can.
- *
- * Only one reason, and it is the same one the Employees screen gives:
- * signing in is governed by the account, not by this table, so creating one
- * for somebody marked inactive would hand out access the screen appears to be
- * withholding.
- */
 function describeUnprovisionable(mentor: Mentor): string | null {
   if (!mentor.active) {
     return 'Inactive mentors are not given logins. Mark them active first.'
@@ -73,13 +60,6 @@ function describeUnprovisionable(mentor: Mentor): string | null {
 
 type SortKey = 'assigned' | 'email' | 'login' | 'name' | 'status'
 
-/**
- * One column at a time, ascending.
- *
- * `assigned` needs the assignment map, which is state rather than part of a
- * mentor — hence the extra argument, and hence this being a factory rather than a
- * plain function like the other tables have.
- */
 function compareMentorsBy(assignmentCount: (mentor: Mentor) => number) {
   return (left: Mentor, right: Mentor, key: SortKey): number => {
     switch (key) {
@@ -97,17 +77,6 @@ function compareMentorsBy(assignmentCount: (mentor: Mentor) => number) {
   }
 }
 
-/**
- * Mentor records and their assigned developers.
- *
- * The assignment made here is what the whole access model rests on: it decides
- * which developers a mentor can see anywhere in the application, so it is
- * edited in one obvious place rather than buried in a developer's profile.
- *
- * Which is why Assign is offered per row rather than per person. An admin gets
- * it on every mentor; a mentor gets it on themselves alone, and on a colleague's
- * row it is absent rather than offered and then refused by the database.
- */
 export function MentorsPage() {
   const { user } = useAuth()
   const confirm = useConfirm()
@@ -146,10 +115,6 @@ export function MentorsPage() {
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
 
-  // Searched by name and address only. The assigned developers are on screen but
-  // deliberately not searchable here: somebody looking for "who mentors Priya"
-  // wants the Employees screen, and matching a mentor row against a name that is
-  // not the mentor's would read as the wrong row coming back.
   const visible = useMemo(() => {
     const rows = (mentorsQuery.data ?? []).filter((mentor) =>
       matchesSearch([mentor.name, mentor.email], search),
@@ -160,23 +125,9 @@ export function MentorsPage() {
     return sortRows(rows, sort, compare, (left, right) => compareText(left.name, right.name))
   }, [assignmentsByMentor, mentorsQuery.data, search, sort])
 
-  /**
-   * Asks first, then deletes, then says so.
-   *
-   * The confirmation resolves `true` only once the delete has actually landed,
-   * so the success message cannot be shown for something that failed — and a
-   * failure has already been reported by the mutation itself.
-   */
   const requestDelete = async (mentor: Mentor) => {
     const isDeleted = await confirm({
       title: 'Delete this mentor?',
-      // Feedback they have written is the exception that restricts the delete,
-      // which the error message covers if it happens.
-      //
-      // Their assignments are not mentioned as lost, because under a soft delete
-      // they are not: the rows stay while the mentor sits in the bin and come back
-      // with them, and only destroying applies the cascade. What is true either way
-      // is that the developers stop having a mentor, which is what this says.
       message: `“${mentor.name}” will be removed, and the developers assigned to them will be left without a mentor. ${describeDeleteOutcome()}`,
       confirmLabel: 'Delete mentor',
       isDestructive: true,
@@ -186,19 +137,7 @@ export function MentorsPage() {
     if (isDeleted) snackbar.success(`“${mentor.name}” was deleted.`)
   }
 
-  /**
-   * Asks the server for a login, and says plainly when it could not.
-   *
-   * Never throws. The mentor record is already saved by the time this runs,
-   * so a failure here is a partial success to report rather than an error to
-   * unwind — and the row action retries it without writing a second mentor.
-   *
-   * The row action asks before it starts, for the reason the Employees screen
-   * does: this creates a real account and shows its initial password once, so a
-   * press aimed at the wrong row costs a password reset in the Supabase
-   * dashboard. `isNewRecord` skips the question for the add form, where the
-   * intent has just been stated.
-   */
+  // Initial password is shown once; row actions confirm before provisioning.
   const requestLogin = async (mentor: Mentor, isNewRecord = false) => {
     if (!CAN_PROVISION_LOGINS) return
 
@@ -326,10 +265,6 @@ export function MentorsPage() {
                               title={`Developers assigned to ${mentor.name}`}
                             />
                           </td>
-                          {/* Linked means an account exists and is attached.
-                              Whether the password has been changed is not
-                              readable from here, and guessing at it would be
-                              worse than saying nothing. */}
                           {CAN_PROVISION_LOGINS ? (
                             <td>
                               {mentor.profileId !== undefined
@@ -401,10 +336,6 @@ export function MentorsPage() {
 
             if (created === null) return
 
-            // Closed and confirmed before provisioning is attempted, because the
-            // mentor genuinely was created: leaving the form open would invite a
-            // duplicate, and staying silent until the login attempt returns
-            // would attribute its failure to the record.
             setIsCreating(false)
             snackbar.success(`“${values.name}” was added.`)
 
@@ -506,13 +437,6 @@ function MentorForm({
   )
 }
 
-/**
- * Assignments are edited as a whole set rather than one at a time.
- *
- * Submitting the complete list makes the result predictable: whatever is
- * ticked is what the mentor can see afterwards, with no partially applied
- * state if a single write fails.
- */
 function AssignmentForm({
   assignedIds,
   developers,
@@ -537,15 +461,7 @@ function AssignmentForm({
     )
   }
 
-  /**
-   * Asks only about what is being taken away.
-   *
-   * Ticking somebody on is additive and needs no ceremony. Unticking withdraws a
-   * mentor's sight of that developer's tasks, progress and feedback, and it does
-   * so through a control that looks like every other checkbox — the risk is
-   * clearing one by accident and saving without noticing, since nothing on the
-   * way out says what was dropped. So the question names them.
-   */
+  // Confirm when removing developers from a mentor's assignments.
   const save = async () => {
     const removed = developers.filter(
       (developer) => assignedIds.includes(developer.id) && !selected.includes(developer.id),

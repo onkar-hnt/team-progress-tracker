@@ -1,23 +1,11 @@
 @use '@styles/variables' as *;
 @use '@styles/mixins' as *;
 
-/// The rail, running the full height of the window.
-///
-/// Three bands in a column: the workspace line and the collapse control, the
-/// navigation, and the signed-in person. Only the middle one scrolls — the other two are
-/// fixed points a reader can return to, and a rail that scrolled as one would
-/// take the profile link off the bottom of a short window.
-///
-/// It owns the top left corner of the layout, which is why the head below is held
-/// to the height of the bar beside it.
 .sidebar {
-  /// `$align: null` matters: the mixin centres by default, which would shrink
-  /// every band to the width of its widest label.
   @include flex($direction: column, $align: null);
 
   grid-area: rail;
 
-  /// Each band pads itself, so the borders between them can reach both edges.
   padding: 0;
   overflow: hidden;
   border-right: 1px solid $color-border;
@@ -32,8 +20,6 @@
     border-bottom: 1px solid $color-border;
   }
 
-  /// Quiet, and it stays quiet: it says which workspace the navigation under it
-  /// belongs to, and the application is named in the bar beside it.
   &__workspace {
     overflow: hidden;
     color: $color-text-muted;
@@ -69,9 +55,6 @@
     list-style: none;
   }
 
-  /// `flex: 1` so the link still fills its row: each one is wrapped in a
-  /// `Tooltip`, which is a flex box, and a link left at its content width would
-  /// only highlight as far as its own text.
   &__link {
     @include flex($gap: $space-3);
     flex: 1;
@@ -79,9 +62,6 @@
     border-radius: $radius-md;
     color: $color-text-muted;
 
-    /// A rem was too wide for the rail once it was cut to the width of its
-    /// longest label: "Team Activity" at the inherited size left nothing for the
-    /// padding to sit in.
     font-size: $font-size-sm;
     font-weight: $font-weight-semibold;
     text-decoration: none;
@@ -110,28 +90,16 @@
     overflow: hidden;
   }
 
-  /// ---------------------------------------------------------------------------
-  /// The profile link
-  /// ---------------------------------------------------------------------------
-
-  /// At the bottom because the navigation above it takes the free space, not
-  /// because of anything set here. The border is what stops it reading as one
-  /// more navigation row.
   &__footer {
     flex-shrink: 0;
     padding: $space-3 $space-4;
     border-top: 1px solid $color-border;
   }
 
-  /// Taller than a navigation row because it carries two lines, and the avatar
-  /// sets the height in any case.
   &__link--profile {
     padding-block: $space-2;
   }
 
-  /// A circle of initials in place of an icon. Fixed size rather than padded
-  /// text, so two letters and one letter produce the same circle — a rail of
-  /// avatars that changed width by name would be worse than no avatar.
   &__avatar {
     @include flex-center;
     @include square(2rem);
@@ -150,9 +118,6 @@
     min-width: 0;
   }
 
-  /// Ellipsised rather than wrapped. A long name would otherwise push the
-  /// caption out of the rail, and the whole name is in the tooltip and on the
-  /// screen the link leads to.
   &__person {
     overflow: hidden;
     font-size: $font-size-sm;
@@ -166,8 +131,6 @@
     font-weight: $font-weight-medium;
   }
 
-  /// Collapsed rail: icons only, centred, labels and the workspace line removed
-  /// from the layout so they cannot force the rail wider.
   &--collapsed {
 
     .sidebar__head,
@@ -176,8 +139,6 @@
       padding-inline: $space-3;
     }
 
-    /// Nothing left in the head but the button, which centres in a square the
-    /// width of the rail.
     .sidebar__head {
       justify-content: center;
     }
@@ -195,15 +156,11 @@
       display: none;
     }
 
-    /// The heading has nowhere to go on the rail, but the separator between
-    /// groups still carries the grouping, so it stays.
     .sidebar__heading {
       @include visually-hidden;
     }
   }
 
-  /// Drawer behaviour on small screens: the rail slides in over the content
-  /// and always shows labels, since there is room for them there.
   @include respond-to-tablet {
     position: fixed;
     top: $header-height;
@@ -220,14 +177,10 @@
       transform: translateX(0);
     }
 
-    /// The head belongs to the rail, and there is no rail here: the bar above the
-    /// drawer names the application itself, and a drawer has nothing to collapse.
     &__head {
       display: none;
     }
 
-    /// A collapsed drawer would be a rail with no room for a tooltip, so the
-    /// desktop collapse preference is ignored here.
     &--collapsed {
 
       .sidebar__nav,
@@ -244,8 +197,6 @@
         display: inline;
       }
 
-      /// Two stacked lines, so it cannot inherit the `inline` above — which
-      /// would run the name and the caption together on one line.
       .sidebar__label--profile {
         display: grid;
       }
@@ -262,11 +213,7 @@
       }
     }
 
-    /// The drawer shows its labels even when the desktop preference is
-    /// collapsed, so there is nothing left to explain. It also slides in on a
-    /// transform, which makes it the containing block for anything fixed inside
-    /// it — so a bubble here would be placed against the drawer rather than the
-    /// window, and land in the wrong place.
+    // Drawer transform makes fixed tooltips anchor to the drawer, not the viewport.
     .tooltip__bubble {
       display: none;
     }
