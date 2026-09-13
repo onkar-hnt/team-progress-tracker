@@ -93,9 +93,9 @@ supabase link --project-ref <your-project-ref>
 ### Migrations
 
 Everything in `supabase/migrations/` — the schema, the RLS policies, the triggers that raise
-notifications, record every change and keep records in step, the storage bucket attachments go to,
-and the SQL functions the Edge Functions ask for permission. They are applied in filename order and
-each is written to be run once.
+notifications, record every change and keep records in step, and the SQL functions the Edge
+Functions and the Usage screen ask for. They are applied in filename order and each is written to be
+run once.
 
 ```bash
 supabase migration list --linked   # what is applied, and what is not
@@ -286,16 +286,21 @@ Kept honest rather than aspirational:
   everything. What it will not do is reassemble a record as it stood on an arbitrary Tuesday:
   diffs are kept rather than snapshots, which is the right trade for "who did this" and the wrong
   one for "show me the whole thing as it was". Project membership is the one write not yet logged.
-- **Deleting is recoverable, except for a file.** Every delete of a record sets it aside rather
-  than destroying it, and **Recently deleted** stamps who did it and when; an employee, mentor or
-  project can still only be deleted while no live work references it, which is a rule about
-  deleting rather than about the bin. An attachment is the exception and says so before it goes:
-  the row and the object are both removed, and neither comes back.
-- **Attachments are per record, and nothing wider.** A task, a work entry and a piece of feedback
-  can each carry files — private bucket, signed links that expire in a minute, 10 MB and a named
-  list of types enforced by the service rather than by the browser. There is no gallery, no
-  preview, and no way to attach a file to a project or a person: a file about a piece of work
-  belongs on that work, and one about somebody's employment does not belong here at all.
+- **Deleting is recoverable.** Every delete of a record sets it aside rather than destroying it,
+  and **Recently deleted** stamps who did it and when; an employee, mentor or project can still
+  only be deleted while no live work references it, which is a rule about deleting rather than
+  about the bin.
+- **No files, by decision rather than by omission.** There is nowhere to attach a screenshot, a
+  log or a review document: the application stores what people write and nothing else. Tasks,
+  work entries and feedback could each carry files for a while — private bucket, expiring links,
+  10 MB a file — and it was removed in `20260914010000_remove_attachments.sql` because of what it
+  spends. On the free plan storage is 1 GB and egress is 5 GB a month, and every view of every
+  file is charged against the second; a team attaching screenshots to daily updates would spend
+  both on evidence a sentence usually carries better. A database of text for a team this size
+  stays inside 500 MB for years, which a shared folder of screenshots does not. The bucket itself
+  survives that migration as an empty one with no policy on it — Supabase will not let SQL delete
+  a storage row, since the file behind it lives outside the database — so it is inert until
+  somebody deletes it from Storage in the dashboard.
 - **Feedback is the only conversation.** It can now be about a task or about the person's work in
   general, which is what a note after a one-to-one actually is. What is still missing is a reply:
   feedback is written and read, not discussed, so a developer answering a point has to do it

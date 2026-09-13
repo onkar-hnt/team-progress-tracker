@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
-import { AttachmentPanel } from '@components/attachments/AttachmentPanel'
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { Field, TextField } from '@components/ui/field/Field'
@@ -388,17 +387,6 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
           linked to one.
         </p>
       )}
-
-      {/* Offered only when editing, because a file needs a record to hang from and a
-          new entry has no id yet. That is also the shape of the day: the update is
-          written, and the screenshot of the failing build is added to it after. */}
-      {isEditing ? (
-        <AttachmentPanel
-          hint="A screenshot, a log, or whatever shows what happened."
-          owner="daily_updates"
-          recordId={entry?.id ?? null}
-        />
-      ) : null}
 
       <div className="daily-update-form__actions">
         <Button isLoading={isSubmitting} type="submit" variant="primary">

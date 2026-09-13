@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import { AttachmentPanel } from '@components/attachments/AttachmentPanel'
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { Field, TextAreaField, TextField } from '@components/ui/field/Field'
@@ -271,17 +270,6 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
           />
         </div>
       </div>
-
-      {/* Editing only, for the same reason as the daily update: a file needs a record
-          to hang from. Feedback with a document attached is usually a review rather
-          than a remark, and a review is written and then revisited. */}
-      {comment === undefined ? null : (
-        <AttachmentPanel
-          hint="A review document, or the work being commented on."
-          owner="feedback"
-          recordId={comment.id}
-        />
-      )}
 
       <div className="form__actions">
         {onCancel === undefined ? null : (

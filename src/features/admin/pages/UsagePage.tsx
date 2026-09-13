@@ -130,6 +130,10 @@ function PlanPanel({ usage }: { usage: ResourceUsage }) {
           value={formatBytes(usage.databaseBytes)}
         />
 
+        {/* Kept even though this application uploads nothing, which makes it a check
+            rather than a gauge: the expected reading is zero, and anything else is a file
+            left behind by an earlier version or put there by something outside the
+            application — both worth seeing, and neither visible anywhere else. */}
         <StatCard
           detail={`${formatShare(storagePercent)} of ${formatBytes(FREE_PLAN.storageBytes)}, in ${String(usage.storageObjects)} ${files}`}
           icon="download"
@@ -139,10 +143,10 @@ function PlanPanel({ usage }: { usage: ResourceUsage }) {
           value={formatBytes(usage.storageBytes)}
         />
 
-        {/* No bar. The allowance is fifty thousand people a month against a team of a
-            dozen, so a meter here would be a permanently empty track — these numbers are
-            shown because seeing them is how somebody stops wondering about this cap, not
-            because it is anywhere near. */}
+        {/* No bar, for the opposite reason to the Files card above. The allowance is fifty
+            thousand people a month against a team of a dozen, so a meter here would be a
+            permanently empty track — these numbers are shown because seeing them is how
+            somebody stops wondering about this cap, not because it is anywhere near. */}
         <StatCard
           detail={`of ${String(usage.accounts)} ${logins}, signed in this month`}
           icon="users"
@@ -170,6 +174,8 @@ function PlanPanel({ usage }: { usage: ResourceUsage }) {
       <p className="usage-page__measured">
         Measured at {formatTimestamp(usage.measuredAt)}. The allowances are Supabase’s free-plan
         figures — if this project has since been moved to a paid plan, they are higher than shown.
+        Nothing in the application uploads files, so Files should read zero; anything there is
+        left over from a version that did.
       </p>
     </Panel>
   )
