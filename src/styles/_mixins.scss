@@ -71,30 +71,66 @@
 
 /// The single column a screen's sections stack in.
 ///
-/// The column is stated rather than left implicit. An implicit `auto` track is
-/// floored at the width of the widest thing in it, so one table with more
-/// columns than the window could hold used to stretch the track — and with it
-/// every panel above the table, which is why filters and stat cards ran off the
-/// right of the screen on a table-heavy page. `minmax(0, 1fr)` holds the column
-/// to the space available and leaves the table to scroll inside its own panel,
-/// which is what `.data-table__scroll` is for.
+/// `flex: 1` is what makes a screen reach the bottom of the window: the shell's content
+/// area is a column, and this takes the rest of it. A screen exactly as tall as its
+/// content sat in the top half of the window with a band of bare background under it,
+/// which reads as a page that failed to finish loading rather than one that is short.
 ///
-/// `flex: 1` is what makes a screen reach the bottom of the window: the shell's
-/// content area is a column, and this takes the rest of it. Every screen
-/// used to be exactly as tall as its content, so a short one sat in the top half with
-/// a band of bare background under it — which reads as a page that failed to finish
-/// loading rather than as one that is simply short.
+/// ## Who gets the leftover height
 ///
-/// The rows stay `auto`, and a grid hands leftover height to its auto rows, so the
-/// sections share whatever the window has spare and the last one ends where the window
-/// does. Where there is more content than window there is nothing spare to hand out,
-/// nothing changes, and the area scrolls as it always did — `flex-basis: auto` with the
-/// default `min-height: auto` is what keeps a long page from being squeezed into the
-/// window instead.
+/// One section, named by the screen, and not all of them.
+///
+/// This was a grid whose rows were `auto`, and a grid hands leftover height to its auto
+/// rows — so every section grew a little, including the ones with a fixed amount to show.
+/// A form of six fields became a card with a third of its height empty, which is the state
+/// the daily update screen was in.
+///
+/// A flex column instead, whose items keep the height they ask for, and one section per
+/// screen marked with `page-fill` to take what is spare. It is always a section holding
+/// records — a table, a list of entries, a timeline — because those are the ones where
+/// more height means more of the data on screen rather than more empty card.
+///
+/// The height stops at the box that scrolls: the rows, cards and comments inside it keep
+/// their own size and the box scrolls through them, so a window twice as tall shows twice
+/// as many records rather than the same records twice as tall. `.panel--fill` is where
+/// that is arranged.
+///
+/// ## Width
+///
+/// A flex column stretches its children to the container's width and, unlike a grid's
+/// implicit `auto` track, is not floored at the width of the widest thing inside. That
+/// track was the reason a table with more columns than the window used to widen every
+/// panel above it and push the filters and stat cards off the right of the screen; the
+/// explicit `minmax(0, 1fr)` column was there to stop it. Nothing here can do that, so
+/// the fix comes for free and the table scrolls in its own panel as before — see
+/// `.data-table__scroll`.
 @mixin page-stack {
-    @include grid($columns: minmax(0, 1fr), $gap: $space-6);
+    @include flex(column, $align: stretch, $gap: $space-6);
 
     flex: 1 1 auto;
+}
+
+/// The one section on a screen that grows into whatever height is left over.
+///
+/// For a section whose content can use it: a table of records, a list of entries, a
+/// timeline. Not for a form, a row of stat cards or a heading — those have a size, and
+/// anything past it is empty card.
+///
+/// The `min-height` does two things at once, which is why it is a number and not the `0`
+/// that usually accompanies `flex: 1`. Being below the content's height is what lets the
+/// section shrink and the box inside it scroll instead of pushing the page taller. Being
+/// above zero is what stops a short window — or a screen whose filters and stat cards have
+/// already used most of one — squeezing the records into a strip too shallow to read; past
+/// that point the page scrolls, which is the right answer and the one it gave before any
+/// of this.
+///
+/// 24rem is a table header and six or seven rows.
+///
+/// Applied conditionally by every screen that uses it — `fills={rows.length > 0}` —
+/// because a section with nothing in it has no more use for the space than a form does.
+@mixin page-fill {
+    flex: 1 1 auto;
+    min-height: 24rem;
 }
 
 @mixin size($width, $height) {

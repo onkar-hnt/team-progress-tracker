@@ -265,6 +265,7 @@ export function EmployeesPage() {
 
       <Panel
         description="Access role decides what each person can see. A login has to be created separately, and a developer also needs an active project before they can post daily updates."
+        fills={visible.length > 0}
         title="All employees"
       >
         {developersQuery.error !== null ? (

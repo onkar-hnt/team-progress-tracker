@@ -134,7 +134,7 @@ export function ChangeLogPage() {
         </p>
       </Panel>
 
-      <Panel description="Newest first." title="Changes">
+      <Panel description="Newest first." fills={page.records.length > 0} title="Changes">
         {changesQuery.error !== null ? (
           <ErrorState
             message={`The change log could not be loaded: ${changesQuery.error.message}`}

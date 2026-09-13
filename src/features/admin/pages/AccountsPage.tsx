@@ -247,6 +247,7 @@ export function AccountsPage() {
 
       <Panel
         description="Read from the accounts themselves, alongside the employee and mentor records they are attached to."
+        fills={visible.length > 0}
         title="All logins"
       >
         {accountsQuery.error !== null ? (

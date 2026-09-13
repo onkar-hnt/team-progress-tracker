@@ -138,7 +138,12 @@ export function TasksPage() {
       }}
       title="Tasks"
     >
-      <Panel action={developerPicker} description="Overdue work is flagged." title="All tasks">
+      <Panel
+        action={developerPicker}
+        description="Overdue work is flagged."
+        fills={visible.length > 0}
+        title="All tasks"
+      >
         {tasksQuery.error !== null ? (
           <ErrorState
             message={`Tasks could not be loaded: ${tasksQuery.error.message}`}

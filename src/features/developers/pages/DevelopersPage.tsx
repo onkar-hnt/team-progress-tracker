@@ -133,7 +133,11 @@ export function DevelopersPage() {
         )}
       </Panel>
 
-      <Panel description="Every developer's totals for the selected period." title="Comparison">
+      <Panel
+        description="Every developer's totals for the selected period."
+        fills={summaries.length > 0}
+        title="Comparison"
+      >
         {isLoading ? <Skeleton rows={4} /> : <DeveloperSummaryTable summaries={summaries} />}
       </Panel>
     </div>

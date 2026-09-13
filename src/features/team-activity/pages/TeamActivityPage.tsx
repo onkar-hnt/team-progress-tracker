@@ -131,7 +131,11 @@ export function TeamActivityPage() {
         </div>
       </Panel>
 
-      <Panel description="Sort any column. You can edit or delete your own entries." title="Entries">
+      <Panel
+        description="Sort any column. You can edit or delete your own entries."
+        fills={visibleEntries.length > 0}
+        title="Entries"
+      >
         {error !== null ? (
           <ErrorState
             message={`The activity list could not be loaded: ${error.message}`}

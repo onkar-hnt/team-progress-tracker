@@ -161,7 +161,11 @@ export function ProjectsPage() {
       }}
       title="Projects"
     >
-      <Panel description="Assignments decide who sees each project." title="All projects">
+      <Panel
+        description="Assignments decide who sees each project."
+        fills={visible.length > 0}
+        title="All projects"
+      >
         {projectsQuery.error !== null ? (
           <ErrorState
             message={`Projects could not be loaded: ${projectsQuery.error.message}`}

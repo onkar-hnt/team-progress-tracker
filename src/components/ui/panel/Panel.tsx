@@ -9,6 +9,18 @@ interface PanelProps {
   action?: ReactNode
   /** Renders the title as an `h1`, for the single main heading of a page. */
   isPageHeading?: boolean
+
+  /**
+   * Takes the height the screen has left over, and hands it to the table or list inside.
+   *
+   * At most one panel per screen, and only one whose content can use the room: the box
+   * of records grows and scrolls through them, so a taller window shows more rows. A form
+   * or a row of stat cards would just become a taller card with the same content in it.
+   *
+   * Screens pass a condition rather than `true` — `fills={rows.length > 0}` — because an
+   * empty list has no more use for the space than a form does.
+   */
+  fills?: boolean
 }
 
 /**
@@ -21,11 +33,12 @@ export function Panel({
   action,
   children,
   description,
+  fills = false,
   isPageHeading = false,
   title,
 }: PropsWithChildren<PanelProps>) {
   return (
-    <section className="panel">
+    <section className={fills ? 'panel panel--fill' : 'panel'}>
       <header className="panel__header">
         <div>
           {isPageHeading ? (

@@ -71,6 +71,7 @@ function OwnFeedback() {
     <div className="feedback-page">
       <Panel
         description="What your mentor has recorded against your tasks. Newest first."
+        fills={page.records.length > 0}
         isPageHeading
         title="My feedback"
       >
@@ -226,7 +227,12 @@ function FeedbackWorkspace() {
         <FeedbackForm onSubmit={handleCreate} />
       </Panel>
 
-      <Panel action={developerPicker} description="Newest first." title="Feedback history">
+      <Panel
+        action={developerPicker}
+        description="Newest first."
+        fills={page.records.length > 0}
+        title="Feedback history"
+      >
         {commentsQuery.error !== null ? (
           <ErrorState
             message={`Feedback could not be loaded: ${commentsQuery.error.message}`}

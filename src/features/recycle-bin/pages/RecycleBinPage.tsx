@@ -172,7 +172,7 @@ export function RecycleBinPage() {
         </p>
       </Panel>
 
-      <Panel description="Newest deletion first." title="In the bin">
+      <Panel description="Newest deletion first." fills={records.length > 0} title="In the bin">
         {recordsQuery.error !== null ? (
           <ErrorState
             message={`The deleted records could not be loaded: ${recordsQuery.error.message}`}

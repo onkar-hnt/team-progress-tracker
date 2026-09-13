@@ -126,6 +126,7 @@ export function MyTasksPage() {
             ? 'Your tasks and those of the developers you mentor.'
             : 'Change a status as your work progresses.'
         }
+        fills={visibleTasks.length > 0}
         title="Task list"
       >
         {loadError !== null ? (

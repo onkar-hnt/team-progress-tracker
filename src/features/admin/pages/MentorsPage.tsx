@@ -247,7 +247,11 @@ export function MentorsPage() {
     >
       <ProvisioningNoticeView notice={notice} />
 
-      <Panel description="Assignments control what each mentor can access." title="All mentors">
+      <Panel
+        description="Assignments control what each mentor can access."
+        fills={visible.length > 0}
+        title="All mentors"
+      >
         {mentorsQuery.error !== null ? (
           <ErrorState
             message={`Mentors could not be loaded: ${mentorsQuery.error.message}`}
