@@ -1,3 +1,4 @@
+import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from '@constants/task.constants'
 import type { DailyWorkQuery, TaskPriority, TaskStatus } from '@models/index'
 import type { DateRange } from '@utils/date.utils'
 import {
@@ -91,6 +92,142 @@ export function toDailyWorkQuery(filters: ActivityFilterState): DailyWorkQuery {
     ...(filters.priority === '' ? {} : { priorities: [filters.priority] }),
     ...(filters.blockedOnly ? { isBlocked: true } : {}),
   }
+}
+
+/**
+ * The filters, in the address bar.
+ *
+ * ## Why the URL and not `useState`
+ *
+ * Because something else needs to set them. The dashboard's metrics are counts of
+ * exactly the rows this screen lists, and a reader whose eye stops on "Needs attention:
+ * 3" wants those three — which was a card that lifted under the cursor and went nowhere,
+ * or at best to an unfiltered list of everything, leaving them to reproduce the filter by
+ * hand from a number they had already been shown.
+ *
+ * A link cannot reach into another screen's `useState`, so the filters moved to where a
+ * link can address them. Two things fall out of that for free: a filtered view can be
+ * sent to somebody, and the back button undoes a filter change the way it looks like it
+ * should.
+ *
+ * ## What the parameters are called, and why they are checked
+ *
+ * Short names, because these appear in a link somebody may read or type: `?blocked=1`
+ * rather than `?blockedOnly=true`. Every value is validated against what it is allowed to
+ * be and falls back to the default when it is not — a URL is user input, and `?status=xyz`
+ * should show the ordinary screen rather than an empty table filtered by a status that
+ * does not exist.
+ *
+ * Defaults are left out when writing. The plain path is the plain screen, and a parameter
+ * list holds only what somebody actually chose.
+ */
+
+const PARAMS = {
+  blocked: 'blocked',
+  developer: 'developer',
+  from: 'from',
+  period: 'period',
+  priority: 'priority',
+  project: 'project',
+  search: 'q',
+  status: 'status',
+  to: 'to',
+} as const
+
+/** `2026-09-13`, and nothing else. The date inputs and every provider agree on this. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/u
+
+function readPreset(value: string | null): PeriodPreset | undefined {
+  return PERIOD_PRESETS.find((preset) => preset === value)
+}
+
+function readDate(value: string | null): string | undefined {
+  return value !== null && ISO_DATE.test(value) ? value : undefined
+}
+
+export function filtersFromSearchParams(params: URLSearchParams): ActivityFilterState {
+  const defaults = createDefaultFilters()
+
+  const preset = readPreset(params.get(PARAMS.period)) ?? defaults.preset
+  const from = readDate(params.get(PARAMS.from))
+  const to = readDate(params.get(PARAMS.to))
+
+  const status = params.get(PARAMS.status) ?? ''
+  const priority = params.get(PARAMS.priority) ?? ''
+
+  return {
+    preset,
+
+    // Held whichever preset is in force, so switching to Custom and back is lossless —
+    // the same reason the field exists at all. A link that gives dates without saying
+    // `period=custom` is treating them as the custom range it means to select.
+    customRange: {
+      from: from ?? defaults.customRange.from,
+      to: to ?? defaults.customRange.to,
+    },
+
+    // Not checked against the roster, unlike the status and the priority: the ids are only
+    // known once the developers and projects have loaded, and a filter that silently
+    // cleared itself while a request was in flight would be worse than one naming somebody
+    // who has since been removed. That case shows an empty table, which is the truth.
+    developerId: params.get(PARAMS.developer) ?? defaults.developerId,
+    projectId: params.get(PARAMS.project) ?? defaults.projectId,
+
+    status: status in TASK_STATUS_LABELS ? (status as TaskStatus) : '',
+    priority: priority in TASK_PRIORITY_LABELS ? (priority as TaskPriority) : '',
+
+    // Any value at all means on, so `?blocked=1` and `?blocked=true` both work. Somebody
+    // typing one of those has said what they mean.
+    blockedOnly: params.get(PARAMS.blocked) !== null,
+
+    search: params.get(PARAMS.search) ?? defaults.search,
+  }
+}
+
+export function filtersToSearchParams(filters: ActivityFilterState): URLSearchParams {
+  const defaults = createDefaultFilters()
+  const params = new URLSearchParams()
+
+  if (filters.preset !== defaults.preset) params.set(PARAMS.period, filters.preset)
+
+  // Only for a custom range. Written for any other preset they would be a pair of dates
+  // the screen is ignoring, which is the kind of URL that gets pasted into a chat and
+  // argued about.
+  if (filters.preset === 'custom') {
+    params.set(PARAMS.from, filters.customRange.from)
+    params.set(PARAMS.to, filters.customRange.to)
+  }
+
+  if (filters.developerId !== '') params.set(PARAMS.developer, filters.developerId)
+  if (filters.projectId !== '') params.set(PARAMS.project, filters.projectId)
+  if (filters.status !== '') params.set(PARAMS.status, filters.status)
+  if (filters.priority !== '') params.set(PARAMS.priority, filters.priority)
+  if (filters.blockedOnly) params.set(PARAMS.blocked, '1')
+  if (filters.search !== '') params.set(PARAMS.search, filters.search)
+
+  return params
+}
+
+/**
+ * A link to this screen, showing one slice of one day.
+ *
+ * Here rather than on the dashboard so that the parameter names stay private to this
+ * module: a screen that wants to link to a filtered activity list says what it wants in
+ * domain terms, and if a parameter is ever renamed there is one place it is spelled.
+ */
+export function activityLink(
+  date: string,
+  slice: { status?: TaskStatus; blockedOnly?: boolean } = {},
+): string {
+  const params = filtersToSearchParams({
+    ...createDefaultFilters(),
+    preset: 'custom',
+    customRange: { from: date, to: date },
+    ...(slice.status === undefined ? {} : { status: slice.status }),
+    ...(slice.blockedOnly === undefined ? {} : { blockedOnly: slice.blockedOnly }),
+  })
+
+  return `/team-activity?${params.toString()}`
 }
 
 /**

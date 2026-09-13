@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use 'variables' as *;
 
 *,
@@ -58,4 +59,63 @@ select {
 
 *::-webkit-scrollbar {
     display: none;
+}
+
+/// The design tokens the charts need, handed to script.
+///
+/// Recharts colours a line, a bar and a pie slice through props, so those colours
+/// have to exist in TypeScript — and the palette written twice is the palette that
+/// drifts, which is exactly what the status colours did across fifteen files before
+/// they were named. Custom properties are the one seam where a Sass token can be
+/// read from the other side: `chart.theme.ts` passes `var(--chart-completed)` to
+/// Recharts, the browser resolves it, and there is still only one definition of
+/// what "completed" is coloured.
+///
+/// Only the values a chart draws with are here. A component that can reach the Sass
+/// token directly should, rather than going round through a custom property.
+:root {
+    --chart-not-started: #{$color-neutral-text};
+    --chart-in-progress: #{$color-brand};
+    --chart-completed: #{$color-success};
+    --chart-blocked: #{$color-danger};
+
+    /// For a pie of projects, where the categories have no inherent meaning and only
+    /// need to be told apart. Brand first, so a single-project chart is on-palette.
+    --chart-series-1: #{$color-brand};
+    --chart-series-2: #{$color-success};
+    --chart-series-3: #{$color-warning};
+    --chart-series-4: #6d4bb5;
+    --chart-series-5: #0f7c8a;
+    --chart-series-6: #{$color-danger};
+
+    --chart-grid: #{$color-border};
+    --chart-axis: #{$color-text-muted};
+    --chart-surface: #{$color-white};
+    --chart-text: #{$color-text};
+
+    /// What sits behind the bar under the pointer. Faint enough to be a hover cue rather
+    /// than a selection, which is how the library's default mid-grey block read.
+    --chart-cursor: #{color.change($color-brand, $alpha: 0.08)};
+}
+
+/// Reduced motion, as a floor rather than as a policy.
+///
+/// Every animation in the application is written inside a `no-preference` query, so
+/// in principle this changes nothing. It is here for the case that principle does
+/// not cover: a transition added to a component next month without the author
+/// thinking about it, or movement that comes from a dependency's own stylesheet
+/// rather than from this codebase — Recharts animates its bars in, and does not ask.
+///
+/// `0.01ms` rather than `0`, because a duration of zero prevents the `animationend`
+/// event from firing in some engines and anything waiting on that event would hang.
+/// The animation still happens; it is simply over before a frame is drawn.
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

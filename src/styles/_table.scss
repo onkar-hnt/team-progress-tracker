@@ -48,7 +48,20 @@
     background: $color-surface-subtle;
   }
 
+  /// A row fades in when it is a row that was not there before.
+  ///
+  /// Which is the useful property of animating on mount: typing in the search box, or
+  /// pressing Show more, brings new rows in gently, while sorting and editing do not
+  /// flicker at all — React keeps those elements and only moves or updates them, so
+  /// there is no mount for the animation to hang off. A cue that fires exactly when the
+  /// set of rows changed, without anything having to detect that.
+  ///
+  /// No movement and no stagger. Ten rows sliding up in sequence is a small performance
+  /// on a screen somebody is searching through repeatedly, and the row's position is
+  /// information here in a way that a card's is not.
   tbody tr {
+    @include enter(fade-in, $duration-base);
+
     transition: background-color $transition-fast;
 
     &:hover {

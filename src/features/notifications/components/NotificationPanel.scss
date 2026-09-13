@@ -64,8 +64,16 @@
   }
 }
 
+/// One notification.
+///
+/// Fades in on mount, which covers the case worth covering: a notification arriving over
+/// the realtime channel while the panel is open is prepended to a list somebody is
+/// already reading, and appearing instantly at the top is indistinguishable from the list
+/// having jumped. Rows that were already there when the panel opened are not re-mounted
+/// by it, so nothing else flickers.
 .notification-row {
   @include flex($align: flex-start, $gap: $space-3);
+  @include enter(fade-in, $duration-base);
 
   width: 100%;
   padding: $space-3;

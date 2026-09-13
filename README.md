@@ -196,6 +196,37 @@ SCSS with BEM, one stylesheet beside the component it styles, and no CSS-in-JS. 
 work; several of the longer ones exist because a subtle failure took an afternoon to understand
 and is worth exactly one paragraph to never repeat.
 
+Every size, colour, radius, shadow, duration and layer is a token in `styles/_variables.scss`, and
+a literal in a feature stylesheet is a bug rather than a shortcut — the file says what each token
+is for, which is usually enough to find the right rung of the scale. The one place tokens are
+readable from TypeScript is the chart palette, which Recharts takes as props: `_reset.scss`
+publishes those few values as custom properties and `charts/chart.theme.ts` refers to them, so
+"completed" is one green whether it is a badge or a pie slice.
+
+### Motion
+
+Animation is written inside `@include motion-safe` — a `prefers-reduced-motion: no-preference`
+query — rather than added and then switched off under `reduce`. The second form needs two rules
+kept in agreement and fails silently when somebody forgets the second, so the movement here only
+ever exists inside the query. `enter` and `stagger` in `_mixins.scss` follow that rule for you, and
+the shared keyframes live in `_motion.scss`; keyframes describing one component stay with it.
+
+Two exceptions cannot be expressed in CSS and read the preference in script through
+`usePrefersReducedMotion`: the counting stat-card values, where each frame is a different string,
+and the chart animations, which are props on a library that does not ask. A blanket rule in
+`_reset.scss` is the floor under all of it, for transitions that arrive from a dependency's own
+stylesheet.
+
+**Smooth scrolling is native.** Lenis was considered and not adopted. It works by taking the wheel
+and touch events of one scroller and animating that scroller itself, and this application does not
+have one scroller: the shell's content region, every table, the notification popover, dropdown
+lists, dialog bodies and the sidebar's own navigation all scroll independently, several of them
+inside the top layer where a library reaching in from the page cannot follow. Making it safe would
+mean marking each of those as off-limits and re-marking every one added later — for an eased wheel
+gesture, at the cost of the browser's own scroll anchoring, keyboard paging and touch handling.
+`scroll-behavior: smooth` on the content region gives the part that is actually worth having, which
+is anchor and skip-link jumps easing rather than teleporting; wheel scrolling stays the browser's.
+
 ## What is missing
 
 Kept honest rather than aspirational:

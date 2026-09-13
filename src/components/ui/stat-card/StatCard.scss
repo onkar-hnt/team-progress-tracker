@@ -63,6 +63,43 @@
     font-size: $font-size-xs;
   }
 
+  /// A rate, as a length as well as a number.
+  ///
+  /// Thin, and the last thing in the card, so it reads as a footnote to the value
+  /// rather than as a control. The track is the same tint as the icon chip, which keeps
+  /// the card to two greys instead of three.
+  &__meter {
+    display: block;
+    height: 4px;
+    margin-top: $space-1;
+    border-radius: $radius-pill;
+    overflow: hidden;
+    background: $color-surface-subtle;
+  }
+
+  /// Grows into place, then follows.
+  ///
+  /// Two rules doing different jobs. The animation is the arrival: the bar sweeps out
+  /// from nothing while the number counts up to meet it, so the pair read as one
+  /// gesture. Deliberately without a fill mode, because a filling animation outranks a
+  /// transition — hold the final frame and the bar would jump between rates for the
+  /// rest of the session, which is the half that matters more.
+  ///
+  /// `meter-grow` has no `to` frame. The implicit one is the element's own width, which
+  /// is inline and different on every card, and there is no other way to write "from
+  /// nothing to whatever this one happens to be".
+  &__meter-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: $color-neutral-text;
+
+    @include motion-safe {
+      animation: meter-grow $duration-slow $ease-out;
+      transition: width $duration-slow $ease-out;
+    }
+  }
+
   &--neutral::before {
     background: $color-neutral-border;
   }
@@ -96,6 +133,21 @@
     background: $color-danger-surface;
   }
 
+  /// The bar takes the accent colour too, so a rate is judged by its colour before its
+  /// length: the attention red on an update rate below target says "short" without the
+  /// reader comparing it to the card beside it.
+  &--progress &__meter-fill {
+    background: $color-brand;
+  }
+
+  &--positive &__meter-fill {
+    background: $color-success;
+  }
+
+  &--attention &__meter-fill {
+    background: $color-danger;
+  }
+
   &--link {
     @include card-lift;
 
@@ -121,6 +173,32 @@
   }
 }
 
+/// A row of metrics, arriving left to right.
+///
+/// The stagger is on the children of the grid rather than on the card itself, because
+/// this is the only place cards appear as a set — one card on its own has nothing to be
+/// staggered against, and would sit there for a fifth of a second doing nothing.
+///
+/// They mount when the data does, replacing the skeleton, so the sweep marks the moment
+/// the figures became real. Changing the date or the period re-renders the same cards
+/// without remounting them, so it happens once per arrival and not on every filter
+/// change — the numbers themselves report that, by counting.
+///
+/// These are the one place the movement of `rise-in` is used rather than a plain fade,
+/// and they can be because a stat card holds nothing but an icon, a label and a number.
+/// See `enter`: while it moves, a container is the anchor for any `position: fixed`
+/// descendant it has, which is why everything that holds a menu or a tooltip only fades.
 .stat-card-grid {
   @include grid(repeat(auto-fit, minmax(9.5rem, 1fr)), $space-4);
+
+  >* {
+    @include enter;
+    @include stagger;
+  }
+}
+
+@keyframes meter-grow {
+  from {
+    width: 0;
+  }
 }

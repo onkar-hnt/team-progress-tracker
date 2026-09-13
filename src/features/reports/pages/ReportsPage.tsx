@@ -227,9 +227,14 @@ export function ReportsPage() {
               tone={(rangeQuery.data?.statuses.needsAttention ?? 0) > 0 ? 'attention' : 'neutral'}
               value={rangeQuery.data?.statuses.needsAttention ?? 0}
             />
+            {/* The two rates carry bars, and the counts around them do not. A rate is
+                a proportion of something stated, which is what a bar can draw; "Hours
+                logged" is a quantity with no ceiling to measure it against. */}
             <StatCard
               icon="chart"
               label="Completion rate"
+              progress={rangeQuery.data?.completionRate ?? 0}
+              tone="progress"
               value={`${String(rangeQuery.data?.completionRate ?? 0)}%`}
             />
             <StatCard
@@ -241,6 +246,7 @@ export function ReportsPage() {
               detail={`${String(submittedUpdates)} of ${String(expectedUpdates)} expected`}
               icon="users"
               label="Update rate"
+              progress={updateRate}
               tone={updateRate < 80 ? 'attention' : 'positive'}
               value={`${String(updateRate)}%`}
             />

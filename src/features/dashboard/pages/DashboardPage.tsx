@@ -20,6 +20,7 @@ import { StatCard } from '@components/ui/stat-card/StatCard'
 import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { DailyUpdateForm } from '@features/daily-update/components/DailyUpdateForm'
+import { activityLink } from '@features/team-activity/activity-filters'
 import { TASK_STATUS_LABELS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import {
   useDayOverview,
@@ -167,6 +168,13 @@ export function DashboardPage() {
   const week = weekQuery.data
   const isLoading = dayQuery.isPending || weekQuery.isPending
 
+  // The denominator behind "Updated today": how many people were expected to log
+  // anything at all. Deactivated developers are not, and counting them would make a
+  // fully reported day look like a shortfall.
+  const activeDeveloperCount = (developersQuery.data ?? []).filter(
+    (developer) => developer.active,
+  ).length
+
   return (
     <div className="dashboard">
       {/* The description names what these cards count. They are built from
@@ -187,32 +195,53 @@ export function DashboardPage() {
           <Skeleton label="Loading dashboard metrics…" rows={4} />
         ) : (
           <div className="stat-card-grid">
-            {/* Only two of these are links, and both lead somewhere that answers
-                the question the number raises: the count of updates leads to the
-                updates, and an unsubmitted update leads to the form. The rest are
-                figures with no filtered view behind them, and a card that lifts
-                under the cursor and then goes nowhere is worse than one that
-                never moved. */}
+            {/* For somebody who oversees a team, every count here now leads to the rows
+                it counted: the activity list holds its filters in the URL, so a card can
+                address the slice it is reporting rather than dropping the reader into an
+                unfiltered list to rebuild the filter by hand. The date travels too, so
+                the list opens on the day being read rather than on today.
+
+                A developer's own cards mostly do not link, because the list behind them
+                is the one already on this screen. The two that do lead to the form. */}
             <StatCard
               icon="calendar"
               label="Updates today"
-              to={isTeamView ? '/team-activity' : '/daily-update'}
+              to={isTeamView ? activityLink(selectedDate) : '/daily-update'}
               tone="progress"
               value={day.statuses.total}
             />
+            {/* The only card here with a denominator, so the only one with a bar:
+                completed out of everything logged today. The rest are counts, and a
+                bar under a count would imply a total nobody stated. */}
             <StatCard
               detail={`${String(day.completionRate)}% of today's updates`}
               icon="check"
               label="Completed"
+              progress={day.completionRate}
+              to={isTeamView ? activityLink(selectedDate, { status: 'completed' }) : undefined}
               tone="positive"
               value={day.statuses.completed}
             />
-            <StatCard icon="activity" label="In progress" value={day.statuses.inProgress} />
-            <StatCard icon="tasks" label="Not started" value={day.statuses.notStarted} />
+            <StatCard
+              icon="activity"
+              label="In progress"
+              to={isTeamView ? activityLink(selectedDate, { status: 'in-progress' }) : undefined}
+              value={day.statuses.inProgress}
+            />
+            <StatCard
+              icon="tasks"
+              label="Not started"
+              to={isTeamView ? activityLink(selectedDate, { status: 'not-started' }) : undefined}
+              value={day.statuses.notStarted}
+            />
+            {/* Blocked rather than a status, because that is what the number is: the
+                blocked status and the blocker flag together, which is the filter the
+                activity screen calls "Blocked work only". */}
             <StatCard
               detail="Blocked by status or flag"
               icon="alert"
               label="Needs attention"
+              to={isTeamView ? activityLink(selectedDate, { blockedOnly: true }) : undefined}
               tone={day.statuses.needsAttention > 0 ? 'attention' : 'neutral'}
               value={day.statuses.needsAttention}
             />
@@ -223,9 +252,15 @@ export function DashboardPage() {
             {isTeamView ? (
               <>
                 <StatCard
-                  detail={`of ${String((developersQuery.data ?? []).filter((developer) => developer.active).length)} active`}
+                  detail={`of ${String(activeDeveloperCount)} active`}
                   icon="users"
                   label="Updated today"
+                  progress={
+                    activeDeveloperCount === 0
+                      ? 0
+                      : (day.developersUpdated.length / activeDeveloperCount) * 100
+                  }
+                  to={activityLink(selectedDate)}
                   tone="positive"
                   value={day.developersUpdated.length}
                 />

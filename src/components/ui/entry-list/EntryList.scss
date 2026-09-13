@@ -26,8 +26,13 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 
+  /// Fades in on mount, for the same reason a table row does: it marks the entries that
+  /// Show more just added, or that a changed filter just brought in, and stays quiet when
+  /// an existing card is merely re-rendered.
   &__item {
     @include grid($gap: $space-3);
+    @include enter(fade-in, $duration-base);
+
     padding: $space-3 $space-4;
     border: 1px solid $color-border;
     border-radius: $radius-md;

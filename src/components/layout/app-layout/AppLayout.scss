@@ -10,6 +10,10 @@
 .app-layout {
   @include grid;
 
+  /// The containing block for the skip link, which is positioned against the shell rather
+  /// than against the page.
+  position: relative;
+
   height: 100%;
   overflow: hidden;
   grid-template-rows: $header-height minmax(0, 1fr);
@@ -24,6 +28,38 @@
 
   &--collapsed {
     grid-template-columns: $sidebar-width-collapsed minmax(0, 1fr);
+  }
+
+  /// Off the top of the window until it is focused, then it drops into the corner.
+  ///
+  /// Moved rather than hidden: `display: none` or `visibility: hidden` would take it out
+  /// of the tab order, which is the one thing it needs to be in. Above the snackbar layer
+  /// because it must be reachable and legible whatever else is on screen — it is the
+  /// first stop on the page and nothing should be able to cover it.
+  &__skip {
+    position: absolute;
+    top: $space-3;
+    left: $space-3;
+    z-index: $z-snackbar;
+    padding: $space-2 $space-4;
+    border-radius: $radius-md;
+    color: $color-white;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    text-decoration: none;
+    background: $color-brand-dark;
+    box-shadow: $shadow-md;
+    transform: translateY(-250%);
+
+    @include motion-safe {
+      transition: transform $transition-base;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+
+      transform: translateY(0);
+    }
   }
 
   /// `minmax(0, 1fr)` above is what allows this to scroll rather than stretch
@@ -47,6 +83,14 @@
     overscroll-behavior: contain;
     background: $color-surface-subtle;
 
+    /// For a jump somebody asked for: the skip link at the top of the page, an anchor,
+    /// a `scrollIntoView` from a control that has just revealed something below the
+    /// fold. Wheel, trackpad and touch scrolling are unaffected — the browser never
+    /// eases those — so this cannot make ordinary reading feel sluggish, which is the
+    /// usual complaint about smooth scrolling and the reason the whole page is not
+    /// handed to a scroll-hijacking library.
+    scroll-behavior: smooth;
+
     @include respond-to-tablet {
       padding: $space-5;
     }
@@ -54,6 +98,30 @@
     @include respond-to-mobile {
       padding: $space-4;
     }
+  }
+
+  /// The routed screen, which is replaced on every navigation and arrives rather than
+  /// appears. A short fade, once, standing in for the moment a server-rendered
+  /// application would have shown a new page.
+  ///
+  /// A fade and not the rise the cards use, and not by taste: a screen contains
+  /// dropdowns and tooltips, those place themselves with `position: fixed`, and an
+  /// ancestor holding a transform is what "fixed" becomes fixed to. A menu opened while
+  /// the screen was still arriving would appear a header's height too low. `enter` has
+  /// the longer version, including the fill mode this depends on.
+  ///
+  /// It has to pass its height through — the screen inside claims what is left of the
+  /// column — so it is a flex column that is itself flexible, and nothing else.
+  ///
+  /// `min-height` is deliberately left at `auto`. Zeroing it is the usual companion to
+  /// `flex: 1`, and here it would let a long screen be shrunk to the height of the
+  /// window with its content spilling out of the bottom, which is precisely what
+  /// `page-stack` explains it is avoiding.
+  &__screen {
+    @include flex(column, $align: null);
+    @include enter(fade-in);
+
+    flex: 1 1 auto;
   }
 
   &__scrim {

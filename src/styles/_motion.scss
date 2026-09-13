@@ -1,0 +1,46 @@
+/// The animations the application shares, in one place.
+///
+/// Keyframes are global whatever file they are written in, so keeping them
+/// together is the only way to see the whole vocabulary at once — and the point of
+/// a small vocabulary is that a card arriving, a screen arriving and a menu
+/// arriving are recognisably the same movement rather than three near-misses.
+///
+/// Each component that animates *only itself* still keeps its keyframes beside it:
+/// a modal growing from 98%, a snackbar sliding in from the right. Those describe
+/// one thing, and moving them here would separate them from the only rule that
+/// uses them. What lives here is what more than one component needs.
+///
+/// Nothing in this file plays under `prefers-reduced-motion: reduce`. That is not
+/// enforced here but in the mixins that reference these names — `enter` and
+/// `stagger` in `_mixins.scss` — which emit an `animation` only inside a
+/// `no-preference` query. A new entrance animation is therefore accessible by
+/// default rather than by remembering.
+
+/// Arriving: up into place while fading in.
+///
+/// Six pixels, which is the distance at which movement registers as something
+/// settling rather than as something sliding. Far enough and it reads as a
+/// transition between screens, which is a bigger claim than a panel should make.
+@keyframes rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/// Arriving without moving, for anything whose position is the information — a
+/// row in a table, a value being replaced in place.
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

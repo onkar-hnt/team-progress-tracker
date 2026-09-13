@@ -145,15 +145,25 @@ $shadow-lg: 0 12px 32px rgb(15 23 42 / 18%);
 /// Motion
 /// ---------------------------------------------------------------------------
 
-/// Two speeds. `fast` is for something that has to feel immediate under the
-/// cursor — a colour, a border, a shadow — and `base` for something that moves,
-/// where the eye needs long enough to follow it.
+/// Three speeds. `fast` is for something that has to feel immediate under the
+/// cursor — a colour, a border, a shadow — `base` for something that moves,
+/// where the eye needs long enough to follow it, and `slow` for something
+/// arriving from nothing: a screen after a navigation, a card after its data.
 ///
-/// Every use of these is a property the user is already expecting to change, so
-/// they are all safe to skip: each of the three animated components turns its
-/// transition off under `prefers-reduced-motion`.
-$transition-fast: 120ms ease;
-$transition-base: 160ms ease;
+/// Duration and easing are separate because the compound shorthand below cannot
+/// serve an `animation`, which needs a name, a fill mode and often a delay
+/// beside them. They were the same two numbers written twice before this.
+$duration-fast: 120ms;
+$duration-base: 160ms;
+$duration-slow: 240ms;
+
+/// For anything entering: quick to start, settling at the end. `ease` on its own
+/// decelerates too gently to read as arriving rather than as fading.
+$ease-out: cubic-bezier(0.22, 0.8, 0.28, 1);
+
+/// The shorthands the transitions use, unchanged in value.
+$transition-fast: $duration-fast ease;
+$transition-base: $duration-base ease;
 
 /// ---------------------------------------------------------------------------
 /// Stacking order

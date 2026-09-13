@@ -22,7 +22,11 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 
+  /// Fades in on mount, so a comment that has just arrived — from Show more, or from
+  /// somebody else's feedback landing over the realtime channel — is visibly new.
   &__item {
+    @include enter(fade-in, $duration-base);
+
     padding: $space-4;
     border: 1px solid $color-border;
     border-left: 3px solid $color-brand;

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
 import { useConfirm } from '@app/providers/confirm-context'
@@ -16,7 +17,14 @@ import { calculateCompletionRate, summariseStatuses, sumHoursLogged } from '@uti
 
 import { ActivityFilters } from '../components/ActivityFilters'
 import { ActivityTable } from '../components/ActivityTable'
-import { createDefaultFilters, matchesSearch, resolvePeriod, toDailyWorkQuery } from '../activity-filters'
+import {
+  filtersFromSearchParams,
+  filtersToSearchParams,
+  matchesSearch,
+  resolvePeriod,
+  toDailyWorkQuery,
+} from '../activity-filters'
+import type { ActivityFilterState } from '../activity-filters'
 
 import './TeamActivityPage.scss'
 
@@ -24,8 +32,26 @@ export function TeamActivityPage() {
   const { user } = useAuth()
   const confirm = useConfirm()
   const snackbar = useSnackbar()
-  const [filters, setFilters] = useState(createDefaultFilters)
   const [editing, setEditing] = useState<DailyWorkEntryView | null>(null)
+
+  /**
+   * The filters live in the address bar rather than in state.
+   *
+   * Which makes them addressable — the dashboard's metric cards link straight to the
+   * slice they counted — and shareable, and undoable with the back button. See
+   * `activity-filters.ts` for the parameter names and how they are validated.
+   *
+   * `replace` rather than push: every keystroke in the search box is a filter change, and
+   * pushing each one would bury the previous screen twenty entries deep in the history.
+   * Replacing keeps Back meaning "the screen I came from" while the URL still describes
+   * what is on this one.
+   */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
+
+  const setFilters = (next: ActivityFilterState) => {
+    setSearchParams(filtersToSearchParams(next), { replace: true })
+  }
 
   const period = resolvePeriod(filters)
   const query = useMemo(() => toDailyWorkQuery(filters), [filters])

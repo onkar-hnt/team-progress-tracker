@@ -13,37 +13,37 @@
 /// the default. `$align` defaults to `center` because that is what forty-odd of
 /// the flex rows here want; a row that wants the default stretch passes
 /// `$align: null`.
-@mixin flex(
-    $direction: row,
+@mixin flex($direction: row,
     $justify: null,
     $align: center,
     $gap: null,
     $wrap: null,
-    $inline: false
-) {
+    $inline: false) {
     @if $inline {
         display: inline-flex;
-    } @else {
+    }
+
+    @else {
         display: flex;
     }
 
-    @if $direction != row {
+    @if $direction !=row {
         flex-direction: $direction;
     }
 
-    @if $justify != null {
+    @if $justify !=null {
         justify-content: $justify;
     }
 
-    @if $align != null {
+    @if $align !=null {
         align-items: $align;
     }
 
-    @if $gap != null {
+    @if $gap !=null {
         gap: $gap;
     }
 
-    @if $wrap != null {
+    @if $wrap !=null {
         flex-wrap: $wrap;
     }
 }
@@ -60,11 +60,11 @@
 @mixin grid($columns: null, $gap: null) {
     display: grid;
 
-    @if $columns != null {
+    @if $columns !=null {
         grid-template-columns: $columns;
     }
 
-    @if $gap != null {
+    @if $gap !=null {
         gap: $gap;
     }
 }
@@ -128,6 +128,9 @@
 ///
 /// The lift is 1px: enough to register as movement, not enough to shift the
 /// text under it noticeably.
+/// The colour and the shadow change for everybody, because they say the card is
+/// interactive and that is information rather than decoration. Only the movement is
+/// held back, which is what somebody asking for reduced motion is asking about.
 @mixin card-lift($border: $color-brand-muted) {
     transition:
         border-color $transition-fast,
@@ -137,14 +140,11 @@
     &:hover {
         border-color: $border;
         box-shadow: $shadow-raised;
-        transform: translateY(-1px);
     }
 
-    @media (prefers-reduced-motion: reduce) {
-        transition: none;
-
+    @include motion-safe {
         &:hover {
-            transform: none;
+            transform: translateY(-1px);
         }
     }
 }
@@ -169,6 +169,93 @@
     font-weight: $weight;
     letter-spacing: $letter-spacing-wide;
     text-transform: uppercase;
+}
+
+/// ---------------------------------------------------------------------------
+/// Motion
+/// ---------------------------------------------------------------------------
+
+/// Everything inside plays only for somebody who has not asked for less movement.
+///
+/// The inverse of the query the components were using. `reduce` and then turning
+/// the animation off again is two rules that have to be kept in agreement, and the
+/// failure mode is silent: forget the second and the animation ships, working
+/// perfectly, for everyone including the people who asked it not to. Written this
+/// way round there is nothing to forget, because the movement only ever existed
+/// inside the query.
+@mixin motion-safe {
+    @media (prefers-reduced-motion: no-preference) {
+        @content;
+    }
+}
+
+/// Something arriving on screen.
+///
+/// ## `backwards`, and why not `both`
+///
+/// `backwards` holds the first frame through the delay, which is what a staggered
+/// card needs: without it a card waiting its turn would sit at full opacity for
+/// that fifth of a second and then start fading in from nothing.
+///
+/// What it deliberately does not do is hold the last frame. An animation with a
+/// forwards fill never finishes applying — it is "in effect" for the rest of the
+/// session — and an element with an animation in effect on opacity or transform is
+/// treated as creating a stacking context, permanently.
+///
+/// That is not a theoretical cost. The dropdown menus and the tooltips are
+/// `position: fixed` with a `z-index` that assumes they can paint above the page.
+/// Trapped in a row's or a card's stacking context they cannot: the status menu
+/// on the first entry of a list was painted *underneath* the second entry, and a
+/// tooltip in a table row disappeared behind the sticky header — the popover
+/// obeying its own container's place in the paint order rather than the z-index it
+/// asked for. `both` was how that happened, and a fill mode is not the sort of
+/// thing anybody looks at twice.
+///
+/// With no forwards fill the element is back to its ordinary self the moment the
+/// animation ends, and the whole class of problem lasts as long as the animation
+/// does.
+///
+/// ## Movement, and what it does to anything fixed inside
+///
+/// For the same reason, and for the length of the animation, `rise-in` is the
+/// containing block for every `position: fixed` descendant it has: `translateY` is
+/// a transform, and a transformed ancestor is what "fixed" becomes fixed to. So a
+/// hover panel opened in that window would be offset by the container's position
+/// on the page.
+///
+/// So: `rise-in` for something whose contents are text and numbers, `fade-in` for
+/// anything holding a control that opens something. That is why the rows, the entry
+/// cards and the routed screen only fade, and the stat cards move.
+///
+/// @param $name One of the shared keyframes in `_motion.scss`.
+@mixin enter($name: rise-in, $duration: $duration-slow, $delay: 0ms) {
+    @include motion-safe {
+        animation: $name $duration $ease-out $delay backwards;
+    }
+}
+
+/// A row of siblings arriving one after another rather than all at once.
+///
+/// Used on the stat cards, where the eye lands on the first number while the rest
+/// are still settling — which is the order they should be read in anyway. The step
+/// is deliberately smaller than it looks like it should be: at 40ms a row of eight
+/// is done in a third of a second, and anything slower turns a dashboard into a
+/// performance somebody has to sit through several times a day.
+///
+/// Applied to the child, not the container, so it composes with `enter`: the child
+/// says what it does and this says when.
+///
+/// @param $count How many siblings to write delays for. Beyond it they all arrive
+///   together on the last beat, which is the right way to fail — a grid of thirty
+///   cards should not take a second and a half to appear.
+@mixin stagger($count: 8, $step: 40ms) {
+    @include motion-safe {
+        @for $index from 1 through $count {
+            &:nth-child(#{$index}) {
+                animation-delay: ($index - 1) * $step;
+            }
+        }
+    }
 }
 
 /// ---------------------------------------------------------------------------

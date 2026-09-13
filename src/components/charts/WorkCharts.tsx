@@ -19,6 +19,17 @@ import type { DeveloperSummary, ProjectSummary, StatusBreakdown } from '@utils/w
 import type { DailyTrendPoint } from '@utils/work-summary.utils'
 import { formatShortDate, formatWeekday } from '@utils/date.utils'
 
+import {
+  AXIS_PROPS,
+  BAR_CURSOR,
+  GRID_PROPS,
+  LEGEND_PROPS,
+  SERIES_COLOURS,
+  STATUS_COLOURS,
+  TOOLTIP_PROPS,
+  useChartMotion,
+} from './chart.theme'
+
 import './WorkCharts.scss'
 
 /**
@@ -31,15 +42,6 @@ import './WorkCharts.scss'
  */
 
 const CHART_HEIGHT = 260
-
-const STATUS_COLOURS = {
-  'not-started': '#8a93a2',
-  'in-progress': '#3155a6',
-  completed: '#2f9e5f',
-  blocked: '#b42318',
-} as const
-
-const PROJECT_COLOURS = ['#3155a6', '#2f9e5f', '#b06c0a', '#7c4dbd', '#0f7c8a', '#b42318']
 
 interface ChartFrameProps {
   summary: string
@@ -64,6 +66,8 @@ interface WeeklyTrendChartProps {
 }
 
 export function WeeklyTrendChart({ trend }: WeeklyTrendChartProps) {
+  const motion = useChartMotion()
+
   const data = trend.map((point) => ({
     ...point,
     label: `${formatWeekday(point.date)} ${formatShortDate(point.date)}`,
@@ -79,17 +83,34 @@ export function WeeklyTrendChart({ trend }: WeeklyTrendChartProps) {
       summary={`Task updates per day across ${String(data.length)} days. Busiest day was ${busiest.label} with ${String(busiest.total)} updates.`}
     >
       <LineChart data={data} margin={{ bottom: 0, left: -20, right: 8, top: 8 }}>
-        <CartesianGrid stroke="#eef1f5" vertical={false} />
-        <XAxis dataKey="label" fontSize={11} stroke="#5f6b7a" tickLine={false} />
-        <YAxis allowDecimals={false} fontSize={11} stroke="#5f6b7a" tickLine={false} />
-        <Tooltip />
-        <Legend />
-        <Line dataKey="total" name="Updates" stroke="#3155a6" strokeWidth={2} type="monotone" />
-        <Line dataKey="completed" name="Completed" stroke="#2f9e5f" strokeWidth={2} type="monotone" />
+        <CartesianGrid {...GRID_PROPS} />
+        <XAxis {...AXIS_PROPS} dataKey="label" />
+        <YAxis {...AXIS_PROPS} allowDecimals={false} />
+        <Tooltip {...TOOLTIP_PROPS} />
+        <Legend {...LEGEND_PROPS} />
+        {/* The brand colour rather than a status one: this line is every update, of
+            whatever status, and the two lines under it are statuses. */}
         <Line
+          {...motion}
+          dataKey="total"
+          name="Updates"
+          stroke={SERIES_COLOURS[0]}
+          strokeWidth={2}
+          type="monotone"
+        />
+        <Line
+          {...motion}
+          dataKey="completed"
+          name="Completed"
+          stroke={STATUS_COLOURS.completed}
+          strokeWidth={2}
+          type="monotone"
+        />
+        <Line
+          {...motion}
           dataKey="needsAttention"
           name="Blocked"
-          stroke="#b42318"
+          stroke={STATUS_COLOURS.blocked}
           strokeWidth={2}
           type="monotone"
         />
@@ -103,6 +124,8 @@ interface StatusDistributionChartProps {
 }
 
 export function StatusDistributionChart({ statuses }: StatusDistributionChartProps) {
+  const motion = useChartMotion()
+
   // Only the four mutually exclusive status counts are charted; needsAttention
   // overlaps them and would make the slices sum to more than the total.
   const data = [
@@ -117,13 +140,24 @@ export function StatusDistributionChart({ statuses }: StatusDistributionChartPro
   return (
     <ChartFrame summary={`Task status split of ${String(statuses.total)} tasks. ${summary}.`}>
       <PieChart>
-        <Pie data={[...data]} dataKey="value" innerRadius={55} nameKey="name" outerRadius={90}>
+        <Pie
+          {...motion}
+          data={[...data]}
+          dataKey="value"
+          innerRadius={55}
+          nameKey="name"
+          outerRadius={90}
+          // A hairline between the slices in the panel's own colour, so two adjacent
+          // slices are separable where a red and an amber would otherwise meet.
+          stroke="var(--chart-surface)"
+          strokeWidth={2}
+        >
           {data.map((slice) => (
             <Cell fill={STATUS_COLOURS[slice.key]} key={slice.key} />
           ))}
         </Pie>
-        <Tooltip />
-        <Legend />
+        <Tooltip {...TOOLTIP_PROPS} />
+        <Legend {...LEGEND_PROPS} />
       </PieChart>
     </ChartFrame>
   )
@@ -134,6 +168,8 @@ interface DeveloperProgressChartProps {
 }
 
 export function DeveloperProgressChart({ summaries }: DeveloperProgressChartProps) {
+  const motion = useChartMotion()
+
   const data = summaries.map((summary) => ({
     name: summary.developer.name.split(' ')[0] ?? summary.developer.name,
     completed: summary.statuses.completed,
@@ -149,25 +185,39 @@ export function DeveloperProgressChart({ summaries }: DeveloperProgressChartProp
   return (
     <ChartFrame summary={`Task status by developer. ${summary}.`}>
       <BarChart data={data} margin={{ bottom: 0, left: -20, right: 8, top: 8 }}>
-        <CartesianGrid stroke="#eef1f5" vertical={false} />
-        <XAxis dataKey="name" fontSize={11} stroke="#5f6b7a" tickLine={false} />
-        <YAxis allowDecimals={false} fontSize={11} stroke="#5f6b7a" tickLine={false} />
-        <Tooltip />
-        <Legend />
-        <Bar dataKey="completed" fill={STATUS_COLOURS.completed} name="Completed" stackId="status" />
+        <CartesianGrid {...GRID_PROPS} />
+        <XAxis {...AXIS_PROPS} dataKey="name" />
+        <YAxis {...AXIS_PROPS} allowDecimals={false} />
+        <Tooltip {...TOOLTIP_PROPS} cursor={BAR_CURSOR} />
+        <Legend {...LEGEND_PROPS} />
         <Bar
+          {...motion}
+          dataKey="completed"
+          fill={STATUS_COLOURS.completed}
+          name="Completed"
+          stackId="status"
+        />
+        <Bar
+          {...motion}
           dataKey="inProgress"
           fill={STATUS_COLOURS['in-progress']}
           name="In Progress"
           stackId="status"
         />
         <Bar
+          {...motion}
           dataKey="notStarted"
           fill={STATUS_COLOURS['not-started']}
           name="Not Started"
           stackId="status"
         />
-        <Bar dataKey="blocked" fill={STATUS_COLOURS.blocked} name="Blocked" stackId="status" />
+        <Bar
+          {...motion}
+          dataKey="blocked"
+          fill={STATUS_COLOURS.blocked}
+          name="Blocked"
+          stackId="status"
+        />
       </BarChart>
     </ChartFrame>
   )
@@ -178,6 +228,8 @@ interface ProjectDistributionChartProps {
 }
 
 export function ProjectDistributionChart({ summaries }: ProjectDistributionChartProps) {
+  const motion = useChartMotion()
+
   const data = summaries
     .filter((summary) => summary.statuses.total > 0)
     .map((summary) => ({ name: summary.project.name, value: summary.statuses.total }))
@@ -187,13 +239,21 @@ export function ProjectDistributionChart({ summaries }: ProjectDistributionChart
   return (
     <ChartFrame summary={`Task distribution across projects. ${summary}.`}>
       <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" outerRadius={90}>
+        <Pie
+          {...motion}
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          outerRadius={90}
+          stroke="var(--chart-surface)"
+          strokeWidth={2}
+        >
           {data.map((slice, index) => (
-            <Cell fill={PROJECT_COLOURS[index % PROJECT_COLOURS.length]} key={slice.name} />
+            <Cell fill={SERIES_COLOURS[index % SERIES_COLOURS.length]} key={slice.name} />
           ))}
         </Pie>
-        <Tooltip />
-        <Legend />
+        <Tooltip {...TOOLTIP_PROPS} />
+        <Legend {...LEGEND_PROPS} />
       </PieChart>
     </ChartFrame>
   )
@@ -204,6 +264,8 @@ interface HoursByDayChartProps {
 }
 
 export function HoursByDayChart({ trend }: HoursByDayChartProps) {
+  const motion = useChartMotion()
+
   const data = trend.map((point) => ({
     label: `${formatWeekday(point.date)} ${formatShortDate(point.date)}`,
     hoursLogged: point.hoursLogged,
@@ -214,11 +276,17 @@ export function HoursByDayChart({ trend }: HoursByDayChartProps) {
   return (
     <ChartFrame summary={`Hours logged per day, ${String(Math.round(total))} hours in total.`}>
       <BarChart data={data} margin={{ bottom: 0, left: -20, right: 8, top: 8 }}>
-        <CartesianGrid stroke="#eef1f5" vertical={false} />
-        <XAxis dataKey="label" fontSize={11} stroke="#5f6b7a" tickLine={false} />
-        <YAxis fontSize={11} stroke="#5f6b7a" tickLine={false} />
-        <Tooltip />
-        <Bar dataKey="hoursLogged" fill="#3155a6" name="Hours" radius={[4, 4, 0, 0]} />
+        <CartesianGrid {...GRID_PROPS} />
+        <XAxis {...AXIS_PROPS} dataKey="label" />
+        <YAxis {...AXIS_PROPS} />
+        <Tooltip {...TOOLTIP_PROPS} cursor={BAR_CURSOR} />
+        <Bar
+          {...motion}
+          dataKey="hoursLogged"
+          fill={SERIES_COLOURS[0]}
+          name="Hours"
+          radius={[4, 4, 0, 0]}
+        />
       </BarChart>
     </ChartFrame>
   )
