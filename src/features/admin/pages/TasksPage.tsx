@@ -3,6 +3,8 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { useConfirm } from '@app/providers/confirm-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { Field, TextAreaField, TextField } from '@components/ui/field/Field'
@@ -20,7 +22,6 @@ import {
   useTasks,
   useUpdateTask,
 } from '@hooks/use-work-tracker'
-import { writeState } from '@hooks/write-state'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { AssignedTask } from '@models/index'
 import { todayIsoDate } from '@utils/date.utils'
@@ -53,6 +54,9 @@ type TaskFormValues = z.infer<typeof taskFormSchema>
  * mentors see for the people assigned to them.
  */
 export function TasksPage() {
+  const confirm = useConfirm()
+  const snackbar = useSnackbar()
+
   const [editing, setEditing] = useState<AssignedTask | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [developerFilter, setDeveloperFilter] = useState('')
@@ -75,7 +79,24 @@ export function TasksPage() {
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
 
-  const writes = writeState([createTask, updateTask, deleteTask])
+  /**
+   * Asks first, then deletes, then says so.
+   *
+   * The confirmation resolves `true` only once the delete has actually landed,
+   * so the success message cannot be shown for something that failed — and a
+   * failure has already been reported by the mutation itself.
+   */
+  const requestDelete = async (task: AssignedTask) => {
+    const isDeleted = await confirm({
+      title: 'Delete this task?',
+      message: `“${task.name}” will be removed from the developer's task list. This cannot be undone.`,
+      confirmLabel: 'Delete task',
+      isDestructive: true,
+      action: () => deleteTask.mutateAsync(task.id),
+    })
+
+    if (isDeleted) snackbar.success(`“${task.name}” was deleted.`)
+  }
 
   const developerPicker = (
     <label className="admin-page__filter">
@@ -100,13 +121,10 @@ export function TasksPage() {
       createLabel="Assign task"
       description="Work assigned to developers, with priority, status and due dates."
       onCreate={() => {
-        writes.clear()
         setIsCreating(true)
       }}
       title="Tasks"
     >
-      {writes.error === null ? null : <p className="form__alert">{writes.error.message}</p>}
-
       <Panel action={developerPicker} description="Overdue work is flagged." title="All tasks">
         {tasksQuery.error !== null ? (
           <ErrorState
@@ -122,7 +140,6 @@ export function TasksPage() {
               <div className="row-actions">
                 <Button
                   onClick={() => {
-                    writes.clear()
                     setEditing(task)
                   }}
                   size="small"
@@ -131,9 +148,7 @@ export function TasksPage() {
                   Edit
                 </Button>
                 <Button
-                  onClick={() => {
-                    if (window.confirm(`Delete "${task.name}"?`)) deleteTask.mutate(task.id)
-                  }}
+                  onClick={() => void requestDelete(task)}
                   size="small"
                   variant="danger"
                 >
@@ -152,8 +167,21 @@ export function TasksPage() {
           mentors={mentorsQuery.data ?? []}
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
-            await createTask.mutateAsync(toRequest(values))
+            // The rejection is swallowed rather than left to propagate: the
+            // mutation has already reported it, and react-hook-form re-throws
+            // whatever its submit handler throws, which would reach the console
+            // as an unhandled rejection saying nothing new. Returning early
+            // leaves the dialog open with the values still in it, which is what
+            // somebody who has to correct one field needs.
+            const isSaved = await createTask
+              .mutateAsync(toRequest(values))
+              .then(() => true)
+              .catch(() => false)
+
+            if (!isSaved) return
+
             setIsCreating(false)
+            snackbar.success(`“${values.name}” was assigned.`)
           }}
           projects={projectsQuery.data ?? []}
         />
@@ -166,8 +194,15 @@ export function TasksPage() {
             mentors={mentorsQuery.data ?? []}
             onCancel={() => setEditing(null)}
             onSubmit={async (values) => {
-              await updateTask.mutateAsync({ id: editing.id, changes: toRequest(values) })
+              const isSaved = await updateTask
+                .mutateAsync({ id: editing.id, changes: toRequest(values) })
+                .then(() => true)
+                .catch(() => false)
+
+              if (!isSaved) return
+
               setEditing(null)
+              snackbar.success(`“${values.name}” was saved.`)
             }}
             projects={projectsQuery.data ?? []}
             task={editing}
@@ -361,7 +396,7 @@ function TaskForm({
         <Button onClick={onCancel} variant="secondary">
           Cancel
         </Button>
-        <Button disabled={isSubmitting} type="submit" variant="primary">
+        <Button isLoading={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : 'Save task'}
         </Button>
       </div>

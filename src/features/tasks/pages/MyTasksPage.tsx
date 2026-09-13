@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
-import { TASK_STATUS_OPTIONS } from '@constants/task.constants'
+import { TASK_STATUS_LABELS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import { useTasks, useUpdateTask } from '@hooks/use-work-tracker'
 import { useAccessScope } from '@hooks/use-access-scope'
 import type { TaskStatus } from '@models/index'
@@ -29,6 +30,7 @@ const STATUS_FILTER_OPTIONS = [{ value: 'all', label: 'All statuses' }, ...TASK_
  */
 export function MyTasksPage() {
   const { user } = useAuth()
+  const snackbar = useSnackbar()
   const { scope } = useAccessScope()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
 
@@ -153,7 +155,20 @@ export function MyTasksPage() {
                 isDisabled={!canUpdateTaskStatus(user, scope, task) || savingTaskId === task.id}
                 isSaving={savingTaskId === task.id}
                 onChange={(status) => {
-                  updateTask.mutate({ id: task.id, changes: { status } })
+                  // The success message is attached to this call rather than to
+                  // the mutation, because only here is it known which task and
+                  // which status — and the mutation is shared with the admin
+                  // screen, where a save is confirmed by the dialog closing.
+                  updateTask.mutate(
+                    { id: task.id, changes: { status } },
+                    {
+                      onSuccess: () => {
+                        snackbar.success(
+                          `“${task.name}” is now ${TASK_STATUS_LABELS[status]}.`,
+                        )
+                      },
+                    },
+                  )
                 }}
                 task={task}
               />
@@ -161,10 +176,6 @@ export function MyTasksPage() {
             showDeveloper={canViewTeamData(user)}
             tasks={visibleTasks}
           />
-        )}
-
-        {updateTask.error === null ? null : (
-          <p className="form__alert">{`The status could not be saved: ${updateTask.error.message}`}</p>
         )}
       </Panel>
     </div>

@@ -4,6 +4,8 @@ import type { PropsWithChildren } from 'react'
 import { appConfig } from '@config/app.config'
 
 import { AuthSessionProvider } from './AuthSessionProvider'
+import { ConfirmProvider } from './ConfirmProvider'
+import { SnackbarProvider } from './SnackbarProvider'
 import { WorkbookGate } from './WorkbookGate'
 
 /**
@@ -35,13 +37,21 @@ const queryClient = new QueryClient({
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
-    <QueryClientProvider client={queryClient}>
-      {/* The workbook is checked before authentication, because signing in
-          reads the accounts out of it. */}
-      <WorkbookGate>
-        {/* Nested inside the query client so signing out can clear cached team data. */}
-        <AuthSessionProvider>{children}</AuthSessionProvider>
-      </WorkbookGate>
-    </QueryClientProvider>
+    // Feedback is outermost so that everything below can report on itself. The
+    // query client in particular: the write mutations in `use-work-tracker`
+    // announce their own failures through the snackbar, which is what replaced
+    // the alert that used to sit on the page behind whichever dialog caused it.
+    <SnackbarProvider>
+      <ConfirmProvider>
+        <QueryClientProvider client={queryClient}>
+          {/* The workbook is checked before authentication, because signing in
+              reads the accounts out of it. */}
+          <WorkbookGate>
+            {/* Nested inside the query client so signing out can clear cached team data. */}
+            <AuthSessionProvider>{children}</AuthSessionProvider>
+          </WorkbookGate>
+        </QueryClientProvider>
+      </ConfirmProvider>
+    </SnackbarProvider>
   )
 }

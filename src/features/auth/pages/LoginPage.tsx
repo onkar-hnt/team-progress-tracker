@@ -5,12 +5,13 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 
 import { useAuth } from '@app/providers/auth-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { TextField } from '@components/ui/field/Field'
 import { FullPageLoader } from '@components/ui/feedback/Feedback'
 import { APP_NAME } from '@constants/app.constants'
-import { AuthError } from '@services/auth/index'
 import { bootstrapAdmin } from '@services/auth/bootstrap-admin'
+import { logFailure, toUserMessage } from '@services/errors/error-message'
 
 import './LoginPage.scss'
 
@@ -47,6 +48,7 @@ export function LoginPage() {
   const { isAuthenticated, isOffline, isRestoring, signIn, usesCredentials } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const snackbar = useSnackbar()
   const [signInError, setSignInError] = useState<string | null>(null)
   const [isSigningIn, setIsSigningIn] = useState(false)
 
@@ -56,10 +58,25 @@ export function LoginPage() {
   if (isRestoring) return <FullPageLoader label="Checking your session…" />
   if (isAuthenticated) return <Navigate replace to={redirectTo} />
 
+  /**
+   * Said in two places, for two different jobs.
+   *
+   * The message beside the form stays put: a rejected sign-in is about the two
+   * fields directly above it and has to remain readable while they are being
+   * corrected, which is the opposite of what a message that fades is for.
+   *
+   * The snackbar is what catches the eye. The alert sits below the button, and
+   * somebody who submitted with Enter while looking at the password field can
+   * miss it appearing — a form that looks unchanged reads as a form that did
+   * nothing.
+   */
   const reportError = (error: unknown) => {
-    setSignInError(
-      error instanceof AuthError ? error.message : 'Something went wrong. Please try again.',
-    )
+    logFailure('sign in', error)
+
+    const message = toUserMessage(error, 'Something went wrong. Please try again.')
+
+    setSignInError(message)
+    snackbar.error(message)
   }
 
   const signInWithMicrosoft = async () => {
@@ -110,10 +127,12 @@ export function LoginPage() {
           </div>
         )}
 
-        {/* Assertive so a screen reader announces a rejected sign-in immediately. */}
-        <div aria-live="assertive" role="status">
-          {signInError === null ? null : <p className="form__alert">{signInError}</p>}
-        </div>
+        {/* No longer a live region. The snackbar reporting the same sentence is
+            already `role="alert"`, and two of them between one message means a
+            screen reader says it twice. This copy is here to be re-read, not
+            announced — and it renders nothing when there is nothing to say, so
+            the card does not carry an empty gap. */}
+        {signInError === null ? null : <p className="form__alert">{signInError}</p>}
 
         {/*
           The built-in administrator only exists in the offline workbook
@@ -186,7 +205,7 @@ function PasswordForm({
         {...register('password')}
       />
 
-      <Button disabled={isSubmitting} type="submit" variant="primary">
+      <Button isLoading={isSubmitting} type="submit" variant="primary">
         {isSubmitting ? 'Signing in…' : 'Sign in'}
       </Button>
     </form>

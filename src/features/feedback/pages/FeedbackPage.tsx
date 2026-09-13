@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
+import { useConfirm } from '@app/providers/confirm-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
@@ -15,6 +17,7 @@ import {
 } from '@hooks/use-work-tracker'
 import type { MentorComment } from '@models/index'
 import { canEditComment, canWriteFeedback } from '@services/auth/index'
+import { formatLongDate } from '@utils/date.utils'
 
 import { CommentTimeline } from '../components/CommentTimeline'
 import { FeedbackForm } from '../components/FeedbackForm'
@@ -81,6 +84,9 @@ function OwnFeedback() {
  */
 function FeedbackWorkspace() {
   const { user } = useAuth()
+  const confirm = useConfirm()
+  const snackbar = useSnackbar()
+
   const [developerFilter, setDeveloperFilter] = useState('')
   const [editing, setEditing] = useState<MentorComment | null>(null)
 
@@ -99,8 +105,16 @@ function FeedbackWorkspace() {
   // they have one; without it there is nobody to attribute the note to.
   const mentorId = user?.mentorId ?? ''
 
+  /**
+   * Lets the rejection through, unlike the dialog-based forms.
+   *
+   * `FeedbackForm` empties itself after a successful save so the next piece can
+   * be written, and it decides that by whether this promise rejected. Swallowing
+   * the failure here would clear the paragraph that had just failed to save.
+   */
   const handleCreate = async (values: FeedbackFormValues, projectId: string | undefined) => {
     await createComment.mutateAsync(toCreateCommentRequest(values, mentorId, projectId))
+    snackbar.success('The feedback was saved.')
   }
 
   // Re-attributing somebody else's feedback by editing it would rewrite who
@@ -112,7 +126,21 @@ function FeedbackWorkspace() {
       id: editing.id,
       changes: toCreateCommentRequest(values, editing.mentorId, projectId),
     })
+
     setEditing(null)
+    snackbar.success('The feedback was saved.')
+  }
+
+  const requestDelete = async (comment: MentorComment) => {
+    const isDeleted = await confirm({
+      title: 'Delete this feedback?',
+      message: `The feedback recorded on ${formatLongDate(comment.date)} will be removed from the developer's history. This cannot be undone.`,
+      confirmLabel: 'Delete feedback',
+      isDestructive: true,
+      action: () => deleteComment.mutateAsync(comment.id),
+    })
+
+    if (isDeleted) snackbar.success('The feedback was deleted.')
   }
 
   const developerPicker = (
@@ -154,10 +182,7 @@ function FeedbackWorkspace() {
         isPageHeading
         title="Feedback"
       >
-        <FeedbackForm
-          error={createComment.error === null ? null : createComment.error.message}
-          onSubmit={handleCreate}
-        />
+        <FeedbackForm onSubmit={handleCreate} />
       </Panel>
 
       <Panel action={developerPicker} description="Newest first." title="Feedback history">
@@ -186,13 +211,7 @@ function FeedbackWorkspace() {
                     Edit
                   </Button>
                   <Button
-                    onClick={() => {
-                      // Deleting feedback removes part of somebody's record,
-                      // so it is confirmed rather than immediate.
-                      if (window.confirm('Delete this feedback? This cannot be undone.')) {
-                        deleteComment.mutate(comment.id)
-                      }
-                    }}
+                    onClick={() => void requestDelete(comment)}
                     size="small"
                     variant="danger"
                   >
@@ -209,7 +228,6 @@ function FeedbackWorkspace() {
         {editing === null ? null : (
           <FeedbackForm
             comment={editing}
-            error={updateComment.error === null ? null : updateComment.error.message}
             onCancel={() => setEditing(null)}
             onSubmit={handleUpdate}
           />

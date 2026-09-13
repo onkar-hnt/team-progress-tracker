@@ -1,0 +1,21 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+/// The body of the confirmation dialog.
+///
+/// Almost nothing to it, and that is the point: the surface, the header, the
+/// pinned footer and the animation are `Modal`'s, and the buttons are `Button`'s.
+/// What is left is the one paragraph between them.
+.confirm {
+  @include grid($gap: $space-5);
+
+  /// Wider line height than a form's, because this is a sentence to be read
+  /// rather than a caption above a field — and it is the only thing standing
+  /// between somebody and a delete.
+  &__message {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    line-height: $line-height-loose;
+  }
+}

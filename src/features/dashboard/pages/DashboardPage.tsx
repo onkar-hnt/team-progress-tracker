@@ -18,8 +18,9 @@ import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { useAuth } from '@app/providers/auth-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { DailyUpdateForm } from '@features/daily-update/components/DailyUpdateForm'
-import { TASK_STATUS_OPTIONS } from '@constants/task.constants'
+import { TASK_STATUS_LABELS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import {
   useDayOverview,
   useDevelopers,
@@ -55,6 +56,7 @@ import './DashboardPage.scss'
  */
 export function DashboardPage() {
   const { user } = useAuth()
+  const snackbar = useSnackbar()
   const isTeamView = canViewTeamData(user)
 
   // Opening on a weekend should show the last working day rather than an
@@ -112,10 +114,17 @@ export function DashboardPage() {
             // Progress travels with the status, so the list never shows
             // "Completed · 50%". Left alone for in-progress and blocked,
             // where the developer's own number is the meaningful one.
-            updateEntry.mutate({
-              id: entry.id,
-              changes: progress === null ? { status } : { status, progress },
-            })
+            updateEntry.mutate(
+              {
+                id: entry.id,
+                changes: progress === null ? { status } : { status, progress },
+              },
+              {
+                onSuccess: () => {
+                  snackbar.success(`The update is now ${TASK_STATUS_LABELS[status]}.`)
+                },
+              },
+            )
           }}
         />
 
@@ -242,21 +251,49 @@ export function DashboardPage() {
         )}
       </Panel>
 
+      {/* Both panels here are a fixed height that scrolls inside itself, so the
+          pair lines up whatever each of them has to show and a long week cannot
+          drag one of them past the other. */}
       <div className="dashboard__row dashboard__row--priority">
+        {/* A developer's own work leads, because this is the panel they act in —
+            the status control and Edit are here — and their blockers are usually
+            a short list or none at all. A mentor's row still opens with
+            blockers, which is the question they came to the screen with. */}
+        {isTeamView ? null : (
+          <Panel description="Your most recent updates." title="Recent work">
+            <div className="dashboard__panel-scroll">
+              {isLoading || week === undefined ? (
+                <Skeleton rows={3} />
+              ) : (
+                <EntryList
+                  emptyMessage="Nothing logged this week yet."
+                  entries={week.entries}
+                  limit={5}
+                  renderActions={entryActions}
+                  showDate
+                  showDeveloper={false}
+                />
+              )}
+            </div>
+          </Panel>
+        )}
+
         <Panel
           description="Raise these first: work that cannot move without help."
           title="Blocked work"
         >
-          {isLoading || week === undefined ? (
-            <Skeleton rows={2} />
-          ) : (
-            <EntryList
-              emptyMessage="No blockers reported this week."
-              entries={week.blockedEntries}
-              limit={6}
-              showDate
-            />
-          )}
+          <div className="dashboard__panel-scroll">
+            {isLoading || week === undefined ? (
+              <Skeleton rows={2} />
+            ) : (
+              <EntryList
+                emptyMessage="No blockers reported this week."
+                entries={week.blockedEntries}
+                limit={6}
+                showDate
+              />
+            )}
+          </div>
         </Panel>
 
         {isTeamView ? (
@@ -268,43 +305,30 @@ export function DashboardPage() {
             }
             title="Missing daily updates"
           >
-            {isLoading || day === undefined ? (
-              <Skeleton rows={2} />
-            ) : day.developersMissingUpdate.length === 0 ? (
-              <EmptyState
-                icon="check"
-                message="Everyone active has logged their work for this day."
-                title="Nothing outstanding"
-              />
-            ) : (
-              <ul className="dashboard__missing">
-                {day.developersMissingUpdate.map((developer) => (
-                  <li key={developer.id}>
-                    <Link to={`/developers/${developer.id}`}>{developer.name}</Link>
-                    {developer.role === undefined ? null : (
-                      <span className="dashboard__missing-role">{developer.role}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div className="dashboard__panel-scroll">
+              {isLoading || day === undefined ? (
+                <Skeleton rows={2} />
+              ) : day.developersMissingUpdate.length === 0 ? (
+                <EmptyState
+                  icon="check"
+                  message="Everyone active has logged their work for this day."
+                  title="Nothing outstanding"
+                />
+              ) : (
+                <ul className="dashboard__missing">
+                  {day.developersMissingUpdate.map((developer) => (
+                    <li key={developer.id}>
+                      <Link to={`/developers/${developer.id}`}>{developer.name}</Link>
+                      {developer.role === undefined ? null : (
+                        <span className="dashboard__missing-role">{developer.role}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Panel>
-        ) : (
-          <Panel description="Your most recent updates." title="Recent work">
-            {isLoading || week === undefined ? (
-              <Skeleton rows={3} />
-            ) : (
-              <EntryList
-                emptyMessage="Nothing logged this week yet."
-                entries={week.entries}
-                limit={5}
-                renderActions={entryActions}
-                showDate
-                showDeveloper={false}
-              />
-            )}
-          </Panel>
-        )}
+        ) : null}
       </div>
 
       {/* Assigned work is the one part of a developer's progress that is not

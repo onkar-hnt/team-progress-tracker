@@ -20,7 +20,13 @@ import './Button.scss'
  * stylesheet as a sixth variant.
  */
 
-export type ButtonVariant = 'danger' | 'ghost' | 'inverse' | 'primary' | 'secondary'
+export type ButtonVariant =
+  | 'danger'
+  | 'destructive'
+  | 'ghost'
+  | 'inverse'
+  | 'primary'
+  | 'secondary'
 export type ButtonSize = 'medium' | 'small'
 
 interface ButtonAppearance {
@@ -77,6 +83,7 @@ function labelClass(isIconOnly: boolean, collapsesLabel: boolean): string {
 
 interface ButtonContentProps extends ButtonAppearance {
   children: ReactNode
+  isLoading?: boolean
 }
 
 function ButtonContent({
@@ -84,10 +91,15 @@ function ButtonContent({
   collapsesLabel = false,
   icon,
   isIconOnly = false,
+  isLoading = false,
 }: ButtonContentProps) {
   return (
     <>
-      {icon === undefined ? null : <Icon name={icon} size={iconSize(isIconOnly)} />}
+      {isLoading ? (
+        <span aria-hidden="true" className="button__spinner" />
+      ) : icon === undefined ? null : (
+        <Icon name={icon} size={iconSize(isIconOnly)} />
+      )}
       <span className={labelClass(isIconOnly, collapsesLabel)}>{children}</span>
     </>
   )
@@ -100,7 +112,25 @@ function ButtonContent({
  * reach is a control the caller cannot focus.
  */
 type ButtonProps = ButtonAppearance &
-  Omit<ComponentPropsWithRef<'button'>, 'className'> & { children: ReactNode }
+  Omit<ComponentPropsWithRef<'button'>, 'className'> & {
+    children: ReactNode
+
+    /**
+     * A write is in flight: a spinner replaces the icon and the control stops
+     * responding.
+     *
+     * Disabling is the point rather than a side effect. Every mutation here
+     * refetches what it touched, so a second press before the first returns is a
+     * duplicate record or a second delete of something already gone, and the
+     * only reliable place to refuse it is the control itself.
+     *
+     * The label is left to the caller. A form's submit button usually changes it
+     * — "Save task" to "Saving…" — because that reads better than a spinner
+     * beside an unchanged verb, while an icon-only control has no label to
+     * change.
+     */
+    isLoading?: boolean
+  }
 
 /**
  * `type` defaults to `button` rather than to the HTML default of `submit`.
@@ -112,16 +142,29 @@ type ButtonProps = ButtonAppearance &
 export function Button({
   children,
   collapsesLabel = false,
+  disabled = false,
   icon,
   isIconOnly = false,
+  isLoading = false,
   size = 'medium',
   type = 'button',
   variant = 'secondary',
   ...rest
 }: ButtonProps) {
   return (
-    <button className={buttonClass({ isIconOnly, size, variant })} type={type} {...rest}>
-      <ButtonContent collapsesLabel={collapsesLabel} isIconOnly={isIconOnly} {...{ icon }}>
+    <button
+      aria-busy={isLoading ? true : undefined}
+      className={buttonClass({ isIconOnly, size, variant })}
+      disabled={disabled || isLoading}
+      type={type}
+      {...rest}
+    >
+      <ButtonContent
+        collapsesLabel={collapsesLabel}
+        isIconOnly={isIconOnly}
+        isLoading={isLoading}
+        {...{ icon }}
+      >
         {children}
       </ButtonContent>
     </button>

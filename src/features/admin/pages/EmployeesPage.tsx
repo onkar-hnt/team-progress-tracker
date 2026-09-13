@@ -3,6 +3,8 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { useConfirm } from '@app/providers/confirm-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { CheckboxField, Field, TextField } from '@components/ui/field/Field'
@@ -16,7 +18,6 @@ import {
   useProvisionDeveloperLogin,
   useUpdateDeveloper,
 } from '@hooks/use-work-tracker'
-import { writeState } from '@hooks/write-state'
 import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer, UserRole } from '@models/index'
 import { appConfig } from '@config/app.config'
@@ -101,6 +102,9 @@ function isProvisionable(developer: Developer): boolean {
  * and the list shows which of the two each person has.
  */
 export function EmployeesPage() {
+  const confirm = useConfirm()
+  const snackbar = useSnackbar()
+
   const [editing, setEditing] = useState<Developer | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [notice, setNotice] = useState<ProvisioningNotice | null>(null)
@@ -111,7 +115,29 @@ export function EmployeesPage() {
   const deleteDeveloper = useDeleteDeveloper()
   const provisionLogin = useProvisionDeveloperLogin()
 
-  const writes = writeState([createDeveloper, updateDeveloper, deleteDeveloper])
+  /**
+   * Asks first, then deletes, then says so.
+   *
+   * The confirmation resolves `true` only once the delete has actually landed,
+   * so the success message cannot be shown for something that failed — and a
+   * failure has already been reported by the mutation itself.
+   */
+  const requestDelete = async (developer: Developer) => {
+    const isDeleted = await confirm({
+      title: 'Delete this employee?',
+      // Every table that names a developer — tasks, daily updates, feedback,
+      // project and mentor assignments — points at this row with `on delete
+      // restrict`, so the database refuses to remove anybody with a history.
+      // Saying so up front is better than offering a delete that will be
+      // refused, and better than implying the history goes with them.
+      message: `“${developer.name}” will be removed from the employee list. This is only possible while they have no tasks, updates or feedback recorded, and it cannot be undone.`,
+      confirmLabel: 'Delete employee',
+      isDestructive: true,
+      action: () => deleteDeveloper.mutateAsync(developer.id),
+    })
+
+    if (isDeleted) snackbar.success(`“${developer.name}” was deleted.`)
+  }
 
   /**
    * Asks the server for a login, and says plainly when it could not.
@@ -120,6 +146,13 @@ export function EmployeesPage() {
    * runs, so a failure here is a partial success to report rather than an
    * error to unwind — and the row action retries it without writing a
    * second employee.
+   *
+   * The row action asks before it starts. This creates a real account and shows
+   * its initial password once — no endpoint will return it again — so a press
+   * aimed at the wrong row of a long table costs a password reset in the
+   * Supabase dashboard, and there is nothing here to undo it with. `isNewRecord`
+   * skips the question for the one caller where the intent is not in doubt: the
+   * add form, which has just been filled in and submitted for this person.
    */
   const requestLogin = async (developer: Developer, isNewRecord = false) => {
     if (!CAN_PROVISION_LOGINS) return
@@ -131,6 +164,16 @@ export function EmployeesPage() {
     if (refusal !== null) {
       setNotice({ tone: 'problem', message: `${developer.name} was saved. ${refusal}` })
       return
+    }
+
+    if (!isNewRecord) {
+      const isConfirmed = await confirm({
+        title: 'Create a login?',
+        message: `A sign-in account will be created for “${developer.name}”. The initial password is shown here once and cannot be retrieved afterwards, so pass it on before you leave this screen.`,
+        confirmLabel: 'Create login',
+      })
+
+      if (!isConfirmed) return
     }
 
     try {
@@ -161,13 +204,10 @@ export function EmployeesPage() {
       createLabel="Add employee"
       description="Employees, their access level and whether they can sign in."
       onCreate={() => {
-        writes.clear()
         setIsCreating(true)
       }}
       title="Employees"
     >
-      {writes.error === null ? null : <p className="form__alert">{writes.error.message}</p>}
-
       <ProvisioningNoticeView notice={notice} />
 
       <Panel
@@ -235,7 +275,6 @@ export function EmployeesPage() {
                         ) : null}
                         <Button
                           onClick={() => {
-                            writes.clear()
                             setEditing(developer)
                           }}
                           size="small"
@@ -244,11 +283,7 @@ export function EmployeesPage() {
                           Edit
                         </Button>
                         <Button
-                          onClick={() => {
-                            if (window.confirm(`Delete ${developer.name}?`)) {
-                              deleteDeveloper.mutate(developer.id)
-                            }
-                          }}
+                          onClick={() => void requestDelete(developer)}
                           size="small"
                           variant="danger"
                         >
@@ -268,11 +303,17 @@ export function EmployeesPage() {
         <EmployeeForm
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
-            // The record first, then the login. If provisioning fails the
-            // modal still closes, because the employee genuinely was created
-            // and leaving the form open would invite a duplicate.
-            const created = await createDeveloper.mutateAsync(toRequest(values))
+            const created = await createDeveloper.mutateAsync(toRequest(values)).catch(() => null)
+
+            if (created === null) return
+
+            // Closed and confirmed before provisioning is attempted, because the
+            // employee genuinely was created: leaving the form open would invite
+            // a duplicate, and staying silent until the login attempt returns
+            // would attribute its failure to the record.
             setIsCreating(false)
+            snackbar.success(`“${values.name}” was added.`)
+
             await requestLogin(created, true)
           }}
         />
@@ -284,8 +325,15 @@ export function EmployeesPage() {
             developer={editing}
             onCancel={() => setEditing(null)}
             onSubmit={async (values) => {
-              await updateDeveloper.mutateAsync({ id: editing.id, changes: toRequest(values) })
+              const isSaved = await updateDeveloper
+                .mutateAsync({ id: editing.id, changes: toRequest(values) })
+                .then(() => true)
+                .catch(() => false)
+
+              if (!isSaved) return
+
               setEditing(null)
+              snackbar.success(`“${values.name}” was saved.`)
             }}
           />
         )}
@@ -391,7 +439,7 @@ function EmployeeForm({
         <Button onClick={onCancel} variant="secondary">
           Cancel
         </Button>
-        <Button disabled={isSubmitting} type="submit" variant="primary">
+        <Button isLoading={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : 'Save employee'}
         </Button>
       </div>

@@ -3,13 +3,13 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useAuth } from '@app/providers/auth-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { Field, TextField } from '@components/ui/field/Field'
 import type { DropdownOption } from '@components/ui/dropdown/Dropdown'
 import { PROGRESS_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import type { DailyWorkEntry, TaskStatus } from '@models/index'
-import { DataProviderError } from '@services/data-provider/index'
 import { isAdmin } from '@services/auth/index'
 import {
   useActiveDevelopers,
@@ -44,14 +44,13 @@ interface DailyUpdateFormProps {
 
 export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) {
   const { user } = useAuth()
+  const snackbar = useSnackbar()
   const developersQuery = useActiveDevelopers()
   const projectsQuery = useActiveProjects()
   const createEntry = useCreateDailyWorkEntry()
   const updateEntry = useUpdateDailyWorkEntry()
 
   const isEditing = entry !== undefined
-  const [savedTitle, setSavedTitle] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // An admin logs on someone's behalf and must choose; a developer is fixed
   // to their own id, which is what stops cross-developer edits. Editing never
@@ -145,15 +144,12 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
   const hasTask = selectedTaskId !== ''
 
   const onSubmit = handleSubmit(async (values) => {
-    setSubmitError(null)
-    setSavedTitle(null)
-
     try {
       const request = toCreateDailyWorkEntryRequest(values)
 
       if (entry === undefined) {
         const created = await createEntry.mutateAsync(request)
-        setSavedTitle(created.taskTitle)
+        snackbar.success(`Saved “${created.taskTitle}”.`)
 
         // Keep the date and developer so several tasks can be logged in a row.
         reset(createEmptyFormValues({ date: values.date, developerId: values.developerId }))
@@ -161,13 +157,12 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
       }
 
       await updateEntry.mutateAsync({ id: entry.id, changes: request })
+      snackbar.success('The daily update was saved.')
       onSaved?.()
-    } catch (error) {
-      setSubmitError(
-        error instanceof DataProviderError
-          ? error.message
-          : 'The update could not be saved. Please try again.',
-      )
+    } catch {
+      // Already reported: both mutations announce their own failures. Caught so
+      // that the form keeps what was typed — the reader has a paragraph of work
+      // in it — and so react-hook-form does not re-throw into the console.
     }
   })
 
@@ -393,13 +388,8 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
         </p>
       )}
 
-      <div aria-live="polite" role="status">
-        {savedTitle === null ? null : <p className="form__success">Saved “{savedTitle}”.</p>}
-        {submitError === null ? null : <p className="form__alert">{submitError}</p>}
-      </div>
-
       <div className="daily-update-form__actions">
-        <Button disabled={isSubmitting} type="submit" variant="primary">
+        <Button isLoading={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : isEditing ? 'Save changes' : 'Save update'}
         </Button>
         {isEditing ? null : (

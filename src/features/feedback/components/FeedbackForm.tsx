@@ -32,9 +32,6 @@ interface FeedbackFormProps {
   onSubmit: (values: FeedbackFormValues, projectId: string | undefined) => Promise<void>
 
   onCancel?: () => void
-
-  /** Surfaced from the mutation, so the message appears next to the button. */
-  error?: string | null
 }
 
 /**
@@ -44,13 +41,7 @@ interface FeedbackFormProps {
  * mentor can only ever select somebody assigned to them and only that
  * person's work — the restriction is in the data, not in a check here.
  */
-export function FeedbackForm({
-  comment,
-  developerId,
-  error,
-  onCancel,
-  onSubmit,
-}: FeedbackFormProps) {
+export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: FeedbackFormProps) {
   const developersQuery = useActiveDevelopers()
 
   const {
@@ -123,7 +114,19 @@ export function FeedbackForm({
   const submit = handleSubmit(async (values) => {
     const task = tasks.find((candidate) => candidate.id === values.taskId)
 
-    await onSubmit(values, task?.projectId)
+    try {
+      await onSubmit(values, task?.projectId)
+    } catch {
+      // Emptied only once the save has landed. A failure leaves the paragraph
+      // that was written in place to be tried again — clearing it would lose
+      // the one thing here that cannot be reconstructed from the record.
+      //
+      // Caught rather than propagated so that react-hook-form, which re-throws
+      // whatever its handler throws, does not put an unhandled rejection in the
+      // console. The message has already been shown by the mutation.
+      return
+    }
+
     if (comment === undefined) reset(emptyFeedbackValues(developerId))
   })
 
@@ -256,15 +259,13 @@ export function FeedbackForm({
         </div>
       </div>
 
-      {error === null || error === undefined ? null : <p className="form__alert">{error}</p>}
-
       <div className="form__actions">
         {onCancel === undefined ? null : (
           <Button onClick={onCancel} variant="secondary">
             Cancel
           </Button>
         )}
-        <Button disabled={isSubmitting} type="submit" variant="primary">
+        <Button isLoading={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : comment === undefined ? 'Save feedback' : 'Update feedback'}
         </Button>
       </div>

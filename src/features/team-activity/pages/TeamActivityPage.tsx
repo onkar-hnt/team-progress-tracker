@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
+import { useConfirm } from '@app/providers/confirm-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
@@ -19,9 +21,10 @@ import './TeamActivityPage.scss'
 
 export function TeamActivityPage() {
   const { user } = useAuth()
+  const confirm = useConfirm()
+  const snackbar = useSnackbar()
   const [filters, setFilters] = useState(createDefaultFilters)
   const [editing, setEditing] = useState<DailyWorkEntryView | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const period = resolvePeriod(filters)
   const query = useMemo(() => toDailyWorkQuery(filters), [filters])
@@ -48,14 +51,23 @@ export function TeamActivityPage() {
 
   const error = entriesQuery.error ?? developersQuery.error ?? projectsQuery.error
 
-  const handleDelete = async (entry: DailyWorkEntryView) => {
-    setDeleteError(null)
+  /**
+   * Asks before deleting, which it did not do before.
+   *
+   * A daily update is a first-hand record of somebody's work, written once and
+   * not reconstructible — the strongest case in the application for a
+   * confirmation step, and the only delete that had none.
+   */
+  const requestDelete = async (entry: DailyWorkEntryView) => {
+    const isDeleted = await confirm({
+      title: 'Delete this update?',
+      message: `The update logged for ${formatLongDate(entry.date)} will be removed from the activity list and from the totals. This cannot be undone.`,
+      confirmLabel: 'Delete update',
+      isDestructive: true,
+      action: () => deleteEntry.mutateAsync(entry.id),
+    })
 
-    try {
-      await deleteEntry.mutateAsync(entry.id)
-    } catch {
-      setDeleteError('The entry could not be deleted. Please try again.')
-    }
+    if (isDeleted) snackbar.success('The update was deleted.')
   }
 
   return (
@@ -93,8 +105,6 @@ export function TeamActivityPage() {
       </Panel>
 
       <Panel description="Sort any column. You can edit or delete your own entries." title="Entries">
-        {deleteError === null ? null : <ErrorState message={deleteError} />}
-
         {error !== null ? (
           <ErrorState
             message={`The activity list could not be loaded: ${error.message}`}
@@ -106,7 +116,7 @@ export function TeamActivityPage() {
           <ActivityTable
             deletingId={deleteEntry.isPending ? (deleteEntry.variables ?? null) : null}
             entries={visibleEntries}
-            onDelete={(entry) => void handleDelete(entry)}
+            onDelete={(entry) => void requestDelete(entry)}
             onEdit={setEditing}
             user={user}
           />

@@ -3,6 +3,8 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { useConfirm } from '@app/providers/confirm-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import {
@@ -24,7 +26,6 @@ import {
   useRosterProjects,
   useUpdateProject,
 } from '@hooks/use-work-tracker'
-import { writeState } from '@hooks/write-state'
 import { PROJECT_STATUSES } from '@models/project.model'
 import type { Project, ProjectStatus } from '@models/index'
 import { formatShortDate } from '@utils/date.utils'
@@ -71,6 +72,9 @@ type ProjectFormValues = z.infer<typeof projectFormSchema>
  * actually logged.
  */
 export function ProjectsPage() {
+  const confirm = useConfirm()
+  const snackbar = useSnackbar()
+
   const [editing, setEditing] = useState<Project | null>(null)
   const [isCreating, setIsCreating] = useState(false)
 
@@ -82,7 +86,18 @@ export function ProjectsPage() {
   const updateProject = useUpdateProject()
   const deleteProject = useDeleteProject()
 
-  const writes = writeState([createProject, updateProject, deleteProject])
+  const requestDelete = async (project: Project) => {
+    const isDeleted = await confirm({
+      title: 'Delete this project?',
+      message: `“${project.name}” will be removed from the roster. Developer assignments for it will be cleared. This cannot be undone.`,
+      confirmLabel: 'Delete project',
+      isDestructive: true,
+      action: () => deleteProject.mutateAsync(project.id),
+    })
+
+    if (isDeleted) snackbar.success(`“${project.name}” was deleted.`)
+  }
+
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
 
@@ -91,13 +106,10 @@ export function ProjectsPage() {
       createLabel="Add project"
       description="Projects, their clients and the developers assigned to them."
       onCreate={() => {
-        writes.clear()
         setIsCreating(true)
       }}
       title="Projects"
     >
-      {writes.error === null ? null : <p className="form__alert">{writes.error.message}</p>}
-
       <Panel description="Assignments decide who sees each project." title="All projects">
         {projectsQuery.error !== null ? (
           <ErrorState
@@ -140,7 +152,6 @@ export function ProjectsPage() {
                       <div className="row-actions">
                         <Button
                           onClick={() => {
-                            writes.clear()
                             setEditing(project)
                           }}
                           size="small"
@@ -149,11 +160,7 @@ export function ProjectsPage() {
                           Edit
                         </Button>
                         <Button
-                          onClick={() => {
-                            if (window.confirm(`Delete ${project.name}?`)) {
-                              deleteProject.mutate(project.id)
-                            }
-                          }}
+                          onClick={() => void requestDelete(project)}
                           size="small"
                           variant="danger"
                         >
@@ -175,8 +182,15 @@ export function ProjectsPage() {
           mentors={mentorsQuery.data ?? []}
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
-            await createProject.mutateAsync(toRequest(values))
+            const isSaved = await createProject
+              .mutateAsync(toRequest(values))
+              .then(() => true)
+              .catch(() => false)
+
+            if (!isSaved) return
+
             setIsCreating(false)
+            snackbar.success(`“${values.name}” was added.`)
           }}
         />
       </Modal>
@@ -188,8 +202,15 @@ export function ProjectsPage() {
             mentors={mentorsQuery.data ?? []}
             onCancel={() => setEditing(null)}
             onSubmit={async (values) => {
-              await updateProject.mutateAsync({ id: editing.id, changes: toRequest(values) })
+              const isSaved = await updateProject
+                .mutateAsync({ id: editing.id, changes: toRequest(values) })
+                .then(() => true)
+                .catch(() => false)
+
+              if (!isSaved) return
+
               setEditing(null)
+              snackbar.success(`“${values.name}” was saved.`)
             }}
             project={editing}
           />
@@ -351,7 +372,7 @@ function ProjectForm({
         <Button onClick={onCancel} variant="secondary">
           Cancel
         </Button>
-        <Button disabled={isSubmitting} type="submit" variant="primary">
+        <Button isLoading={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : 'Save project'}
         </Button>
       </div>

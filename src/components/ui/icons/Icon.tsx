@@ -19,11 +19,13 @@ export type IconName =
   | 'chevron-down'
   | 'chevron-left'
   | 'chevron-right'
+  | 'close'
   | 'comments'
   | 'dashboard'
   | 'download'
   | 'filter'
   | 'inbox'
+  | 'info'
   | 'menu'
   | 'mentors'
   | 'projects'
@@ -32,6 +34,7 @@ export type IconName =
   | 'table'
   | 'tasks'
   | 'users'
+  | 'warning'
 
 const PATHS: Readonly<Record<IconName, ReactElement>> = {
   dashboard: (
@@ -119,6 +122,22 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
     </>
   ),
   check: <path d="M5 12.5 9.5 17 19 7.5" />,
+
+  // A triangle for a warning and the circle above for an error, which is the
+  // one distinction between the two that is legible without reading the label.
+  warning: (
+    <>
+      <path d="M12 4.5 21 19.5H3z" />
+      <path d="M12 10v4M12 17.2h.01" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5.5M12 7.8h.01" />
+    </>
+  ),
+  close: <path d="M6 6l12 12M18 6 6 18" />,
   download: (
     <>
       <path d="M12 4v10.5" />

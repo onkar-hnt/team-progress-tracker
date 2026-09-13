@@ -24,8 +24,10 @@ import type {
   UpdateMentorRequest,
   UpdateProjectRequest,
 } from '@models/index'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { describeScope } from '@services/auth/index'
 import type { AccessScope } from '@services/auth/index'
+import { logFailure, toUserMessage } from '@services/errors/error-message'
 import { provisionDeveloperLogin } from '@services/provisioning/provision-developer'
 import type {
   ProvisionDeveloperInput,
@@ -318,14 +320,41 @@ export function useRefreshWorkTracker(): UseMutationResult<void, Error, void> {
   })
 }
 
-/** Shared mutation wrapper, so every write refreshes the same way. */
+/**
+ * Shared mutation wrapper, so every write refreshes the same way and reports a
+ * failure the same way.
+ *
+ * The reporting is here rather than at the call sites because there are
+ * twenty-odd of them and they were not doing it consistently. Four admin screens
+ * shared a `writeState` helper that rendered the first failed mutation's message
+ * as an alert above their table — which, as its own doc comment admitted, meant
+ * a failed save left its explanation stranded behind the dialog that caused it.
+ * The other screens showed nothing at all.
+ *
+ * `failureMessage` is the wording for a failure this application does not
+ * recognise; anything the data layer has already phrased for a reader is used
+ * instead. It is `string | null` rather than optional so that every definition
+ * below has to state its intent, and the two that pass `null` say why.
+ */
 function useWorkTrackerMutation<TResult, TVariables>(
   run: (variables: TVariables) => Promise<TResult>,
   scope: WriteScope,
+  failureMessage: string | null,
 ): UseMutationResult<TResult, Error, TVariables> {
   const invalidate = useInvalidateWorkTracker(scope)
+  const snackbar = useSnackbar()
 
-  return useMutation({ mutationFn: run, onSuccess: invalidate })
+  return useMutation({
+    mutationFn: run,
+    onSuccess: invalidate,
+    onError: (error) => {
+      // Logged whatever the caller has arranged, so that the SQLSTATE and
+      // constraint behind a mapped message stay reachable in the console.
+      logFailure(`write:${scope}`, error)
+
+      if (failureMessage !== null) snackbar.error(toUserMessage(error, failureMessage))
+    },
+  })
 }
 
 export interface UpdateVariables<TRequest> {
@@ -342,6 +371,7 @@ export function useCreateDailyWorkEntry(): UseMutationResult<
   return useWorkTrackerMutation(
     (request: CreateDailyWorkEntryRequest) => service.createDailyWorkEntry(request),
     'work',
+    'The daily update could not be submitted. Please try again.',
   )
 }
 
@@ -356,12 +386,17 @@ export function useUpdateDailyWorkEntry(): UseMutationResult<
   return useWorkTrackerMutation(
     ({ changes, id }: UpdateDailyWorkEntryVariables) => service.updateDailyWorkEntry(id, changes),
     'work',
+    'The daily update could not be saved. Please try again.',
   )
 }
 
 export function useDeleteDailyWorkEntry(): UseMutationResult<void, Error, string> {
   const service = getWorkTrackerService()
-  return useWorkTrackerMutation((id: string) => service.deleteDailyWorkEntry(id), 'work')
+  return useWorkTrackerMutation(
+    (id: string) => service.deleteDailyWorkEntry(id),
+    'work',
+    'The daily update could not be deleted. Please try again.',
+  )
 }
 
 export function useCreateDeveloper(): UseMutationResult<
@@ -373,6 +408,7 @@ export function useCreateDeveloper(): UseMutationResult<
   return useWorkTrackerMutation(
     (request: CreateDeveloperRequest) => service.createDeveloper(request),
     'roster',
+    'The employee could not be created. Please try again.',
   )
 }
 
@@ -386,12 +422,17 @@ export function useUpdateDeveloper(): UseMutationResult<
     ({ changes, id }: UpdateVariables<UpdateDeveloperRequest>) =>
       service.updateDeveloper(id, changes),
     'roster',
+    'The employee could not be saved. Please try again.',
   )
 }
 
 export function useDeleteDeveloper(): UseMutationResult<void, Error, string> {
   const service = getWorkTrackerService()
-  return useWorkTrackerMutation((id: string) => service.deleteDeveloper(id), 'roster')
+  return useWorkTrackerMutation(
+    (id: string) => service.deleteDeveloper(id),
+    'roster',
+    'The employee could not be deleted. Please try again.',
+  )
 }
 
 /**
@@ -409,6 +450,13 @@ export function useProvisionDeveloperLogin(): UseMutationResult<
   return useWorkTrackerMutation(
     (input: ProvisionDeveloperInput) => provisionDeveloperLogin(input),
     'roster',
+    // Reported by the Employees screen instead. A failure here is a partial
+    // success — the employee row is already saved — and what has to be said is
+    // "saved, but the login could not be set up, use Create login to retry",
+    // which needs the record's name and the retry instruction. The successful
+    // case shows a one-time password that has to stay on screen until it is
+    // copied, so neither outcome belongs in something that fades.
+    null,
   )
 }
 
@@ -426,6 +474,8 @@ export function useProvisionMentorLogin(): UseMutationResult<
   return useWorkTrackerMutation(
     (input: ProvisionMentorInput) => provisionMentorLogin(input),
     'roster',
+    // Reported by the Mentors screen, for the reasons given above.
+    null,
   )
 }
 
@@ -434,6 +484,7 @@ export function useCreateMentor(): UseMutationResult<Mentor, Error, CreateMentor
   return useWorkTrackerMutation(
     (request: CreateMentorRequest) => service.createMentor(request),
     'roster',
+    'The mentor could not be created. Please try again.',
   )
 }
 
@@ -446,12 +497,17 @@ export function useUpdateMentor(): UseMutationResult<
   return useWorkTrackerMutation(
     ({ changes, id }: UpdateVariables<UpdateMentorRequest>) => service.updateMentor(id, changes),
     'roster',
+    'The mentor could not be saved. Please try again.',
   )
 }
 
 export function useDeleteMentor(): UseMutationResult<void, Error, string> {
   const service = getWorkTrackerService()
-  return useWorkTrackerMutation((id: string) => service.deleteMentor(id), 'roster')
+  return useWorkTrackerMutation(
+    (id: string) => service.deleteMentor(id),
+    'roster',
+    'The mentor could not be deleted. Please try again.',
+  )
 }
 
 export interface SetMentorAssignmentsVariables {
@@ -469,6 +525,7 @@ export function useSetMentorAssignments(): UseMutationResult<
     ({ developerIds, mentorId }: SetMentorAssignmentsVariables) =>
       service.setMentorAssignments(mentorId, developerIds),
     'roster',
+    'The assigned developers could not be saved. Please try again.',
   )
 }
 
@@ -477,6 +534,7 @@ export function useCreateProject(): UseMutationResult<Project, Error, CreateProj
   return useWorkTrackerMutation(
     (request: CreateProjectRequest) => service.createProject(request),
     'roster',
+    'The project could not be created. Please try again.',
   )
 }
 
@@ -489,12 +547,17 @@ export function useUpdateProject(): UseMutationResult<
   return useWorkTrackerMutation(
     ({ changes, id }: UpdateVariables<UpdateProjectRequest>) => service.updateProject(id, changes),
     'roster',
+    'The project could not be saved. Please try again.',
   )
 }
 
 export function useDeleteProject(): UseMutationResult<void, Error, string> {
   const service = getWorkTrackerService()
-  return useWorkTrackerMutation((id: string) => service.deleteProject(id), 'roster')
+  return useWorkTrackerMutation(
+    (id: string) => service.deleteProject(id),
+    'roster',
+    'The project could not be deleted. Please try again.',
+  )
 }
 
 export function useCreateTask(): UseMutationResult<
@@ -506,6 +569,7 @@ export function useCreateTask(): UseMutationResult<
   return useWorkTrackerMutation(
     (request: CreateAssignedTaskRequest) => service.createTask(request),
     'work',
+    'The task could not be created. Please try again.',
   )
 }
 
@@ -519,12 +583,17 @@ export function useUpdateTask(): UseMutationResult<
     ({ changes, id }: UpdateVariables<UpdateAssignedTaskRequest>) =>
       service.updateTask(id, changes),
     'work',
+    'The task could not be saved. Please try again.',
   )
 }
 
 export function useDeleteTask(): UseMutationResult<void, Error, string> {
   const service = getWorkTrackerService()
-  return useWorkTrackerMutation((id: string) => service.deleteTask(id), 'work')
+  return useWorkTrackerMutation(
+    (id: string) => service.deleteTask(id),
+    'work',
+    'The task could not be deleted. Please try again.',
+  )
 }
 
 export function useCreateComment(): UseMutationResult<
@@ -536,6 +605,7 @@ export function useCreateComment(): UseMutationResult<
   return useWorkTrackerMutation(
     (request: CreateMentorCommentRequest) => service.createComment(request),
     'comments',
+    'The feedback could not be saved. Please try again.',
   )
 }
 
@@ -549,10 +619,15 @@ export function useUpdateComment(): UseMutationResult<
     ({ changes, id }: UpdateVariables<UpdateMentorCommentRequest>) =>
       service.updateComment(id, changes),
     'comments',
+    'The feedback could not be saved. Please try again.',
   )
 }
 
 export function useDeleteComment(): UseMutationResult<void, Error, string> {
   const service = getWorkTrackerService()
-  return useWorkTrackerMutation((id: string) => service.deleteComment(id), 'comments')
+  return useWorkTrackerMutation(
+    (id: string) => service.deleteComment(id),
+    'comments',
+    'The feedback could not be deleted. Please try again.',
+  )
 }

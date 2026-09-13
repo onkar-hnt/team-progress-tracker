@@ -1,0 +1,191 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+/// The column of transient messages, pinned under the header on the right.
+///
+/// Every declaration down to `list-style` is undoing a user-agent style rather
+/// than a choice: `[popover]` is given `position: fixed`, `inset: 0`, a solid
+/// border, padding, `width: fit-content` and `margin: auto` by the browser, which
+/// centres it in the viewport. Stated here rather than left to a reset, because
+/// this is the only popover in the application.
+///
+/// `pointer-events: none` on the column and `auto` on each message: the column
+/// is as tall as the space it may use, and without this its empty part would
+/// swallow clicks on the page underneath — including, in the browsers without the
+/// Popover API, while nothing is being shown at all.
+.snackbar-viewport {
+  @include grid($gap: $space-3);
+
+  position: fixed;
+  top: calc(#{$header-height} + #{$space-4});
+  right: $space-5;
+  bottom: auto;
+  left: auto;
+  z-index: $z-snackbar;
+  width: min(24rem, calc(100vw - #{$space-8}));
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  color: inherit;
+  background: transparent;
+  list-style: none;
+  pointer-events: none;
+
+  /// Full width along the bottom on a phone, where a 24rem card in the corner
+  /// would cover most of the screen and sit under the thumb. Bottom rather than
+  /// top because that is where a hand already is, and because the header there
+  /// is where the page title goes.
+  @include respond-to-mobile {
+    top: auto;
+    right: $space-3;
+    bottom: $space-3;
+    left: $space-3;
+    width: auto;
+  }
+}
+
+.snackbar {
+  @include flex($align: flex-start, $gap: $space-3);
+  @include card($radius-md, $shadow-md);
+
+  padding: $space-3 $space-4;
+
+  /// The tone is carried by a bar down the leading edge and a tinted icon, on a
+  /// white surface. A fully tinted card would be the more obvious treatment and
+  /// the wrong one here: these appear over a page that may already be dimmed by
+  /// a modal backdrop, and white is what keeps the text legible against it.
+  border-inline-start: 3px solid $color-neutral-border;
+  pointer-events: auto;
+  animation: snackbar-enter $transition-base;
+
+  @include respond-to-mobile {
+    animation-name: snackbar-enter-up;
+  }
+
+  &__icon {
+    @include flex-center;
+    @include square(1.5rem);
+
+    flex-shrink: 0;
+    border-radius: $radius-pill;
+    color: $color-neutral-text;
+    background: $color-neutral-surface;
+  }
+
+  &__text {
+    @include grid($gap: $space-1);
+
+    /// `min-width: 0` so a long unbroken word — a file name, an id — wraps
+    /// inside the card instead of widening it past the column.
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-tight;
+  }
+
+  /// Not muted. Most of these have no title, which makes the message the only
+  /// line there is, and a grey-on-white sentence is the wrong weight for the
+  /// one thing the reader is meant to read.
+  &__message {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    line-height: $line-height-base;
+    overflow-wrap: break-word;
+  }
+
+  &__close {
+    @include flex-center;
+    @include square(1.5rem);
+
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
+    border-radius: $radius-sm;
+    color: $color-text-muted;
+    background: transparent;
+    cursor: pointer;
+    transition:
+      color $transition-fast,
+      background-color $transition-fast;
+
+    &:hover {
+      color: $color-text;
+      background: $color-surface-subtle;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  /// Written out in full rather than as `&__icon`, which inside a modifier block
+  /// would compile to `.snackbar--success__icon`.
+  &--success {
+    border-inline-start-color: $color-success;
+
+    .snackbar__icon {
+      color: $color-success;
+      background: $color-success-surface;
+    }
+  }
+
+  &--error {
+    border-inline-start-color: $color-danger;
+
+    .snackbar__icon {
+      color: $color-danger;
+      background: $color-danger-surface;
+    }
+  }
+
+  &--warning {
+    border-inline-start-color: $color-warning;
+
+    .snackbar__icon {
+      color: $color-warning;
+      background: $color-warning-surface;
+    }
+  }
+
+  &--info {
+    border-inline-start-color: $color-info;
+
+    .snackbar__icon {
+      color: $color-info;
+      background: $color-info-surface;
+    }
+  }
+}
+
+/// In from the edge it is pinned to, so the movement reads as the message
+/// arriving from off-screen rather than growing out of the page.
+@keyframes snackbar-enter {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+}
+
+@keyframes snackbar-enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
+
+/// No exit animation to disable, for the same reason as the modal: a message
+/// that has to finish moving before it is gone is a message still in the way.
+@media (prefers-reduced-motion: reduce) {
+  .snackbar {
+    animation: none;
+  }
+}

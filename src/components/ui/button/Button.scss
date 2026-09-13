@@ -102,6 +102,25 @@
     }
   }
 
+  /// The filled counterpart, for the one control that carries out a destructive
+  /// act rather than offering it.
+  ///
+  /// `--danger` is right for a Delete in a table row, where it sits among other
+  /// actions and should not shout. It is wrong for the confirm button in a
+  /// dialog, which is that dialog's primary action and has to look like it —
+  /// drawn as quietly as a link, it reads as the cautious choice, which is
+  /// exactly backwards.
+  &--destructive {
+    color: $color-white;
+    background: $color-danger;
+    box-shadow: $shadow-sm;
+
+    &:hover:not(:disabled) {
+      background: $color-danger-dark;
+      box-shadow: $shadow-raised;
+    }
+  }
+
   /// For the dark header bar, where none of the above has any contrast to
   /// offer. The one variant whose colours come from the inverse tokens.
   &--inverse {
@@ -140,5 +159,39 @@
         @include visually-hidden;
       }
     }
+  }
+
+  /// Takes the icon's place while a mutation is in flight, so the label stays
+  /// put and the control does not change width as it starts and finishes.
+  ///
+  /// `currentcolor` for the moving part and a transparent track, rather than the
+  /// two named colours the full-page spinner uses: this sits inside all six
+  /// variants, one of which is white on brand blue and another white on the dark
+  /// header, and a fixed pair of colours would disappear into one of them.
+  &__spinner {
+    @include square(1rem);
+
+    flex-shrink: 0;
+    border: 2px solid currentcolor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: button-spin 0.7s linear infinite;
+  }
+}
+
+/// Declared here rather than shared with the full-page spinner in
+/// `Feedback.scss`. Stylesheets are split per component and loaded with the
+/// chunk that imports them, so a button borrowing that file's keyframe would
+/// spin or sit still depending on whether anything on the screen happened to
+/// render a loader.
+@keyframes button-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button__spinner {
+    animation: none;
   }
 }

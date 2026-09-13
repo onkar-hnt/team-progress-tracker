@@ -1,12 +1,23 @@
 import { useEffect, useId, useRef } from 'react'
 import type { PropsWithChildren } from 'react'
 
+import { Icon } from '@components/ui/icons/Icon'
+
 import './Modal.scss'
 
 interface ModalProps {
   isOpen: boolean
   onClose: () => void
   title: string
+
+  /**
+   * `compact` narrows the dialog to the width of a paragraph.
+   *
+   * For a dialog holding a question rather than a form. The default width is set
+   * for a two-column form grid, and a single sentence stretched across it reads
+   * as a line to scan rather than one to read.
+   */
+  size?: 'compact' | 'default'
 }
 
 /**
@@ -23,7 +34,13 @@ interface ModalProps {
  * defaults each time, which is what callers already assume when they pass a
  * record to edit.
  */
-export function Modal({ children, isOpen, onClose, title }: PropsWithChildren<ModalProps>) {
+export function Modal({
+  children,
+  isOpen,
+  onClose,
+  size = 'default',
+  title,
+}: PropsWithChildren<ModalProps>) {
   const dialogRef = useRef<HTMLDialogElement>(null)
 
   // Generated rather than fixed. A screen has several of these, and a shared id
@@ -42,7 +59,7 @@ export function Modal({ children, isOpen, onClose, title }: PropsWithChildren<Mo
   return (
     <dialog
       aria-labelledby={titleId}
-      className="modal"
+      className={size === 'compact' ? 'modal modal--compact' : 'modal'}
       onCancel={(event) => {
         // Prevent the default close so React state stays the single source of
         // truth for whether the dialog is open.
@@ -62,7 +79,7 @@ export function Modal({ children, isOpen, onClose, title }: PropsWithChildren<Mo
             {title}
           </h2>
           <button aria-label="Close" className="modal__close" onClick={onClose} type="button">
-            X
+            <Icon name="close" size={16} />
           </button>
         </header>
         <div className="modal__body">{isOpen ? children : null}</div>

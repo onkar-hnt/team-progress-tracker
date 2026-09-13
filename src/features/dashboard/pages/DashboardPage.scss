@@ -8,8 +8,10 @@
     @include grid($gap: $space-6);
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
-    /// Blockers and missing updates are the mentor's first questions, so they
-    /// get more room than an even split.
+    /// The leading panel gets more room than an even split, and it is the one
+    /// each reader opens the screen for: blockers for a mentor, their own recent
+    /// work for a developer — which also needs the width, since its rows carry a
+    /// status control and an Edit action.
     &--priority {
       grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     }
@@ -17,6 +19,20 @@
     @include respond-to-laptop {
       grid-template-columns: 1fr;
     }
+  }
+
+  /// A fixed height rather than a maximum, so the two panels beside each other
+  /// are the same height whether one of them is empty and the other full. Tall
+  /// enough for three entries, which is what makes it read as a list that
+  /// continues rather than one that has been cut off.
+  ///
+  /// `overscroll-behavior` keeps a flick at the end of the list from carrying on
+  /// into the page behind it, which on a touchpad is the difference between
+  /// reading the last entry and losing your place on the dashboard.
+  &__panel-scroll {
+    height: 21rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   &__missing {

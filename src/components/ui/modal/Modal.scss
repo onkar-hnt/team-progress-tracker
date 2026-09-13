@@ -63,14 +63,25 @@
     line-height: $line-height-tight;
   }
 
+  /// Narrow enough that a single sentence is read rather than scanned. Used by
+  /// the confirmation dialog, which is a question and two buttons.
+  &--compact {
+    width: min(28rem, calc(100vw - #{$space-8}));
+  }
+
+  /// Holds the close glyph, which used to be a literal capital X in the markup
+  /// and is now the `close` icon — a cross drawn to the same weight as every
+  /// other icon in the application, rather than a letter that happened to look
+  /// like one.
   &__close {
+    @include flex-center;
     @include square(2rem);
 
+    flex-shrink: 0;
+    padding: 0;
     border: 1px solid $color-border;
     border-radius: $radius-md;
     color: $color-text-muted;
-    font-size: $font-size-lg;
-    line-height: 1;
     background: $color-white;
     cursor: pointer;
     transition:

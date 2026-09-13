@@ -163,12 +163,18 @@ $transition-base: 160ms ease;
 /// sit: a sticky table header inside its own scroll box, the corner cell that
 /// has to clear it, the backdrop behind the mobile drawer, the drawer itself,
 /// then a popover over all of it and a tooltip over that.
+///
+/// The snackbar column is last because it reports on what the layers below are
+/// doing, including a modal dialog — though a `z-index` alone cannot clear one
+/// of those, which is why `Snackbar.tsx` also puts itself in the top layer. This
+/// value is what places it in the browsers where that API is missing.
 $z-sticky: 1;
 $z-sticky-corner: 2;
 $z-backdrop: 15;
 $z-drawer: 20;
 $z-popover: 30;
 $z-tooltip: 40;
+$z-snackbar: 50;
 
 /// ---------------------------------------------------------------------------
 /// Layout

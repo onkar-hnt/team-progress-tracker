@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
+import { useConfirm } from '@app/providers/confirm-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button, ButtonLink } from '@components/ui/button/Button'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { appConfig } from '@config/app.config'
@@ -9,6 +11,7 @@ import { NotificationBell } from '@features/notifications/components/Notificatio
 import { useRefreshWorkTracker } from '@hooks/use-work-tracker'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import { canOpenWorkbook } from '@services/auth/index'
+import { logFailure, toUserMessage } from '@services/errors/error-message'
 
 import './Header.scss'
 
@@ -22,6 +25,8 @@ interface HeaderProps {
 
 export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: HeaderProps) {
   const { signOut, user } = useAuth()
+  const confirm = useConfirm()
+  const snackbar = useSnackbar()
   const navigate = useNavigate()
   const refresh = useRefreshWorkTracker()
 
@@ -29,9 +34,40 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
   // maintains its records even while the app is still reading fixtures.
   const workbookUrl = appConfig.sharePoint.workbookUrl
 
+  /**
+   * Asks first, then says so either way.
+   *
+   * The control sits in the header on every screen, a press away from Refresh
+   * and the notification bell, and it ends the session from wherever somebody
+   * happens to be — including a half-filled form, which goes with it. That is
+   * enough to be worth a question, even though nothing is deleted.
+   *
+   * The message afterwards is a separate matter: signing out ends at the login
+   * screen, which on its own is ambiguous, since a session that expired looks
+   * exactly the same. A failure said nothing at all before this — the navigation
+   * simply did not happen, leaving somebody who believes they have signed out
+   * still signed in.
+   */
   const handleSignOut = async () => {
-    await signOut()
+    const isConfirmed = await confirm({
+      title: 'Sign out?',
+      message:
+        'You will be returned to the sign-in screen. Anything typed into a form but not yet saved will be lost.',
+      confirmLabel: 'Sign out',
+    })
+
+    if (!isConfirmed) return
+
+    try {
+      await signOut()
+    } catch (error) {
+      logFailure('sign out', error)
+      snackbar.error(toUserMessage(error, 'You could not be signed out. Please try again.'))
+      return
+    }
+
     void navigate('/login', { replace: true })
+    snackbar.info('You have been signed out.')
   }
 
   return (
@@ -126,7 +162,7 @@ export function Header({ isSidebarCollapsed, onToggleDrawer, onToggleSidebar }: 
         </div>
 
         {user === null ? null : (
-          <Button onClick={handleSignOut} variant="inverse">
+          <Button onClick={() => void handleSignOut()} variant="inverse">
             Sign out
           </Button>
         )}

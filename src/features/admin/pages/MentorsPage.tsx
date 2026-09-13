@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { useAuth } from '@app/providers/auth-context'
+import { useConfirm } from '@app/providers/confirm-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { CheckboxField, ChecklistField, TextField } from '@components/ui/field/Field'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
@@ -20,7 +22,6 @@ import {
   useSetMentorAssignments,
   useUpdateMentor,
 } from '@hooks/use-work-tracker'
-import { writeState } from '@hooks/write-state'
 import type { Mentor } from '@models/index'
 import { canManageMentorAssignments } from '@services/auth/index'
 import { appConfig } from '@config/app.config'
@@ -78,6 +79,9 @@ function describeUnprovisionable(mentor: Mentor): string | null {
  */
 export function MentorsPage() {
   const { user } = useAuth()
+  const confirm = useConfirm()
+  const snackbar = useSnackbar()
+
   const [editing, setEditing] = useState<Mentor | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [assigning, setAssigning] = useState<Mentor | null>(null)
@@ -108,7 +112,28 @@ export function MentorsPage() {
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
 
-  const writes = writeState([createMentor, updateMentor, deleteMentor])
+  /**
+   * Asks first, then deletes, then says so.
+   *
+   * The confirmation resolves `true` only once the delete has actually landed,
+   * so the success message cannot be shown for something that failed — and a
+   * failure has already been reported by the mutation itself.
+   */
+  const requestDelete = async (mentor: Mentor) => {
+    const isDeleted = await confirm({
+      title: 'Delete this mentor?',
+      // Their assignments go with them — `mentor_assignments.mentor_id`
+      // cascades — and any developer or task naming them is set back to
+      // unassigned. Feedback they have written is the exception that restricts
+      // the delete, which the error message covers if it happens.
+      message: `“${mentor.name}” will be removed, and the developers assigned to them will be left without a mentor. This cannot be undone.`,
+      confirmLabel: 'Delete mentor',
+      isDestructive: true,
+      action: () => deleteMentor.mutateAsync(mentor.id),
+    })
+
+    if (isDeleted) snackbar.success(`“${mentor.name}” was deleted.`)
+  }
 
   /**
    * Asks the server for a login, and says plainly when it could not.
@@ -116,8 +141,14 @@ export function MentorsPage() {
    * Never throws. The mentor record is already saved by the time this runs,
    * so a failure here is a partial success to report rather than an error to
    * unwind — and the row action retries it without writing a second mentor.
+   *
+   * The row action asks before it starts, for the reason the Employees screen
+   * does: this creates a real account and shows its initial password once, so a
+   * press aimed at the wrong row costs a password reset in the Supabase
+   * dashboard. `isNewRecord` skips the question for the add form, where the
+   * intent has just been stated.
    */
-  const requestLogin = async (mentor: Mentor) => {
+  const requestLogin = async (mentor: Mentor, isNewRecord = false) => {
     if (!CAN_PROVISION_LOGINS) return
 
     setNotice(null)
@@ -127,6 +158,16 @@ export function MentorsPage() {
     if (refusal !== null) {
       setNotice({ tone: 'problem', message: `${mentor.name} was saved. ${refusal}` })
       return
+    }
+
+    if (!isNewRecord) {
+      const isConfirmed = await confirm({
+        title: 'Create a login?',
+        message: `A sign-in account will be created for “${mentor.name}”. The initial password is shown here once and cannot be retrieved afterwards, so pass it on before you leave this screen.`,
+        confirmLabel: 'Create login',
+      })
+
+      if (!isConfirmed) return
     }
 
     try {
@@ -148,14 +189,11 @@ export function MentorsPage() {
     <AdminPageLayout
       description="Mentors, and the developers each of them can see."
       onCreate={() => {
-        writes.clear()
         setIsCreating(true)
       }}
       createLabel="Add mentor"
       title="Mentors"
     >
-      {writes.error === null ? null : <p className="form__alert">{writes.error.message}</p>}
-
       <ProvisioningNoticeView notice={notice} />
 
       <Panel description="Assignments control what each mentor can access." title="All mentors">
@@ -231,7 +269,6 @@ export function MentorsPage() {
                           {canManageMentorAssignments(user, mentor.id) ? (
                             <Button
                               onClick={() => {
-                                writes.clear()
                                 setAssigning(mentor)
                               }}
                               size="small"
@@ -242,7 +279,6 @@ export function MentorsPage() {
                           ) : null}
                           <Button
                             onClick={() => {
-                              writes.clear()
                               setEditing(mentor)
                             }}
                             size="small"
@@ -251,11 +287,7 @@ export function MentorsPage() {
                             Edit
                           </Button>
                           <Button
-                            onClick={() => {
-                              if (window.confirm(`Delete ${mentor.name}?`)) {
-                                deleteMentor.mutate(mentor.id)
-                              }
-                            }}
+                            onClick={() => void requestDelete(mentor)}
                             size="small"
                             variant="danger"
                           >
@@ -276,12 +308,18 @@ export function MentorsPage() {
         <MentorForm
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
-            // The record first, then the login. If provisioning fails the
-            // modal still closes, because the mentor genuinely was created
-            // and leaving the form open would invite a duplicate.
-            const created = await createMentor.mutateAsync(values)
+            const created = await createMentor.mutateAsync(values).catch(() => null)
+
+            if (created === null) return
+
+            // Closed and confirmed before provisioning is attempted, because the
+            // mentor genuinely was created: leaving the form open would invite a
+            // duplicate, and staying silent until the login attempt returns
+            // would attribute its failure to the record.
             setIsCreating(false)
-            await requestLogin(created)
+            snackbar.success(`“${values.name}” was added.`)
+
+            await requestLogin(created, true)
           }}
         />
       </Modal>
@@ -292,8 +330,15 @@ export function MentorsPage() {
             mentor={editing}
             onCancel={() => setEditing(null)}
             onSubmit={async (values) => {
-              await updateMentor.mutateAsync({ id: editing.id, changes: values })
+              const isSaved = await updateMentor
+                .mutateAsync({ id: editing.id, changes: values })
+                .then(() => true)
+                .catch(() => false)
+
+              if (!isSaved) return
+
               setEditing(null)
+              snackbar.success(`“${values.name}” was saved.`)
             }}
           />
         )}
@@ -309,6 +354,7 @@ export function MentorsPage() {
             assignedIds={assignmentsByMentor.get(assigning.id) ?? []}
             developers={developersQuery.data ?? []}
             mentorId={assigning.id}
+            mentorName={assigning.name}
             onDone={() => setAssigning(null)}
           />
         )}
@@ -368,7 +414,7 @@ function MentorForm({
         <Button onClick={onCancel} variant="secondary">
           Cancel
         </Button>
-        <Button disabled={isSubmitting} type="submit" variant="primary">
+        <Button isLoading={isSubmitting} type="submit" variant="primary">
           {isSubmitting ? 'Saving…' : 'Save mentor'}
         </Button>
       </div>
@@ -387,13 +433,17 @@ function AssignmentForm({
   assignedIds,
   developers,
   mentorId,
+  mentorName,
   onDone,
 }: {
   assignedIds: readonly string[]
   developers: readonly { id: string; name: string; active: boolean }[]
   mentorId: string
+  mentorName: string
   onDone: () => void
 }) {
+  const confirm = useConfirm()
+  const snackbar = useSnackbar()
   const [selected, setSelected] = useState<string[]>([...assignedIds])
   const setAssignments = useSetMentorAssignments()
 
@@ -403,12 +453,49 @@ function AssignmentForm({
     )
   }
 
+  /**
+   * Asks only about what is being taken away.
+   *
+   * Ticking somebody on is additive and needs no ceremony. Unticking withdraws a
+   * mentor's sight of that developer's tasks, progress and feedback, and it does
+   * so through a control that looks like every other checkbox — the risk is
+   * clearing one by accident and saving without noticing, since nothing on the
+   * way out says what was dropped. So the question names them.
+   */
+  const save = async () => {
+    const removed = developers.filter(
+      (developer) => assignedIds.includes(developer.id) && !selected.includes(developer.id),
+    )
+
+    if (removed.length > 0) {
+      const isConfirmed = await confirm({
+        title: removed.length === 1 ? 'Remove this developer?' : 'Remove these developers?',
+        message: `${mentorName} will no longer see the tasks, progress or feedback of ${removed
+          .map((developer) => developer.name)
+          .join(', ')}. Their records are not affected, and the assignment can be added back here.`,
+        confirmLabel: 'Save assignments',
+      })
+
+      if (!isConfirmed) return
+    }
+
+    setAssignments.mutate(
+      { mentorId, developerIds: selected },
+      {
+        onSuccess: () => {
+          snackbar.success('The assigned developers were saved.')
+          onDone()
+        },
+      },
+    )
+  }
+
   return (
     <form
       className="form"
       onSubmit={(event) => {
         event.preventDefault()
-        setAssignments.mutate({ mentorId, developerIds: selected }, { onSuccess: onDone })
+        void save()
       }}
     >
       <ChecklistField
@@ -422,15 +509,11 @@ function AssignmentForm({
         selected={selected}
       />
 
-      {setAssignments.error === null ? null : (
-        <p className="form__alert">{setAssignments.error.message}</p>
-      )}
-
       <div className="form__actions">
         <Button onClick={onDone} variant="secondary">
           Cancel
         </Button>
-        <Button disabled={setAssignments.isPending} type="submit" variant="primary">
+        <Button isLoading={setAssignments.isPending} type="submit" variant="primary">
           {setAssignments.isPending ? 'Saving…' : 'Save assignments'}
         </Button>
       </div>
