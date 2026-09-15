@@ -10,7 +10,9 @@ import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBa
 import { useAccessScope } from '@hooks/use-access-scope'
 import { useCreateComment, useTask, useTaskComments } from '@hooks/use-work-tracker'
 import { canCommentOnTask } from '@services/auth/index'
+import type { AssignedTaskView } from '@services/work-tracker.service'
 import { formatLongDate, todayIsoDate } from '@utils/date.utils'
+import { compareEffort, describeEffort } from '@utils/task.utils'
 
 import { TaskCommentTrail } from '../components/TaskCommentTrail'
 
@@ -118,6 +120,14 @@ export function TaskDetailsPage() {
                   ? 'No due date'
                   : `${formatLongDate(task.dueDate)}${task.isOverdue ? ' · overdue' : ''}`}
               </Fact>
+              <Fact label="Estimated">
+                {task.estimatedHours === undefined
+                  ? 'Not estimated'
+                  : `${String(task.estimatedHours)} h`}
+              </Fact>
+              <Fact label="Time taken">
+                <Effort task={task} />
+              </Fact>
             </dl>
 
             {task.description === undefined ? null : (
@@ -154,6 +164,31 @@ export function TaskDetailsPage() {
         )}
       </Panel>
     </div>
+  )
+}
+
+/**
+ * Days logged, the hours they come to, and how that sits against the estimate.
+ *
+ * The days are said first because they are what was observed: the hours are
+ * those days at a standard working day, which is an assumption the reader is
+ * entitled to see the workings of.
+ */
+function Effort({ task }: { task: AssignedTaskView }) {
+  if (task.workedDays === 0) return <>No days logged yet</>
+
+  const days = `${String(task.workedDays)} ${task.workedDays === 1 ? 'day' : 'days'}`
+  const comparison = compareEffort(task)
+
+  return (
+    <>
+      {days} · {String(task.actualHours)} h
+      {comparison === null ? null : (
+        <span className={`task-details__effort task-details__effort--${comparison.verdict}`}>
+          {describeEffort(comparison)}
+        </span>
+      )}
+    </>
   )
 }
 

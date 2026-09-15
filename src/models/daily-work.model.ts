@@ -26,6 +26,9 @@ export interface DailyWorkEntry {
   progress: number
   hoursSpent?: number
 
+  /** What the whole task is expected to take, as judged on this day. */
+  estimatedHours?: number
+
   isBlocked: boolean
   blockerDescription?: string
 

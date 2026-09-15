@@ -44,11 +44,18 @@ const taskFormSchema = z
     status: z.enum(TASK_STATUSES),
     createdDate: z.string().min(1, { message: 'Choose a start date' }),
     dueDate: z.string(),
+    estimatedHours: z.string(),
   })
   .refine((values) => values.dueDate === '' || values.dueDate >= values.createdDate, {
     message: 'The due date cannot be before the start date',
     path: ['dueDate'],
   })
+  .refine(
+    (values) =>
+      values.estimatedHours === '' ||
+      (Number.isFinite(Number(values.estimatedHours)) && Number(values.estimatedHours) > 0),
+    { message: 'Enter a number of hours above zero', path: ['estimatedHours'] },
+  )
 
 type TaskFormValues = z.infer<typeof taskFormSchema>
 
@@ -241,6 +248,7 @@ function toRequest(values: TaskFormValues) {
       : { description: values.description }),
     ...(values.mentorId === '' ? {} : { mentorId: values.mentorId }),
     ...(values.dueDate === '' ? {} : { dueDate: values.dueDate }),
+    ...(values.estimatedHours === '' ? {} : { estimatedHours: Number(values.estimatedHours) }),
   }
 }
 
@@ -276,6 +284,7 @@ function TaskForm({
       status: task?.status ?? 'not-started',
       createdDate: task?.createdDate ?? todayIsoDate(),
       dueDate: task?.dueDate ?? '',
+      estimatedHours: task?.estimatedHours === undefined ? '' : String(task.estimatedHours),
     },
   })
 
@@ -393,6 +402,18 @@ function TaskForm({
           label="Due date"
           type="date"
           {...register('dueDate')}
+        />
+
+        <TextField
+          error={errors.estimatedHours?.message}
+          hint="Hours the whole task should take. The developer can revise it."
+          id="task-estimated-hours"
+          inputMode="decimal"
+          label="Estimated hours"
+          min="0"
+          step="0.25"
+          type="number"
+          {...register('estimatedHours')}
         />
       </div>
 

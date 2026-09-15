@@ -74,7 +74,7 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
     reset,
     setValue,
   } = useForm<DailyUpdateFormValues>({
-    resolver: zodResolver(dailyUpdateFormSchema),
+    resolver: zodResolver(dailyUpdateFormSchema({ requireEstimate: !isEditing })),
     defaultValues:
       entry === undefined
         ? createEmptyFormValues({ date, developerId: ownDeveloperId })
@@ -281,6 +281,12 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
                     if (picked !== undefined && getValues('taskTitle').trim() === '') {
                       setValue('taskTitle', picked.name)
                     }
+
+                    // The task's own estimate, so the figure is revised rather
+                    // than guessed again on every day of the same work.
+                    if (picked?.estimatedHours !== undefined) {
+                      setValue('estimatedHours', String(picked.estimatedHours))
+                    }
                   }}
                   options={taskOptions}
                   value={field.value}
@@ -327,6 +333,22 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
             )}
           />
         </Field>
+
+        <TextField
+          error={errors.estimatedHours?.message}
+          hint={
+            selectedTask?.estimatedHours === undefined
+              ? 'The whole task, not just today.'
+              : `Currently ${String(selectedTask.estimatedHours)} h. Change it to revise the estimate.`
+          }
+          id="update-estimated-hours"
+          inputMode="decimal"
+          label="Estimated hours"
+          min="0"
+          step="0.25"
+          type="number"
+          {...register('estimatedHours')}
+        />
       </div>
 
       {showTaskPicker || tasksQuery.error === null ? null : (

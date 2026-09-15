@@ -8,7 +8,7 @@ import type {
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 
 export const TASK_COLUMNS =
-  'id, code, name, description, project_id, developer_id, mentor_id, priority, status, created_date, due_date, updated_at' as const
+  'id, code, name, description, project_id, developer_id, mentor_id, priority, status, created_date, due_date, estimated_hours, worked_days, actual_hours, updated_at' as const
 
 export const taskRowSchema = z.object({
   id: z.string().min(1),
@@ -22,6 +22,9 @@ export const taskRowSchema = z.object({
   status: z.enum(TASK_STATUSES),
   created_date: z.string().min(1),
   due_date: z.string().nullable(),
+  estimated_hours: z.number().nullable(),
+  worked_days: z.number(),
+  actual_hours: z.number(),
   updated_at: z.string().min(1),
 })
 
@@ -44,10 +47,13 @@ export function toAssignedTask(row: TaskRow): AssignedTask {
     priority: row.priority,
     status: row.status,
     createdDate: row.created_date,
+    workedDays: row.worked_days,
+    actualHours: row.actual_hours,
     updatedAt: row.updated_at,
     ...optional('description', row.description),
     ...optional('mentorId', row.mentor_id),
     ...optional('dueDate', row.due_date),
+    ...optional('estimatedHours', row.estimated_hours),
   }
 }
 
@@ -61,6 +67,7 @@ export interface TaskInsert {
   status: string
   created_date: string
   due_date: string | null
+  estimated_hours: number | null
 }
 
 export function toTaskInsert(request: CreateAssignedTaskRequest): TaskInsert {
@@ -74,6 +81,7 @@ export function toTaskInsert(request: CreateAssignedTaskRequest): TaskInsert {
     status: request.status,
     created_date: request.createdDate,
     due_date: blankToNull(request.dueDate),
+    estimated_hours: request.estimatedHours ?? null,
   }
 }
 
@@ -97,6 +105,7 @@ export function toTaskUpdate(request: UpdateAssignedTaskRequest): Partial<TaskIn
   if ('description' in request) payload.description = blankToNull(request.description)
   if ('mentorId' in request) payload.mentor_id = request.mentorId ?? null
   if ('dueDate' in request) payload.due_date = blankToNull(request.dueDate)
+  if ('estimatedHours' in request) payload.estimated_hours = request.estimatedHours ?? null
 
   return payload
 }

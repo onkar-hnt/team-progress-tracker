@@ -38,11 +38,64 @@ const baseSchema = z
       { message: 'Select a progress value' },
     ),
 
+    /** Hours the whole task is expected to take; blank keeps the current figure. */
+    estimatedHours: z.string(),
+
     // Not shown in the form but required when editing an existing entry.
     priority: z.enum(TASK_PRIORITIES),
   })
 
-export const dailyUpdateFormSchema = baseSchema.superRefine((values, ctx) => {
+const ESTIMATE_MAX = 999.99
+
+/**
+ * Required on a new entry, because that is the moment the figure is worth
+ * asking for, and optional when correcting an old one, where the person
+ * editing may have no idea what was expected at the time.
+ */
+export function dailyUpdateFormSchema(options: { requireEstimate: boolean }) {
+  return baseSchema.superRefine((values, ctx) => {
+    checkProgress(values, ctx)
+
+    const estimate = values.estimatedHours.trim()
+
+    if (estimate === '') {
+      if (options.requireEstimate) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['estimatedHours'],
+          message: 'Enter the hours you expect this task to take',
+        })
+      }
+
+      return
+    }
+
+    const parsed = Number(estimate)
+
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['estimatedHours'],
+        message: 'Enter a number of hours above zero',
+      })
+
+      return
+    }
+
+    if (parsed > ESTIMATE_MAX) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['estimatedHours'],
+        message: `Keep the estimate under ${String(ESTIMATE_MAX)} hours`,
+      })
+    }
+  })
+}
+
+function checkProgress(
+  values: z.infer<typeof baseSchema>,
+  ctx: z.RefinementCtx<z.infer<typeof baseSchema>>,
+) {
   if (values.status === 'completed' && Number(values.progress) !== PROGRESS_MAX) {
     ctx.addIssue({
       code: 'custom',
@@ -58,7 +111,7 @@ export const dailyUpdateFormSchema = baseSchema.superRefine((values, ctx) => {
       message: 'Work that has not started should be at 0%',
     })
   }
-})
+}
 
 export type DailyUpdateFormValues = z.infer<typeof baseSchema>
 
@@ -71,6 +124,7 @@ export function toFormValues(entry: DailyWorkEntry): DailyUpdateFormValues {
     taskTitle: entry.taskTitle,
     status: entry.status,
     progress: String(entry.progress),
+    estimatedHours: entry.estimatedHours === undefined ? '' : String(entry.estimatedHours),
     priority: entry.priority,
   }
 }
@@ -87,6 +141,7 @@ export function createEmptyFormValues(options: {
     taskTitle: '',
     status: 'in-progress',
     progress: '0',
+    estimatedHours: '',
     priority: 'medium',
   }
 }
@@ -95,6 +150,7 @@ export function toCreateDailyWorkEntryRequest(
   values: DailyUpdateFormValues,
 ): CreateDailyWorkEntryRequest {
   const isBlocked = values.status === 'blocked'
+  const estimate = values.estimatedHours.trim()
 
   return {
     date: values.date,
@@ -106,6 +162,7 @@ export function toCreateDailyWorkEntryRequest(
     priority: values.priority,
     progress: Number(values.progress),
     isBlocked,
+    ...(estimate === '' ? {} : { estimatedHours: Number(estimate) }),
     ...(isBlocked ? {} : { blockerDescription: undefined }),
   }
 }

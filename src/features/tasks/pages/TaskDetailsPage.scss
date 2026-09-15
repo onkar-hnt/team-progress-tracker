@@ -26,6 +26,24 @@
     }
   }
 
+  // A verdict, not a number: it reads on its own line so the figures above it
+  // stay the primary fact.
+  &__effort {
+    display: block;
+    margin-top: $space-1;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+
+    &--over {
+      color: $color-danger;
+    }
+
+    &--under,
+    &--on {
+      color: $color-success;
+    }
+  }
+
   &__description {
     margin: $space-5 0 0;
     color: $color-text;

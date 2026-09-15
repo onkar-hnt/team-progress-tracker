@@ -9,7 +9,7 @@ import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import { isIsoDateString } from '@utils/date.utils'
 
 export const DAILY_UPDATE_COLUMNS =
-  'id, developer_id, project_id, task_id, entry_date, task_title, description, work_done, planned_work, status, priority, progress, hours_spent, is_blocked, blocker_description, remarks, created_at, updated_at' as const
+  'id, developer_id, project_id, task_id, entry_date, task_title, description, work_done, planned_work, status, priority, progress, hours_spent, estimated_hours, is_blocked, blocker_description, remarks, created_at, updated_at' as const
 
 export const dailyUpdateRowSchema = z.object({
   id: z.string().min(1),
@@ -25,6 +25,7 @@ export const dailyUpdateRowSchema = z.object({
   priority: z.enum(TASK_PRIORITIES),
   progress: z.number(),
   hours_spent: z.number().nullable(),
+  estimated_hours: z.number().nullable(),
   is_blocked: z.boolean(),
   blocker_description: z.string().nullable(),
   remarks: z.string().nullable(),
@@ -64,6 +65,7 @@ export function toDailyWorkEntry(row: DailyUpdateRow): DailyWorkEntry {
     ...optional('workDone', row.work_done),
     ...optional('plannedWork', row.planned_work),
     ...optional('hoursSpent', row.hours_spent),
+    ...optional('estimatedHours', row.estimated_hours),
     ...optional('blockerDescription', row.blocker_description),
     ...optional('remarks', row.remarks),
   }
@@ -82,6 +84,7 @@ export interface DailyUpdateInsert {
   priority: string
   progress: number
   hours_spent: number | null
+  estimated_hours: number | null
   is_blocked: boolean
   blocker_description: string | null
   remarks: string | null
@@ -101,6 +104,7 @@ export function toDailyUpdateInsert(request: CreateDailyWorkEntryRequest): Daily
     priority: request.priority,
     progress: request.progress,
     hours_spent: request.hoursSpent ?? null,
+    estimated_hours: request.estimatedHours ?? null,
     is_blocked: request.isBlocked,
     blocker_description: blankToNull(request.blockerDescription),
     remarks: blankToNull(request.remarks),
@@ -135,6 +139,7 @@ export function toDailyUpdateUpdate(
   if ('workDone' in request) payload.work_done = blankToNull(request.workDone)
   if ('plannedWork' in request) payload.planned_work = blankToNull(request.plannedWork)
   if ('hoursSpent' in request) payload.hours_spent = request.hoursSpent ?? null
+  if ('estimatedHours' in request) payload.estimated_hours = request.estimatedHours ?? null
   if ('blockerDescription' in request) {
     payload.blocker_description = blankToNull(request.blockerDescription)
   }

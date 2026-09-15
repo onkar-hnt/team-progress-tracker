@@ -75,6 +75,45 @@ export function countCommentsByTask(
   return counts
 }
 
+/** Hours in a working day, matching standard_working_hours() in the database. */
+export const STANDARD_WORKING_HOURS = 8
+
+export type EffortVerdict = 'on' | 'over' | 'under'
+
+export interface EffortComparison {
+  verdict: EffortVerdict
+
+  /** Hours between the estimate and the time taken, never negative. */
+  differenceHours: number
+}
+
+/**
+ * How the time taken compares with the estimate, or null when there is nothing
+ * to compare: no estimate given, or no day logged against the task yet.
+ */
+export function compareEffort(task: {
+  estimatedHours?: number
+  actualHours: number
+  workedDays: number
+}): EffortComparison | null {
+  if (task.estimatedHours === undefined || task.workedDays === 0) return null
+
+  const difference = task.actualHours - task.estimatedHours
+
+  return {
+    verdict: difference === 0 ? 'on' : difference > 0 ? 'over' : 'under',
+    differenceHours: Math.abs(difference),
+  }
+}
+
+export function describeEffort(comparison: EffortComparison): string {
+  const hours = `${String(Number(comparison.differenceHours.toFixed(2)))} h`
+
+  if (comparison.verdict === 'on') return 'On estimate'
+
+  return comparison.verdict === 'over' ? `${hours} over estimate` : `${hours} under estimate`
+}
+
 export interface TaskOption {
   id: string
   name: string
