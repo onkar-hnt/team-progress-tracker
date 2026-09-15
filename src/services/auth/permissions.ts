@@ -133,10 +133,28 @@ export function canUpdateTaskStatus(
   return user.developerId === task.developerId
 }
 
+/**
+ * Who may add to a task's comment trail.
+ *
+ * Mirrors `feedback_insert`: a mentor's assignment to the developer decides,
+ * not who created or assigned the task. A developer writes on their own tasks
+ * only.
+ */
+export function canCommentOnTask(
+  user: AppUser | null,
+  scope: AccessScope | null,
+  task: AssignedTask,
+): boolean {
+  if (user === null || scope === null) return false
+  if (isAdmin(user)) return true
+  if (isMentor(user)) return canViewDeveloper(scope, task.developerId)
+  return user.developerId === task.developerId
+}
+
 export function canEditComment(user: AppUser | null, comment: MentorComment): boolean {
   if (user === null) return false
   if (isAdmin(user)) return true
-  return isMentor(user) && user.mentorId === comment.mentorId
+  return isMentor(user) && comment.mentorId !== undefined && user.mentorId === comment.mentorId
 }
 
 /** Blocks opening a colleague profile by editing the route id. */

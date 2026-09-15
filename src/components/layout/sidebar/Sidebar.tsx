@@ -21,6 +21,7 @@ import {
 import { isHistoryAvailable } from '@services/history/history.service'
 import { isRecycleBinAvailable } from '@services/recycle-bin/recycle-bin.service'
 import { isUsageAvailable } from '@services/usage/usage.service'
+import { initialsOf } from '@utils/name.utils'
 
 import './Sidebar.scss'
 
@@ -120,18 +121,6 @@ interface SidebarProps {
   onToggleSidebar: () => void
 }
 
-function initialsFrom(name: string, email: string): string {
-  const words = name
-    .trim()
-    .split(/\s+/)
-    .filter((word) => word !== '')
-
-  const first = words[0]?.[0] ?? email.trim()[0] ?? '-'
-  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : ''
-
-  return `${first}${last}`.toUpperCase()
-}
-
 function ProfileLink({
   isCollapsed,
   onNavigate,
@@ -156,7 +145,7 @@ function ProfileLink({
           to="/profile"
         >
           <span aria-hidden="true" className="sidebar__avatar">
-            {initialsFrom(user.name, user.email)}
+            {initialsOf(user.name, user.email)}
           </span>
 
           <span className="sidebar__label sidebar__label--profile">

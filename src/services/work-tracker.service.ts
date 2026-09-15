@@ -2,6 +2,7 @@ import type {
   AssignedTask,
   AssignedTaskQuery,
   AppUser,
+  CommentAuthorRole,
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
@@ -64,7 +65,14 @@ export interface AssignedTaskView extends AssignedTask {
 
 export interface MentorCommentView extends MentorComment {
   developerName: string
-  mentorName: string
+
+  /** Who wrote the entry, and in what capacity the trail should label them. */
+  authorName: string
+  authorRole: CommentAuthorRole
+
+  /** Absent on a developer's own reply, which is attributed to nobody. */
+  mentorName?: string
+
   projectName?: string
 
   /** Absent when feedback predates task link or the task was deleted. */
@@ -270,18 +278,39 @@ export class WorkTrackerService {
 
     const today = todayIsoDate()
 
-    return narrowToDevelopers(effectiveIds, tasks).map((task) => {
-      const mentor = mentors.find((candidate) => candidate.id === task.mentorId)
+    return narrowToDevelopers(effectiveIds, tasks).map((task) =>
+      this.toTaskView(task, { developers, mentors, projects }, today),
+    )
+  }
 
-      return {
-        ...task,
-        developerName: resolveName(developers, task.developerId, 'developer'),
-        projectName: resolveName(projects, task.projectId, 'project'),
-        ...(mentor === undefined ? {} : { mentorName: mentor.name }),
-        isOverdue:
-          task.status !== 'completed' && task.dueDate !== undefined && task.dueDate < today,
-      }
-    })
+  /** Returns null for an out-of-scope, deleted or missing task. */
+  async getTaskViewById(scope: AccessScope, id: string): Promise<AssignedTaskView | null> {
+    const task = await this.provider.getTaskById(id)
+    if (task === null || !canViewDeveloper(scope, task.developerId)) return null
+
+    const [developers, projects, mentors] = await Promise.all([
+      this.developerLookup.get(),
+      this.projectLookup.get(),
+      this.mentorLookup.get(),
+    ])
+
+    return this.toTaskView(task, { developers, mentors, projects }, todayIsoDate())
+  }
+
+  private toTaskView(
+    task: AssignedTask,
+    roster: { developers: readonly Developer[]; mentors: readonly Mentor[]; projects: readonly Project[] },
+    today: string,
+  ): AssignedTaskView {
+    const mentor = roster.mentors.find((candidate) => candidate.id === task.mentorId)
+
+    return {
+      ...task,
+      developerName: resolveName(roster.developers, task.developerId, 'developer'),
+      projectName: resolveName(roster.projects, task.projectId, 'project'),
+      ...(mentor === undefined ? {} : { mentorName: mentor.name }),
+      isOverdue: task.status !== 'completed' && task.dueDate !== undefined && task.dueDate < today,
+    }
   }
 
   async getCommentViews(
@@ -303,11 +332,15 @@ export class WorkTrackerService {
       .map((comment) => {
         const project = projects.find((candidate) => candidate.id === comment.projectId)
         const task = tasks.find((candidate) => candidate.id === comment.taskId)
+        const mentor = mentors.find((candidate) => candidate.id === comment.mentorId)
+        const authorRole = comment.authorRole ?? 'mentor'
 
         return {
           ...comment,
+          authorRole,
+          authorName: resolveAuthorName(comment, authorRole, developers, mentors),
           developerName: resolveName(developers, comment.developerId, 'developer'),
-          mentorName: resolveName(mentors, comment.mentorId, 'mentor'),
+          ...(mentor === undefined ? {} : { mentorName: mentor.name }),
           ...(project === undefined ? {} : { projectName: project.name }),
           ...(task === undefined ? {} : { taskName: task.name }),
         }
@@ -497,6 +530,33 @@ function narrowToDevelopers<TRecord extends { developerId: string }>(
 /** Soft-deleted roster rows stay in lookups for resolveName but are filtered from lists. */
 function onTheRoster(record: { deletedAt?: string }): boolean {
   return record.deletedAt === undefined
+}
+
+/**
+ * Names the author of a comment.
+ *
+ * Resolved through the login behind the entry first, so somebody who holds both
+ * a mentor and an employee record is named once, whichever capacity they wrote
+ * in. Older entries carry no author, and fall back to the mentor they name.
+ */
+function resolveAuthorName(
+  comment: MentorComment,
+  role: CommentAuthorRole,
+  developers: readonly Developer[],
+  mentors: readonly Mentor[],
+): string {
+  if (comment.authorProfileId !== undefined) {
+    const author =
+      mentors.find((candidate) => candidate.profileId === comment.authorProfileId) ??
+      developers.find((candidate) => candidate.profileId === comment.authorProfileId)
+
+    if (author !== undefined) return author.name
+  }
+
+  if (role === 'developer') return resolveName(developers, comment.developerId, 'developer')
+  if (comment.mentorId !== undefined) return resolveName(mentors, comment.mentorId, 'mentor')
+
+  return role === 'admin' ? 'Administrator' : 'Unknown mentor'
 }
 
 /** Uses unfiltered lookups so deleted roster members still show names on historical work. */

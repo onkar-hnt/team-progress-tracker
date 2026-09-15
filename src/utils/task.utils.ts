@@ -61,6 +61,20 @@ export function compareStatus(left: TaskStatus, right: TaskStatus): number {
   return STATUS_WEIGHT[left] - STATUS_WEIGHT[right]
 }
 
+/** How many trail entries each task carries, for the list indicator. */
+export function countCommentsByTask(
+  comments: readonly { taskId?: string }[],
+): ReadonlyMap<string, number> {
+  const counts = new Map<string, number>()
+
+  for (const comment of comments) {
+    if (comment.taskId === undefined) continue
+    counts.set(comment.taskId, (counts.get(comment.taskId) ?? 0) + 1)
+  }
+
+  return counts
+}
+
 export interface TaskOption {
   id: string
   name: string

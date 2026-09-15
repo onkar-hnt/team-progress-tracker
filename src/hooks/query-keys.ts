@@ -38,6 +38,8 @@ export const queryKeys = {
   tasks: (scopeId: string, query?: AssignedTaskQuery) =>
     [ROOT, 'tasks', scopeId, query ?? null] as const,
 
+  task: (scopeId: string, id: string) => [ROOT, 'tasks', 'by-id', scopeId, id] as const,
+
   comments: (scopeId: string, query?: MentorCommentQuery) =>
     [ROOT, 'comments', scopeId, query ?? null] as const,
 

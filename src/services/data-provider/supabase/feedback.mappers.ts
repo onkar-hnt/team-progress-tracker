@@ -7,12 +7,14 @@ import type {
 } from '@models/index'
 
 export const FEEDBACK_COLUMNS =
-  'id, developer_id, mentor_id, project_id, task_id, feedback_date, comment, progress_update, blockers, recommendations, created_at, updated_at' as const
+  'id, developer_id, mentor_id, author_profile_id, author_role, project_id, task_id, feedback_date, comment, progress_update, blockers, recommendations, created_at, updated_at' as const
 
 export const feedbackRowSchema = z.object({
   id: z.string().min(1),
   developer_id: z.string().min(1),
-  mentor_id: z.string().min(1),
+  mentor_id: z.string().nullable(),
+  author_profile_id: z.string().nullable(),
+  author_role: z.enum(['admin', 'developer', 'mentor']),
   project_id: z.string().nullable(),
   task_id: z.string().nullable(),
   feedback_date: z.string().min(1),
@@ -37,11 +39,13 @@ export function toMentorComment(row: FeedbackRow): MentorComment {
   return {
     id: row.id,
     developerId: row.developer_id,
-    mentorId: row.mentor_id,
+    authorRole: row.author_role,
     date: row.feedback_date,
     comment: row.comment,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    ...optional('mentorId', row.mentor_id),
+    ...optional('authorProfileId', row.author_profile_id),
     ...optional('taskId', row.task_id),
     ...optional('projectId', row.project_id),
     ...optional('progressUpdate', row.progress_update),
@@ -50,9 +54,10 @@ export function toMentorComment(row: FeedbackRow): MentorComment {
   }
 }
 
+/** author_profile_id and author_role are absent: the database stamps both. */
 export interface FeedbackInsert {
   developer_id: string
-  mentor_id: string
+  mentor_id: string | null
   project_id: string | null
   task_id: string | null
   feedback_date: string
@@ -65,7 +70,7 @@ export interface FeedbackInsert {
 export function toFeedbackInsert(request: CreateMentorCommentRequest): FeedbackInsert {
   return {
     developer_id: request.developerId,
-    mentor_id: request.mentorId,
+    mentor_id: request.mentorId ?? null,
     project_id: request.projectId ?? null,
     task_id: request.taskId ?? null,
     feedback_date: request.date,
@@ -86,11 +91,9 @@ export function toFeedbackUpdate(request: UpdateMentorCommentRequest): Partial<F
   if ('developerId' in request && request.developerId !== undefined) {
     payload.developer_id = request.developerId
   }
-  if ('mentorId' in request && request.mentorId !== undefined) {
-    payload.mentor_id = request.mentorId
-  }
 
   // Nullable columns: an explicit undefined clears them.
+  if ('mentorId' in request) payload.mentor_id = request.mentorId ?? null
   if ('taskId' in request) payload.task_id = request.taskId ?? null
   if ('projectId' in request) payload.project_id = request.projectId ?? null
   if ('progressUpdate' in request) payload.progress_update = blankToNull(request.progressUpdate)

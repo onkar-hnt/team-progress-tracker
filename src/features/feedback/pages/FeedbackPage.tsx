@@ -45,7 +45,7 @@ function OwnFeedback() {
   return (
     <div className="feedback-page">
       <Panel
-        description="What your mentor has recorded against your tasks. Newest first."
+        description="One entry per task, most recently discussed first. Open a task to reply or add an update."
         fills={page.records.length > 0}
         isPageHeading
         title="My feedback"
@@ -120,7 +120,7 @@ function FeedbackWorkspace() {
 
     await updateComment.mutateAsync({
       id: editing.id,
-      changes: toCreateCommentRequest(values, editing.mentorId, projectId),
+      changes: toCreateCommentRequest(values, editing.mentorId ?? mentorId, projectId),
     })
 
     setEditing(null)
@@ -183,7 +183,7 @@ function FeedbackWorkspace() {
 
       <Panel
         action={developerPicker}
-        description="Newest first."
+        description="One entry per task, most recently discussed first. Open a task to add a comment."
         fills={page.records.length > 0}
         title="Feedback history"
       >

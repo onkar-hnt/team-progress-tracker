@@ -33,6 +33,7 @@ export type {
   UpdateAssignedTaskRequest,
 } from './task.model'
 export type {
+  CommentAuthorRole,
   CreateMentorCommentRequest,
   MentorComment,
   MentorCommentQuery,

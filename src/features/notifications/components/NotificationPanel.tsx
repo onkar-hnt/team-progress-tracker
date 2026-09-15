@@ -7,7 +7,7 @@ import { useMarkAllNotificationsRead, useMarkNotificationRead } from '@hooks/use
 import type { AppNotification } from '@models/index'
 import { formatRelativeTime, formatTimestamp } from '@utils/date.utils'
 
-import { NOTIFICATION_DISPLAY } from '../notification-display'
+import { NOTIFICATION_DISPLAY, notificationPath } from '../notification-display'
 
 import './NotificationPanel.scss'
 
@@ -61,7 +61,7 @@ export function NotificationPanel({
     if (!notification.isRead) markRead.mutate(notification.id)
 
     onDismiss()
-    void navigate(NOTIFICATION_DISPLAY[notification.type].path)
+    void navigate(notificationPath(notification))
   }
 
   return (

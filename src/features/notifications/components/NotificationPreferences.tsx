@@ -38,12 +38,15 @@ interface PreferenceGroup {
 
   /**
    * Whether the notification reaches somebody as the person doing the work or as
-   * somebody responsible for it. Decides who is shown the line at all: every one
-   * of the six types is addressed through a `developers` or `mentors` row, so a
-   * line for a capacity somebody does not hold would offer to switch off
-   * something they could never receive.
+   * somebody responsible for it. Decides who is shown the line at all: every
+   * type is addressed through a `developers` or `mentors` row, so a line for a
+   * capacity somebody does not hold would offer to switch off something they
+   * could never receive.
+   *
+   * `either` is for the task conversation, which travels in both directions and
+   * so reaches anybody holding one of the two records.
    */
-  capacity: 'developer' | 'mentor'
+  capacity: 'developer' | 'either' | 'mentor'
 
   /** Completes "You will be notified when …", so it starts lower case. */
   event: string
@@ -75,6 +78,13 @@ const PREFERENCE_GROUPS: readonly PreferenceGroup[] = [
     types: ['feedback_added'],
   },
   {
+    id: 'task-comments',
+    capacity: 'either',
+    event: 'somebody comments on a task you are part of',
+    hint: 'A comment on one of your tasks, and a reply from somebody you mentor.',
+    types: ['task_comment_added'],
+  },
+  {
     id: 'daily-updates',
     capacity: 'mentor',
     event: 'somebody you mentor submits a daily update',
@@ -101,9 +111,13 @@ export function NotificationPreferences() {
   // describing a feature that is not there.
   if (!areNotificationsAvailable() || user === null) return null
 
-  const groups = PREFERENCE_GROUPS.filter((group) =>
-    group.capacity === 'developer' ? user.developerId !== undefined : user.mentorId !== undefined,
-  )
+  const isOnTheRoster = user.developerId !== undefined
+  const isAMentor = user.mentorId !== undefined
+
+  const groups = PREFERENCE_GROUPS.filter((group) => {
+    if (group.capacity === 'either') return isOnTheRoster || isAMentor
+    return group.capacity === 'developer' ? isOnTheRoster : isAMentor
+  })
 
   const current = muted.data ?? []
 

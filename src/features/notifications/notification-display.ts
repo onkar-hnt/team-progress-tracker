@@ -1,5 +1,5 @@
 import type { IconName } from '@components/ui/icons/Icon'
-import type { NotificationType } from '@models/index'
+import type { AppNotification, NotificationType } from '@models/index'
 
 /**
  * How each kind of notification is drawn and where it leads.
@@ -17,12 +17,11 @@ interface NotificationDisplay {
   icon: IconName
 
   /**
-   * Where following the notification goes.
+   * Where following the notification goes when it names no record.
    *
-   * A screen rather than the entity itself, because the application has no
-   * per-record routes — there is no `/tasks/:id`. The recipient is implied by
-   * the type, so no role check is needed to choose: only the assigned developer
-   * is told about a task, and only a mentor about somebody's daily update.
+   * A screen, and the recipient is implied by the type, so no role check is
+   * needed to choose: only the assigned developer is told about a task, and
+   * only a mentor about somebody's daily update.
    */
   path: string
 
@@ -33,9 +32,26 @@ export const NOTIFICATION_DISPLAY: Readonly<Record<NotificationType, Notificatio
   task_assigned: { icon: 'tasks', path: '/my-tasks', tone: 'informational' },
   task_reassigned: { icon: 'tasks', path: '/my-tasks', tone: 'informational' },
   task_status_changed: { icon: 'activity', path: '/my-tasks', tone: 'informational' },
+  task_comment_added: { icon: 'comments', path: '/my-tasks', tone: 'attention' },
   feedback_added: { icon: 'comments', path: '/feedback', tone: 'informational' },
   daily_update_submitted: { icon: 'calendar', path: '/team-activity', tone: 'informational' },
   work_blocked: { icon: 'alert', path: '/team-activity', tone: 'attention' },
+}
+
+/**
+ * Where following a notification goes.
+ *
+ * A notification naming a task opens that task, which is where both the work
+ * and the conversation about it are. Anything else falls back to the screen for
+ * its type, either because the record has no page of its own or because the
+ * task it named has since been deleted, in which case the task screen says so.
+ */
+export function notificationPath(notification: AppNotification): string {
+  if (notification.entityType === 'task' && notification.entityId !== undefined) {
+    return `/tasks/${notification.entityId}`
+  }
+
+  return NOTIFICATION_DISPLAY[notification.type].path
 }
 
 /**

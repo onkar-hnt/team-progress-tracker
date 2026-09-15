@@ -97,10 +97,17 @@ Reads are scoped; writes are additionally checked by role in
 |---|---|---|---|
 | Log or edit a work entry | Anyone's | Own only | Own only |
 | Change a task's status | Yes | For assigned developers | Own tasks only |
-| Create or assign tasks | Yes | No | No |
-| Write feedback | Yes | For assigned developers | No |
+| Create or assign tasks | Yes | For assigned developers | No |
+| Write feedback about somebody | Yes | For assigned developers | No |
+| Comment on a task | Yes | Any task of an assigned developer | Own tasks only |
 | Edit or delete feedback | Yes | Own comments only | No |
 | Manage employees, mentors, projects, mappings | Yes | No | No |
+
+A mentor's reach over a task is decided by the assignment, not by who created
+the task: any task belonging to an assigned developer can be commented on. The
+comment trail is `public.feedback`, where each entry records its author and the
+capacity they wrote in, so a developer's reply and a mentor's comment sit in the
+same history and neither can be attributed to the other.
 
 Mentors deliberately cannot write work entries for their developers. A daily
 update is a first-hand record, and letting somebody else author it would make

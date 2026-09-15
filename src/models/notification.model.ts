@@ -5,6 +5,7 @@ export const NOTIFICATION_TYPES = [
   'daily_update_submitted',
   'feedback_added',
   'task_assigned',
+  'task_comment_added',
   'task_reassigned',
   'task_status_changed',
   'work_blocked',

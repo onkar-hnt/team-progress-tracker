@@ -17,6 +17,7 @@ import { TaskTable } from '@features/tasks/components/TaskTable'
 import {
   useActiveDevelopers,
   useActiveRosterProjects,
+  useComments,
   useCreateTask,
   useDeleteTask,
   useRosterMentors,
@@ -28,6 +29,7 @@ import type { AssignedTask } from '@models/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import { todayIsoDate } from '@utils/date.utils'
 import { matchesSearch } from '@utils/table.utils'
+import { countCommentsByTask } from '@utils/task.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 
@@ -65,6 +67,12 @@ export function TasksPage() {
   )
 
   const tasksQuery = useTasks(query)
+  const commentsQuery = useComments()
+
+  const commentCounts = useMemo(
+    () => countCommentsByTask(commentsQuery.data ?? []),
+    [commentsQuery.data],
+  )
 
   const visible = useMemo(
     () =>
@@ -146,6 +154,7 @@ export function TasksPage() {
             />
 
             <TaskTable
+              commentCounts={commentCounts}
               emptyMessage={
                 search.trim() === ''
                   ? 'No tasks match this filter.'

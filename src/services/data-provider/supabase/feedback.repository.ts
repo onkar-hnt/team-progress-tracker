@@ -23,7 +23,8 @@ function matchesNothing(query: MentorCommentQuery): boolean {
   return (
     query.developerIds?.length === 0 ||
     query.mentorIds?.length === 0 ||
-    query.projectIds?.length === 0
+    query.projectIds?.length === 0 ||
+    query.taskIds?.length === 0
   )
 }
 
@@ -39,6 +40,7 @@ export async function selectComments(
     p_developer_ids: filterList(query?.developerIds),
     p_mentor_ids: filterList(query?.mentorIds),
     p_project_ids: filterList(query?.projectIds),
+    p_task_ids: filterList(query?.taskIds),
   })
 
   const { data, error } =

@@ -136,7 +136,7 @@ const taskRowSchema = workRowSchema.extend({
 const feedbackRowSchema = workRowSchema.extend({
   feedback_date: z.string().min(1),
   comment: z.string().nullable(),
-  mentor_id: z.string().min(1),
+  mentor_id: z.string().nullable(),
 })
 
 const personRowSchema = z.object({
@@ -237,7 +237,7 @@ export async function listDeletedRecords(): Promise<DeletedRecord[]> {
       id: row.id,
       date: row.feedback_date,
       developerId: row.developer_id,
-      authorMentorId: row.mentor_id,
+      ...(row.mentor_id === null ? {} : { authorMentorId: row.mentor_id }),
       ...(row.project_id === null ? {} : { projectId: row.project_id }),
       deletedAt: row.deleted_at,
     })),

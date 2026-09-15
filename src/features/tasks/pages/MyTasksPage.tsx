@@ -8,11 +8,12 @@ import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { TASK_STATUS_LABELS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
-import { useTasks, useUpdateTask } from '@hooks/use-work-tracker'
+import { useComments, useTasks, useUpdateTask } from '@hooks/use-work-tracker'
 import { useAccessScope } from '@hooks/use-access-scope'
 import type { TaskStatus } from '@models/index'
 import { canUpdateTaskStatus, canViewTeamData } from '@services/auth/index'
 import type { AssignedTaskView } from '@services/work-tracker.service'
+import { countCommentsByTask } from '@utils/task.utils'
 
 import { TaskTable } from '../components/TaskTable'
 
@@ -27,9 +28,15 @@ export function MyTasksPage() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
 
   const tasksQuery = useTasks()
+  const commentsQuery = useComments()
   const updateTask = useUpdateTask()
 
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
+
+  const commentCounts = useMemo(
+    () => countCommentsByTask(commentsQuery.data ?? []),
+    [commentsQuery.data],
+  )
 
   const visibleTasks = useMemo(
     () => (statusFilter === 'all' ? tasks : tasks.filter((task) => task.status === statusFilter)),
@@ -67,7 +74,7 @@ export function MyTasksPage() {
     <div className="my-tasks">
       <Panel
         action={statusPicker}
-        description="Work assigned to you, with the status you can keep up to date."
+        description="Work assigned to you and work you logged yourself, with the status you can keep up to date."
         isPageHeading
         title="My tasks"
       >
@@ -111,12 +118,13 @@ export function MyTasksPage() {
           <Skeleton rows={5} />
         ) : (
           <TaskTable
+            commentCounts={commentCounts}
             emptyMessage={
               statusFilter !== 'all'
                 ? 'No tasks match this filter.'
                 : canViewTeamData(user)
                   ? 'No tasks have been assigned yet. Assign work from Administration → Tasks.'
-                  : 'No tasks have been assigned to you yet.'
+                  : 'Nothing here yet. A task appears when one is assigned to you, or when you log a daily update.'
             }
             renderActions={(task) => (
               <StatusSelect

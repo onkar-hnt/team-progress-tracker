@@ -1,0 +1,131 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+// No max-height and no overflow: the page scrolls. A conversation is read from
+// the top and grows downwards, so a window of its own would hide the part
+// somebody came for and add a second scrollbar to a screen that already scrolls.
+.task-trail {
+  @include grid($gap: $space-4);
+
+  &__entries {
+    @include grid($gap: $space-2);
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__entry {
+    @include enter(fade-in, $duration-base);
+
+    padding: $space-3;
+    border: 1px solid $color-border;
+    border-left: 3px solid $color-neutral-border;
+    border-radius: $radius-md;
+    background: $color-white;
+
+    // The two voices differ by tone rather than by side. Alternating alignment
+    // would read as a chat window and lose the left edge the eye scans down.
+    &--mentor {
+      border-left-color: $color-brand;
+      background: $color-brand-light;
+    }
+
+    &--admin {
+      border-left-color: $color-warning-border;
+      background: $color-warning-surface;
+    }
+
+    &--developer {
+      border-left-color: $color-success-border;
+    }
+  }
+
+  &__header {
+    @include flex($align: center, $gap: $space-2, $wrap: wrap);
+  }
+
+  // Name and capacity on one line: two lines of heading above every comment was
+  // most of the height of a short one.
+  &__who {
+    @include flex($align: baseline, $gap: $space-2, $wrap: wrap);
+
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__entry-actions {
+    @include flex($align: null, $gap: $space-2);
+
+    flex: 0 0 auto;
+  }
+
+  &__avatar {
+    @include square(1.75rem);
+    @include flex-center;
+
+    flex: 0 0 auto;
+    border-radius: $radius-pill;
+    background: $color-white;
+    border: 1px solid $color-border;
+    color: $color-brand;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+  }
+
+  &__author {
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+  }
+
+  &__role {
+    @include overline;
+  }
+
+  &__time {
+    flex: 0 0 auto;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  &__body {
+    margin: $space-2 0 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    line-height: $line-height-base;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  &__detail {
+    margin: $space-2 0 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    white-space: pre-wrap;
+  }
+
+  &__detail-label {
+    @include overline($weight: $font-weight-bold);
+
+    display: block;
+  }
+
+  &__composer {
+    @include grid($gap: $space-2);
+
+    padding-top: $space-3;
+    border-top: 1px solid $color-border;
+  }
+
+  &__actions {
+    @include flex($justify: space-between, $gap: $space-3, $wrap: wrap);
+  }
+
+  &__count {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    font-variant-numeric: tabular-nums;
+  }
+}

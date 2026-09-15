@@ -1,0 +1,35 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.task-details {
+  @include page-stack;
+
+  &__facts {
+    @include grid(repeat(auto-fit, minmax(12rem, 1fr)), $space-4);
+
+    margin: 0;
+  }
+
+  &__fact {
+    padding: $space-3 $space-4;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: $color-surface-subtle;
+
+    dt {
+      @include overline();
+    }
+
+    dd {
+      margin: $space-1 0 0;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &__description {
+    margin: $space-5 0 0;
+    color: $color-text;
+    line-height: $line-height-loose;
+    white-space: pre-wrap;
+  }
+}

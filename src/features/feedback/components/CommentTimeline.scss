@@ -2,7 +2,7 @@
 @use '@styles/mixins' as *;
 
 .comment-timeline {
-  @include grid($gap: $space-4);
+  @include grid($gap: $space-3);
   margin: 0;
   padding: 2px;
   list-style: none;
@@ -12,8 +12,9 @@
 
   &__item {
     @include enter(fade-in, $duration-base);
+    @include grid($gap: $space-3);
 
-    padding: $space-4;
+    padding: $space-3;
     border: 1px solid $color-border;
     border-left: 3px solid $color-brand;
     border-radius: $radius-md;
@@ -27,12 +28,27 @@
   &__task {
     margin: 0;
     color: $color-text;
+    font-size: $font-size-sm;
     font-weight: $font-weight-semibold;
+    line-height: $line-height-tight;
 
     &--general {
       color: $color-text-muted;
       font-weight: $font-weight-medium;
       font-style: italic;
+    }
+  }
+
+  // The heading reads as a heading; that it leads somewhere is shown on hover
+  // rather than by the browser's underlined blue, which fought the card.
+  &__link {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: $color-brand;
+      text-decoration: underline;
     }
   }
 
@@ -49,26 +65,16 @@
     font-weight: $font-weight-semibold;
   }
 
-  &__actions {
-    @include flex($align: null, $gap: $space-2);
-  }
+  &__open {
+    justify-self: start;
+    color: $color-brand;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-decoration: none;
 
-  &__comment {
-    margin: $space-3 0 0;
-    color: $color-text;
-    white-space: pre-wrap;
-  }
-
-  &__detail {
-    margin: $space-3 0 0;
-    color: $color-text;
-    font-size: $font-size-sm;
-    white-space: pre-wrap;
-  }
-
-  &__detail-label {
-    @include overline($weight: $font-weight-bold);
-
-    display: block;
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
   }
 }

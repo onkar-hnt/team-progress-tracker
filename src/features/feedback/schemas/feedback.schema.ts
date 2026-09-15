@@ -3,16 +3,21 @@ import { z } from 'zod'
 import type { CreateMentorCommentRequest, MentorComment } from '@models/index'
 import { todayIsoDate } from '@utils/date.utils'
 
+/** Shared with the task comment trail so both write the same column the same way. */
+export const commentTextSchema = z
+  .string()
+  .trim()
+  .min(3, { message: 'Write at least a sentence' })
+  .max(2000, { message: 'Keep this under 2000 characters' })
+
+export const COMMENT_MAX_LENGTH = 2000
+
 // Task is optional so general feedback can be recorded without attaching to one.
 export const feedbackFormSchema = z.object({
   developerId: z.string().min(1, { message: 'Choose a developer' }),
   taskId: z.string(),
   date: z.string().min(1, { message: 'Choose a date' }),
-  comment: z
-    .string()
-    .trim()
-    .min(3, { message: 'Write at least a sentence' })
-    .max(2000, { message: 'Keep feedback under 2000 characters' }),
+  comment: commentTextSchema,
   progressUpdate: z.string().trim().max(1000).optional(),
   blockers: z.string().trim().max(1000).optional(),
   recommendations: z.string().trim().max(1000).optional(),

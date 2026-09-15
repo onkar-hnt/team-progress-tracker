@@ -1,4 +1,5 @@
 @use '@styles/variables' as *;
+@use '@styles/mixins' as *;
 
 .task-table {
   &__name {
@@ -6,6 +7,26 @@
     max-width: 26rem;
     color: $color-text;
     font-weight: $font-weight-semibold;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: $color-brand;
+      text-decoration: underline;
+    }
+  }
+
+  &__comments {
+    @include flex($gap: $space-1);
+
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    font-variant-numeric: tabular-nums;
+
+    &--some {
+      color: $color-brand;
+      font-weight: $font-weight-semibold;
+    }
   }
 
   &__description {

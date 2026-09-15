@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query'
 
@@ -181,12 +182,36 @@ export function useTasks(query?: AssignedTaskQuery): UseQueryResult<AssignedTask
   )
 }
 
+export function useTask(id: string): UseQueryResult<AssignedTaskView | null> {
+  const service = getWorkTrackerService()
+
+  return useScopedQuery(
+    (scopeId) => queryKeys.task(scopeId, id),
+    (scope) => service.getTaskViewById(scope, id),
+  )
+}
+
 export function useComments(query?: MentorCommentQuery): UseQueryResult<MentorCommentView[]> {
   const service = getWorkTrackerService()
 
   return useScopedQuery(
     (scopeId) => queryKeys.comments(scopeId, query),
     (scope) => service.getCommentViews(scope, query),
+    { keepsPreviousData: true },
+  )
+}
+
+/** The trail for one task, oldest first, which is the order a conversation reads in. */
+export function useTaskComments(taskId: string): UseQueryResult<MentorCommentView[]> {
+  const service = getWorkTrackerService()
+  const query = useMemo(() => ({ taskIds: [taskId] }), [taskId])
+
+  return useScopedQuery(
+    (scopeId) => queryKeys.comments(scopeId, query),
+    async (scope) => {
+      const comments = await service.getCommentViews(scope, query)
+      return [...comments].sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+    },
     { keepsPreviousData: true },
   )
 }

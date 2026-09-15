@@ -105,7 +105,10 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
 
   const taskOptions = useMemo<DropdownOption[]>(
     () => [
-      { value: '', label: tasksQuery.isPending ? 'Loading your tasks…' : 'Not linked to a task' },
+      {
+        value: '',
+        label: tasksQuery.isPending ? 'Loading your tasks…' : 'New task from the title above',
+      },
       ...open.map((task) => ({ value: task.id, label: describeTask(task), group: 'Open' })),
       ...completed.map((task) => ({
         value: task.id,
@@ -253,7 +256,7 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
             hint={
               hasTask
                 ? 'This task and this update share one status, so finishing here marks it done on My Tasks too.'
-                : 'Link a task and the two share one status. Leave it unlinked for work no task covers.'
+                : 'Pick the task this day belongs to. Left as it is, the title above becomes a task your mentor can comment on.'
             }
             htmlFor="update-task"
             isWide
