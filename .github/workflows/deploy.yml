@@ -13,6 +13,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Only the frontend is published to Pages; the backend runs elsewhere.
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -21,36 +25,35 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
 
       # Fails before the build rather than after the deploy.
       #
-      # Without these two the build still succeeds and the result looks like a
-      # working site that cannot read or save a thing, because there is no
-      # project behind it. That is a far worse outcome than a red run, so
-      # a missing value is made to stop the pipeline here, where the message
+      # Without this the build still succeeds and the result looks like a
+      # working site that cannot read or save a thing, because it has no
+      # backend to talk to. That is a far worse outcome than a red run, so a
+      # missing value is made to stop the pipeline here, where the message
       # says which one and where to put it.
       - name: Check deployment configuration
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
         run: |
-          missing=""
-          [ -n "$VITE_SUPABASE_URL" ] || missing="$missing VITE_SUPABASE_URL"
-          [ -n "$VITE_SUPABASE_PUBLISHABLE_KEY" ] || missing="$missing VITE_SUPABASE_PUBLISHABLE_KEY"
-
-          if [ -n "$missing" ]; then
-            echo "::error::Missing repository configuration:$missing"
-            echo "Add them under Settings > Secrets and variables > Actions."
-            echo "Both are public values, so repository *variables* are the right home."
+          if [ -z "$VITE_API_BASE_URL" ]; then
+            echo "::error::Missing repository configuration: VITE_API_BASE_URL"
+            echo "Add it under Settings > Secrets and variables > Actions."
+            echo "It is a URL rather than a credential, so a repository *variable* is the right home."
             exit 1
           fi
 
-          # A secret key would be readable by anyone who opens the bundle.
-          case "$VITE_SUPABASE_PUBLISHABLE_KEY" in
-            sb_secret_*|*service_role*)
-              echo "::error::That is a secret key. Use the publishable (anon) key."
+          # The deployed site is served over HTTPS, and a browser refuses to
+          # call a plain-HTTP API from it, so a mixed-content base URL would
+          # only fail once somebody opened the page.
+          case "$VITE_API_BASE_URL" in
+            https://*|/*) ;;
+            *)
+              echo "::error::VITE_API_BASE_URL must be an https:// origin, or a same-origin path beginning with /."
               exit 1
               ;;
           esac
@@ -61,15 +64,14 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # The Supabase values are read by Vite here and inlined into the bundle.
-      # That is by design for the publishable key: it identifies the project,
-      # not the caller, and Supabase Auth with row-level security is what
-      # decides access. No secret belongs in this block.
+      # The gateway address is read by Vite here and inlined into the bundle.
+      # That is by design: it is a URL, and the access token the Identity
+      # service issues at sign-in is what decides what a caller may do. No
+      # secret belongs in this block.
       - name: Build
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_AUTH_MODE: supabase
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
+          VITE_AUTH_MODE: api
         run: npm run build
 
       - name: Configure Pages
@@ -77,7 +79,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: frontend/dist
   deploy:
     environment:
       name: github-pages

@@ -1,0 +1,152 @@
+{
+  // Run targets for both halves of the repo. The backend ones wrap the scripts
+  // in backend/scripts so there is one definition of how a service starts.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend: run all",
+      "detail": "Gateway + 5 services, waits for /health on 5100-5105",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/run-all.ps1"
+      ],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "backend: stop all",
+      "detail": "Stops every service started by 'backend: run all'",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/stop-all.ps1"
+      ],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "backend: restart all",
+      "detail": "Stop, then start again - use after changing backend code",
+      "dependsOrder": "sequence",
+      "dependsOn": ["backend: stop all", "backend: run all"],
+      "problemMatcher": []
+    },
+    {
+      "label": "backend: smoke test",
+      "detail": "End-to-end checks through the gateway; needs the services running",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/smoke-test.ps1"
+      ],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "backend: build",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["build", "TeamProgressTracker.slnx"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      // The services hold their DLLs open, so a build while they run fails to
+      // copy. Stopping first is what makes this runnable at any time.
+      "label": "backend: test",
+      "detail": "Unit + integration tests (stops the services first)",
+      "dependsOrder": "sequence",
+      "dependsOn": ["backend: stop all"],
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["test", "TeamProgressTracker.slnx", "--nologo"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "group": "test",
+      "problemMatcher": "$msCompile",
+      "presentation": { "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "frontend: dev server",
+      "detail": "Vite on http://localhost:5173, talking to the gateway",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "frontend: typecheck",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "typecheck"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "frontend: lint",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "lint"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "frontend: build",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "frontend: checks",
+      "detail": "typecheck, lint and build - what CI runs",
+      "dependsOrder": "sequence",
+      "dependsOn": ["frontend: typecheck", "frontend: lint", "frontend: build"],
+      "problemMatcher": []
+    },
+    {
+      // Backend first, in sequence: run-all.ps1 returns once every service
+      // answers /health, so the dev server comes up against a live gateway
+      // rather than racing it.
+      "label": "stack: start backend + frontend",
+      "detail": "Everything needed to use the app: services on 5100-5105, then Vite on 5173",
+      "dependsOrder": "sequence",
+      "dependsOn": ["backend: run all", "frontend: dev server"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "stack: stop",
+      "detail": "Stops the backend services; close the Vite terminal to stop the dev server",
+      "dependsOn": ["backend: stop all"],
+      "problemMatcher": []
+    },
+    {
+      "label": "stack: verify",
+      "detail": "Backend tests then frontend typecheck, lint and build",
+      "dependsOrder": "sequence",
+      "dependsOn": ["backend: test", "frontend: checks"],
+      "problemMatcher": []
+    }
+  ]
+}

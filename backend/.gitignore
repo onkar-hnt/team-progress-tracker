@@ -1,0 +1,108 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+artifacts/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.userprefs
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+
+# JetBrains Rider
+.idea/
+*.DotSettings.user
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# VS Code
+.vscode/
+
+# Test results
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.VisualState.xml
+
+# Code coverage
+coverage/
+coverage-report/
+*.coverage
+*.coveragexml
+*.opencover.xml
+
+# Logs
+*.log
+logs/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+
+# Publish output
+publish/
+[Pp]ublish[Oo]utput/
+*.[Pp]ublish.xml
+*.pubxml
+*.pubxml.user
+*.azurePubxml
+
+# Local SQL Server database files
+*.mdf
+*.ldf
+*.ndf
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local secrets. Anything with a real signing key, connection password or
+# seeded password lives in one of these and is never committed; the committed
+# appsettings files carry structure and development defaults only.
+secrets.json
+*.secrets.json
+appsettings.Local.json
+appsettings.*.Local.json
+appsettings.*.local.json
+!appsettings.Local.example.json
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker local override
+docker-compose.override.yml
+
+# Node artifacts, if a tool ever writes them in here
+node_modules/
+wwwroot/dist/
+
+# Rosyln analyser / MSBuild scratch
+*.binlog
+msbuild.log
+BenchmarkDotNet.Artifacts/

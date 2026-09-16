@@ -3,328 +3,161 @@
 A team's daily work in one place: what each developer did, what they are assigned, what is
 blocking them, and what their mentor has said about it.
 
-Three kinds of people use it, and each sees a different application. A **developer** logs their
-own day and reads their own feedback. A **mentor** maintains the roster and sees the developers
-assigned to them. An **administrator** sees and administers everything. Those rules are written
-once, in `src/services/auth/permissions.ts`, and enforced again in the database by row-level
-security — the interface decides what to draw, and Postgres decides what may actually be read or
-written.
-
-Deployed to GitHub Pages from `main`: <https://onkar-hnt.github.io/team-progress-tracker/>
+The **React 19** frontend in [`frontend/`](frontend/) talks to a **.NET 10** backend in
+[`backend/`](backend/): five domain services (Identity, Team, Work, Notifications, Reporting)
+behind a **YARP API gateway**, one **SQL Server** database, and schemas `identity`, `team`, `work`,
+and `notify`. Access is enforced in the services (JWT and application rules), not in the browser
+alone.
 
 ---
 
-## Running it
+## Main features
 
-Node 22 or newer, and npm.
+- **Daily updates** — developers log progress, blockers, and hours; entries link to tasks and projects.
+- **Tasks** — assignment, status, due dates, and effort synced from daily work.
+- **Feedback** — mentors comment on developers' work; threaded conversation per task.
+- **Team roster** — employees, mentors, projects, and mentor–developer assignments.
+- **Reports** — team, developer, and project totals over a date range (privileged roles).
+- **Notifications** — inbox and per-type mute preferences.
+- **Change log and recycle bin** — audit trail and soft-delete restore within retention.
+- **Administration** — provision logins from the roster, reset passwords, deactivate accounts, usage (admin).
 
-```bash
+---
+
+## Roles
+
+| Role | Purpose |
+| --- | --- |
+| **Administrator** | Full visibility: roster, work, logins, reports, usage. Seeded via Identity (`Seed:AdminEmail`). |
+| **Mentor** | Developers assigned in `team.MentorAssignments`, their tasks, work, feedback, and team reports. |
+| **Developer** | Own tasks, daily updates, feedback about them, and personal reports. |
+
+Role comes from **`identity.Profiles.Role`** at sign-in (JWT). Roster employees and mentors have
+**no logins** until an admin or mentor provisions them. UI rules are described in
+[`frontend/src/docs/Access-Control.md`](frontend/src/docs/Access-Control.md).
+
+---
+
+## Architecture (high level)
+
+```
+React (frontend/)  →  API Gateway :5100  →  Identity | Team | Work | Notifications | Reporting
+                                                      ↓
+                                            SQL Server (TeamProgressTracker)
+```
+
+The browser calls **only the gateway**; individual service ports are for development and Swagger.
+Detail: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## Repository structure
+
+```
+.github/          CI: frontend typecheck, lint, build; GitHub Pages deploy (frontend only)
+backend/          .NET solution, gateway, services, tests, scripts
+frontend/         React + TypeScript (Vite), npm package and source
+ARCHITECTURE.md   Bounded contexts, gateway, auth model
+DATABASE.md       Schemas, tables, migrations
+API.md            HTTP routes and envelope
+DEVELOPMENT.md    Day-to-day setup, configuration, troubleshooting
+```
+
+Further reading: [frontend/README.md](frontend/README.md), [backend/README.md](backend/README.md).
+
+---
+
+## Prerequisites
+
+- **.NET 10 SDK**
+- **Node.js 22+** and npm
+- **SQL Server Express** on instance **`SQLEXPRESS01`** (Windows authentication is the default in
+  committed settings)
+- **PowerShell** — backend scripts are written for **PowerShell 7** (`pwsh`); `dotnet` commands work
+  in Windows PowerShell 5.1 as well
+
+---
+
+## First run (end to end)
+
+### 1. Backend
+
+Ensure SQL Server is running and the instance name matches the connection string. Copy
+[`backend/appsettings.Local.example.json`](backend/appsettings.Local.example.json) to
+**`appsettings.Local.json`** beside the gateway and each `*.Api` project (see
+[DEVELOPMENT.md](DEVELOPMENT.md)). Set at least **`Jwt:SigningKey`** (32+ characters, **the same
+value everywhere**) and **`Seed:AdminPassword`** for the bootstrap administrator.
+
+From the repository root:
+
+```powershell
+cd backend
+pwsh ./scripts/run-all.ps1
+```
+
+In **Development**, services apply their own migrations and seed data on startup (Identity → Team →
+Work). Logs go to `backend/logs/`. Stop with `pwsh ./scripts/stop-all.ps1`.
+
+### 2. Frontend
+
+```powershell
+cd frontend
+copy .env.example .env.local
 npm install
 npm run dev
 ```
 
-The interface will start and render, but there is nothing behind it until a Supabase project is
-configured: records, sign-in and every feature read the database, and with no configuration the
-application says which variable is missing rather than pretending. See
-[Configuration](#configuration).
+Set **`VITE_API_BASE_URL`** to the gateway (default `http://localhost:5100`). The app sends a
+**Bearer** token from the Identity service on every API call.
 
-| Script              | What it does                                              |
-| ------------------- | --------------------------------------------------------- |
-| `npm run dev`       | Vite dev server with hot reload                           |
-| `npm run typecheck` | `tsc -b`, the same check CI runs                          |
-| `npm run lint`      | ESLint over the whole project                             |
-| `npm run build`     | Typecheck, then a production build into `dist/`           |
-| `npm run preview`   | Serves `dist/` locally, to check a build before deploying  |
-| `npm run analyze`   | Builds with source maps and attributes every chunk's bytes to a package |
+### 3. Sign in
 
-There is no test script. That is a real gap rather than an oversight — see
-[What is missing](#what-is-missing).
+| Account | Email (seed) | Password |
+| --- | --- | --- |
+| Administrator | `admin@handt.ai` | Value of **`Seed:AdminPassword`** in Identity `appsettings.Local.json` (not committed) |
 
-## Configuration
+[`backend/scripts/smoke-test.ps1`](backend/scripts/smoke-test.ps1) signs in with **`Admin@1234`** —
+use that locally only if you set `Seed:AdminPassword` to match. Seeded roster (no passwords until
+provisioned): six developers (`DEV001`–`DEV006`), two mentors (`MEN001`, `MEN002`), three projects
+(`PRJ001`–`PRJ003`). See [backend/README.md](backend/README.md) and [DEVELOPMENT.md](DEVELOPMENT.md).
 
-Copy `.env.example` to `.env.local` and fill in what you need. That file is the reference and
-explains every variable; this is the shape of it.
+---
 
-Everything prefixed `VITE_` is **embedded in the built JavaScript** and readable by anyone who
-loads the site. No secret ever belongs in it. The Supabase publishable key is safe there by
-design: it identifies the project rather than the caller, and access is decided by Auth and
-row-level security. A `service_role` or `sb_secret_…` key is not safe there, and the application
-inspects the key and refuses to start if it finds one.
+## URLs (development)
 
-### Where records come from
+| What | URL |
+| --- | --- |
+| Frontend (Vite) | `http://localhost:5173` (or `5174` if 5173 is taken) |
+| API gateway | `http://localhost:5100` |
+| Gateway Swagger (aggregated) | `http://localhost:5100/swagger` |
+| Per-service Swagger | `http://localhost:5101/swagger` … `http://localhost:5105/swagger` |
 
-Supabase, and only Supabase. Records are PostgreSQL rows behind row-level security, and the two
-variables that point at the project are all the data layer needs. Earlier versions could also read
-an Excel workbook or a set of fixtures; both were removed, because several features — notifications,
-login provisioning, password resets, the change log, the recycle bin, the Logins and Usage screens —
-are database triggers and functions rather than anything a spreadsheet can do, and every one of them
-had to be gated and hidden under the other modes.
+Health check on each host: `GET /health`.
 
-Each of those features still checks `isSupabaseConfigured()` and hides itself when the project is
-not configured, which is what keeps a half-configured deployment honest.
+---
 
-### Who signs in — `VITE_AUTH_MODE`
+## Swagger
 
-| Value      | How somebody proves who they are                                            |
-| ---------- | --------------------------------------------------------------------------- |
-| `supabase` | Supabase Auth. The role is read from `public.profiles`, never from the token. |
-| `entra`    | Microsoft single sign-on, through the app registration.                       |
-| `local`    | Passwords derived from the roster entry. Development only.                    |
+Open **`http://localhost:5100/swagger`** for a combined UI that proxies each service's OpenAPI
+document. You can also use each service directly on ports **5101–5105**. Sign in via Identity
+**POST /api/auth/login**, then **Authorize** with **`data.accessToken`** only (Swagger adds
+`Bearer`). See [API.md](API.md).
 
-Left blank, the mode is chosen for you: Supabase if a project is configured, Entra if a
-registration is, and roster passwords otherwise. Setting it pins the choice, which is what makes
-the offline fallback a decision rather than something the application can slip into.
+---
 
-## The Supabase side
+## Testing (honest summary)
 
-Two things live outside the bundle and are deployed separately: the schema, and the four Edge
-Functions that do the work no browser may.
+| Area | Status |
+| --- | --- |
+| **Frontend** | No `npm test` script. CI runs `typecheck`, `lint`, and `build` from `frontend/`. |
+| **Backend** | `Backend.UnitTests` and `Backend.IntegrationTests` exist; `dotnet test` from `backend/` runs them. Integration tests need SQL Server and JWT configuration; some failures can appear if seed data on a shared database conflicts with test roster creation. |
+| **Manual** | `backend/scripts/smoke-test.ps1` after `run-all.ps1` exercises the gateway end to end. |
 
-The [Supabase CLI](https://supabase.com/docs/guides/cli) is needed for both. Link the project
-once:
+---
 
-```bash
-supabase link --project-ref <your-project-ref>
-```
+## Deployment note
 
-### Migrations
-
-Everything in `supabase/migrations/` — the schema, the RLS policies, the triggers that raise
-notifications, record every change and keep records in step, and the SQL functions the Edge
-Functions and the Usage screen ask for. They are applied in filename order and each is written to be
-run once.
-
-```bash
-supabase migration list --linked   # what is applied, and what is not
-supabase db push --linked          # apply the rest
-```
-
-Read them in order if you want to know how the access model works: `20260910181600_rls_policies.sql`
-is where it starts.
-
-### Edge Functions
-
-Each of these holds the service-role key, which bypasses row-level security entirely and so must
-never reach a browser. Every one of them is written as the same gate: resolve who is calling from
-their bearer token, ask the *database* whether they may, and only then act. None of them trusts a
-JWT claim for a role, because `user_metadata` is writable by the account holder.
-
-| Function                    | What it does                                              | Who may                                      |
-| --------------------------- | --------------------------------------------------------- | -------------------------------------------- |
-| `provision-developer-user`  | Gives an employee record a login                          | Administrators and mentors                   |
-| `provision-mentor-user`     | Gives a mentor record a login                             | Administrators and mentors                   |
-| `reset-user-password`       | Sets somebody else's password                             | `public.may_reset_password` decides, per person |
-| `set-account-state`         | Disables or re-enables a login, and ends open sessions     | `public.may_manage_account` — administrators   |
-
-```bash
-supabase functions deploy set-account-state    # one
-supabase functions deploy                      # all of them
-```
-
-They share `supabase/functions/_shared/provisioning.ts`, which is uploaded alongside whichever
-function is deployed. **A change to that file needs every function redeployed**, not just the one
-you were working on.
-
-Two failure modes are worth recognising, because both look like a network fault from the browser:
-a function that has not been deployed answers the preflight with a 404 carrying no CORS headers,
-and a migration that has not been applied makes the authorization call fail. The screens say which
-of the two it was — that wording exists because both happened.
-
-### Deploying the site
-
-`.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main`, after
-typechecking and linting. It needs two repository variables under
-**Settings → Secrets and variables → Actions**:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-
-Both are public values, so repository *variables* are the right home rather than secrets. The
-workflow checks for them before it builds and stops with a message naming what is missing — without
-that check the build would succeed and deploy a site that renders and then cannot read a thing.
-
-`.github/workflows/checks.yml` runs the same typecheck and lint on pull requests, so a branch is
-gated before it reaches `main` rather than after.
-
-`.github/workflows/supabase.yml` applies migrations and deploys functions from the repository
-instead of from a laptop. It is manual — **Actions → Supabase → Run workflow** — and needs
-`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD` as secrets. Deliberately
-not automatic on push: a schema change and the code that depends on it usually want to land in a
-particular order, and that order is a judgement.
-
-Routing is by hash (`/#/dashboard`), because Pages serves static files and has no way to answer an
-unknown path with `index.html`. `vite.config.ts` sets `base` to the repository name to match.
-
-## How the code is laid out
-
-```
-src/
-  app/          providers, routing, the error boundary
-  components/   layout and the shared UI vocabulary
-  features/     one folder per screen area: pages, and the components only they use
-  hooks/        React Query hooks — the only thing screens call to read or write
-  models/       the domain types every layer agrees on
-  services/     everything that talks to the outside world
-  styles/       variables, mixins and the global sheet
-  utils/        dates, tasks, work summaries
-supabase/
-  migrations/   the schema and the access model
-  functions/    the privileged operations
-```
-
-Four seams are worth knowing before changing anything:
-
-- **`services/data-provider`** is the interface every screen reads records through, implemented once
-  over Supabase. The seam is still worth keeping: it is what stops feature code from holding a
-  Postgres query, and notifications, accounts, history and the recycle bin sit beside it rather than
-  on it, because they are about a database rather than about records.
-- **`services/auth/permissions.ts`** answers every "may they?" in the interface. Screens ask it
-  rather than checking `role === 'admin'` inline, so the policy can be read in one place.
-- **`hooks/query-keys.ts`** declares every cache key once, so a write cannot fail to refresh a
-  screen because two files spelled a key differently.
-- **`app/providers`** holds the snackbar, the confirmation dialog and the session, all reached
-  through hooks — `useSnackbar`, `useConfirm`, `useAuth`.
-
-### Conventions
-
-SCSS with BEM, one stylesheet beside the component it styles, and no CSS-in-JS. Comments explain
-*why* something is the way it is, especially where the obvious approach was tried and did not
-work; several of the longer ones exist because a subtle failure took an afternoon to understand
-and is worth exactly one paragraph to never repeat.
-
-Every size, colour, radius, shadow, duration and layer is a token in `styles/_variables.scss`, and
-a literal in a feature stylesheet is a bug rather than a shortcut — the file says what each token
-is for, which is usually enough to find the right rung of the scale.
-
-### Charts
-
-ApexCharts, wrapped in `components/charts/`. `ApexChart.tsx` is the frame every chart shares — the
-text summary read in place of the drawing, the empty state, the imports — `chart-theme.ts` holds the
-options they all agree on, `chart-utils.ts` the number formatting, and `WorkCharts.tsx` the five
-charts themselves over the aggregations in `work-summary.utils`.
-
-The split between Sass and TypeScript is deliberate and is the thing to understand before changing
-a colour. Everything around the data — axis labels, grid lines, legend, tooltip — is ordinary DOM
-that `ApexChart.scss` styles from the same tokens as the rest of the application. The data colours
-cannot work that way, because Apex does arithmetic on them to shade gradients and hover states, so
-they are literals in `chart-colors.ts`: one tier brighter than the interface palette, which is tuned
-for 12px text rather than for a filled area. Each one means something, and `STATUS_CHART_COLORS`
-keys them by status so a chart cannot list its data in one order and its colours in another.
-
-Renderers are imported one per chart type rather than as Apex's default bundle, which is worth about
-260 KB; a new kind of chart needs its renderer added to `ApexChart.tsx`, and the console says so.
-Clicking a status slice, a developer's bar or a project slice opens the activity list filtered to
-those rows, through `activityRangeLink`. That is a shortcut rather than the only route, because the
-drawing is hidden from assistive technology: the metric cards above are real links to the same
-views.
-
-### The bundle
-
-Every screen is a lazy route, and the two heaviest dependencies are only fetched by what needs them:
-ApexCharts arrives with the dashboard and the reports, MSAL only under Entra sign-in. The first load
-is React, the Supabase client, and zod with react-hook-form for the login form — about 250 KB
-gzipped, most of which is those four libraries.
-
-`vite.config.ts` groups those eager dependencies into named chunks (`react-vendor`, `supabase`,
-`forms`, `vendor`) so that shipping a UI change no longer invalidates the cached copy of React.
-**A group ignores the boundary between static and dynamic imports**, so grouping a lazy dependency
-drags it into the entry — which is why ApexCharts and MSAL have no group and are left to automatic
-chunking. The size report is the check: if a lazy chunk's name appears in `dist/index.html` as a
-`modulepreload`, something now loads it eagerly.
-
-`npm run analyze` answers "what is in there" with numbers rather than guesses. It builds to
-`dist-analyze/` with source maps and attributes each chunk's bytes to the package they came from;
-`node scripts/analyze-bundle.mjs WorkCharts` drills into one chunk's individual modules.
-
-### Scrolling
-
-The document never scrolls. `body` is `100dvh` and `overflow: hidden`, the shell fills it, and the
-content region inside `AppLayout` is the page scroller — which is what keeps the rail and the bar in
-place while a long report moves under them.
-
-Inside that, some regions scroll on their own: tables at ten rows, entry and comment lists at a
-screenful, the dashboard's two side-by-side panels, the notification popover, dropdown lists, and a
-dialog body. Whether one of those chains to its parent when it reaches its end is the only decision
-that matters, and it goes one way inside the page and the other way in an overlay. `_reset.scss`
-states the rule and the reasoning; the short version is that containment inside the page reads as
-the application freezing, because the reader was scrolling the page and the page had not ended.
-
-None of it is done in script. There are no wheel or touch handlers anywhere in the codebase and
-nothing writes to `body.style.overflow`, so there is no scroll lock that can survive the thing that
-set it. Locking the page behind an open dialog is one CSS rule — `body:has(dialog[open])` in
-`AppLayout.scss` — which stops applying the moment the dialog closes, and the mobile drawer locks
-the same way through its own class.
-
-### Motion
-
-Animation is written inside `@include motion-safe` — a `prefers-reduced-motion: no-preference`
-query — rather than added and then switched off under `reduce`. The second form needs two rules
-kept in agreement and fails silently when somebody forgets the second, so the movement here only
-ever exists inside the query. `enter` and `stagger` in `_mixins.scss` follow that rule for you, and
-the shared keyframes live in `_motion.scss`; keyframes describing one component stay with it.
-
-Two exceptions cannot be expressed in CSS and read the preference in script through
-`usePrefersReducedMotion`: the counting stat-card values, where each frame is a different string,
-and the chart animations, which are options on a library that does not ask. A blanket rule in
-`_reset.scss` is the floor under all of it, for transitions that arrive from a dependency's own
-stylesheet.
-
-**Smooth scrolling is native.** Lenis was considered and not adopted. It works by taking the wheel
-and touch events of one scroller and animating that scroller itself, and this application does not
-have one scroller: the shell's content region, every table, the notification popover, dropdown
-lists, dialog bodies and the sidebar's own navigation all scroll independently, several of them
-inside the top layer where a library reaching in from the page cannot follow. Making it safe would
-mean marking each of those as off-limits and re-marking every one added later — for an eased wheel
-gesture, at the cost of the browser's own scroll anchoring, keyboard paging and touch handling.
-`scroll-behavior: smooth` on the content region gives the part that is actually worth having, which
-is anchor and skip-link jumps easing rather than teleporting; wheel scrolling stays the browser's.
-
-## What is missing
-
-Kept honest rather than aspirational:
-
-- **No tests, and no test runner.** The data layer and the permission rules are the parts that
-  would repay them most.
-- **Paging is in the query where a list can be paged, and in the browser where it cannot.** The
-  three record queries now carry a `limit`, which every provider honours newest-first, and the
-  notification panel, the feedback lists and a developer's own feedback ask the database for a page
-  at a time. The remaining lists deliberately still arrive whole, because something on the screen
-  needs all of them: the totals above team activity add up every entry in the period, and the
-  sortable tables sort in the browser, so a paged read would give a stat card that is wrong and a
-  column that sorts only what happens to be loaded. **Aggregates and sorting in the database is the
-  next piece of this**, and it is the one that would let those screens page too.
-- **The audit trail is field-level, but not a time machine.** Every change to a work entry, a
-  task, feedback, an employee, a mentor or a project is recorded as a diff — the field, what it
-  was, what it became, who did it and when — and **Change log** shows it, narrowed by the same rule
-  that narrows the work itself, so a developer sees who moved their task and an administrator sees
-  everything. What it will not do is reassemble a record as it stood on an arbitrary Tuesday:
-  diffs are kept rather than snapshots, which is the right trade for "who did this" and the wrong
-  one for "show me the whole thing as it was". Project membership is the one write not yet logged.
-- **Deleting is recoverable.** Every delete of a record sets it aside rather than destroying it,
-  and **Recently deleted** stamps who did it and when; an employee, mentor or project can still
-  only be deleted while no live work references it, which is a rule about deleting rather than
-  about the bin.
-- **No files, by decision rather than by omission.** There is nowhere to attach a screenshot, a
-  log or a review document: the application stores what people write and nothing else. Tasks,
-  work entries and feedback could each carry files for a while — private bucket, expiring links,
-  10 MB a file — and it was removed in `20260914010000_remove_attachments.sql` because of what it
-  spends. On the free plan storage is 1 GB and egress is 5 GB a month, and every view of every
-  file is charged against the second; a team attaching screenshots to daily updates would spend
-  both on evidence a sentence usually carries better. A database of text for a team this size
-  stays inside 500 MB for years, which a shared folder of screenshots does not. The bucket itself
-  survives that migration as an empty one with no policy on it — Supabase will not let SQL delete
-  a storage row, since the file behind it lives outside the database — so it is inert until
-  somebody deletes it from Storage in the dashboard.
-- **Feedback is the only conversation.** It can now be about a task or about the person's work in
-  general, which is what a note after a one-to-one actually is. What is still missing is a reply:
-  feedback is written and read, not discussed, so a developer answering a point has to do it
-  somewhere else.
-- **Usage is measured for the two limits that bite, and named for the three it cannot reach.**
-  **Usage**, under Administration, reads `public.resource_usage()` and shows the database against
-  500 MB, files against 1 GB, a per-table breakdown of where the bytes are, the accounts, and how
-  long it has been since anything was written — that last one because a free project with a week of
-  no activity is paused, which is worse than being full. Egress, Edge Function invocations and
-  realtime messages are not there: the platform meters them and the only way in is the Management
-  API with a token that has rights over the entire project, which is not a credential to put behind
-  a browser screen. Those three are listed with their allowances and a link to the project's own
-  report instead of being quietly left out.
+GitHub Actions [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) publishes the
+**frontend** to GitHub Pages and requires **`VITE_API_BASE_URL`** (HTTPS or same-origin path). The
+backend is not deployed by that workflow — host the .NET stack separately and point the variable at
+your gateway.

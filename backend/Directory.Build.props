@@ -1,0 +1,24 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Microsoft.Data.SqlClient refuses to run in invariant globalization. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Swagger reads these XML files to describe endpoints and fields. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- CS1591: a public member without an XML comment. CS1573: a documented
+         method that does not document every parameter, such as the
+         CancellationToken every action takes. Comments are written where they
+         say something, not to satisfy every member. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Nullability and async mistakes fail the build; style noise does not. -->
+    <WarningsAsErrors>CS8600;CS8602;CS8603;CS8604;CS8618;CS8625;CS4014</WarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

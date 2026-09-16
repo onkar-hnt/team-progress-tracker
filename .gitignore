@@ -13,17 +13,19 @@ dist-analyze
 dist-ssr
 *.local
 
-# Supabase CLI working state, written by `supabase link`. Machine-local, and
-# it says nothing the project ref in the workflow does not already say.
-supabase/.temp
-
-# Editor directories and files
+# Editor directories and files. Recommended extensions and the run targets are
+# shared on purpose; everything else under .vscode is personal.
 .vscode/*
 !.vscode/extensions.json
+!.vscode/tasks.json
 .idea
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
+
+# The backend has its own rules for build output, local secrets and IDE state.
+# Nothing here may ignore a solution file: backend/TeamProgressTracker.slnx is
+# needed to build, which is why the Vite template's *.sln line is gone.
+

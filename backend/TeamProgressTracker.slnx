@@ -1,0 +1,46 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ApiGateway/ApiGateway.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Common/Common.csproj" />
+    <Project Path="src/BuildingBlocks/Contracts/Contracts.csproj" />
+    <Project Path="src/BuildingBlocks/Persistence/Persistence.csproj" />
+    <Project Path="src/BuildingBlocks/SharedKernel/SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Identity/">
+    <Project Path="src/Services/Identity/Identity.Api/Identity.Api.csproj" />
+    <Project Path="src/Services/Identity/Identity.Application/Identity.Application.csproj" />
+    <Project Path="src/Services/Identity/Identity.Domain/Identity.Domain.csproj" />
+    <Project Path="src/Services/Identity/Identity.Infrastructure/Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Notifications/">
+    <Project Path="src/Services/Notifications/Notifications.Api/Notifications.Api.csproj" />
+    <Project Path="src/Services/Notifications/Notifications.Application/Notifications.Application.csproj" />
+    <Project Path="src/Services/Notifications/Notifications.Domain/Notifications.Domain.csproj" />
+    <Project Path="src/Services/Notifications/Notifications.Infrastructure/Notifications.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Reporting/">
+    <Project Path="src/Services/Reporting/Reporting.Api/Reporting.Api.csproj" />
+    <Project Path="src/Services/Reporting/Reporting.Application/Reporting.Application.csproj" />
+    <Project Path="src/Services/Reporting/Reporting.Domain/Reporting.Domain.csproj" />
+    <Project Path="src/Services/Reporting/Reporting.Infrastructure/Reporting.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Team/">
+    <Project Path="src/Services/Team/Team.Api/Team.Api.csproj" />
+    <Project Path="src/Services/Team/Team.Application/Team.Application.csproj" />
+    <Project Path="src/Services/Team/Team.Domain/Team.Domain.csproj" />
+    <Project Path="src/Services/Team/Team.Infrastructure/Team.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Work/">
+    <Project Path="src/Services/Work/Work.Api/Work.Api.csproj" />
+    <Project Path="src/Services/Work/Work.Application/Work.Application.csproj" />
+    <Project Path="src/Services/Work/Work.Domain/Work.Domain.csproj" />
+    <Project Path="src/Services/Work/Work.Infrastructure/Work.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Backend.IntegrationTests/Backend.IntegrationTests.csproj" />
+    <Project Path="tests/Backend.UnitTests/Backend.UnitTests.csproj" />
+  </Folder>
+</Solution>
