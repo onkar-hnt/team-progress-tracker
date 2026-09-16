@@ -1,18 +1,10 @@
 -- ---------------------------------------------------------------------------
 -- Any write sweeps the bin, not only an update
 -- ---------------------------------------------------------------------------
--- The purge triggers listened for UPDATE alone, on the reasoning that a soft
--- delete is an update and every arrival in the bin would therefore be seen. It
--- would be, but that is the wrong thing to depend on: what has to be seen is
--- not the arrival, it is some write fifteen days later to carry the pass that
--- removes it.
---
--- Most inserts do reach an update — logging a day of work recalculates its
--- task's hours, which updates `tasks` — but that is a chain of other triggers
--- holding retention up, and a later change to any link in it would break
--- cleanup somewhere far away, silently, in a way nothing would report. Adding
--- INSERT costs one guarded pass and removes the dependency: any write of any
--- kind to any table with a bin now sweeps all of them.
+-- Listening for UPDATE alone saw every arrival in the bin, but what has to be
+-- seen is a write fifteen days later to carry the pass that removes it. Inserts
+-- mostly reach an update through other triggers, which left retention resting
+-- on that chain staying intact.
 --
 -- The function is unchanged; only the events these triggers fire on.
 

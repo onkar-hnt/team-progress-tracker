@@ -11,6 +11,9 @@
     -->
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
 
+    <!-- iOS ignores an SVG favicon on the home screen. -->
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
+
     <title>Team Progress Tracker</title>
     <meta
       name="description"
@@ -20,8 +23,16 @@
     <!-- Tints the browser chrome on mobile to match the app header. -->
     <meta name="theme-color" content="#3155a6" />
 
-    <!-- Internal tool: no reason for it to appear in search results. -->
+    <!--
+      Internal tool: no reason for it to appear in search results. Preview
+      crawlers ignore this, which is also why there is no robots.txt disallowing
+      everything: several of them honour that file and would drop the card.
+    -->
     <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Absolute, unlike the icons: a scraper has no document to resolve a
+         relative path against. Change if the site moves off this Pages URL. -->
+    <link rel="canonical" href="https://onkar-hnt.github.io/team-progress-tracker/" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Team Progress Tracker" />
@@ -30,6 +41,22 @@
       property="og:description"
       content="Daily updates, assigned tasks and mentor feedback for the team, in one place."
     />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:url" content="https://onkar-hnt.github.io/team-progress-tracker/" />
+    <meta
+      property="og:image"
+      content="https://onkar-hnt.github.io/team-progress-tracker/og-image.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Team Progress Tracker, with three ascending bars on a deep blue background."
+    />
+
+    <!-- Card type only: X falls back to the Open Graph tags for the rest. -->
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

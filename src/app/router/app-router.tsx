@@ -7,6 +7,9 @@ import { Panel } from '@components/ui/panel/Panel'
 import { Skeleton } from '@components/ui/feedback/Feedback'
 import { LoginPage } from '@features/auth/pages/LoginPage'
 import { SetPasswordPage } from '@features/auth/pages/SetPasswordPage'
+import { useDocumentTitle } from '@hooks/use-document-title'
+
+import { titleForPath } from './page-titles'
 
 import {
   RequireAdmin,
@@ -84,6 +87,8 @@ function PageFallback() {
 
 function RoutedScreen() {
   const { pathname } = useLocation()
+
+  useDocumentTitle(titleForPath(pathname))
 
   return (
     <ErrorBoundary key={pathname} scope="screen">

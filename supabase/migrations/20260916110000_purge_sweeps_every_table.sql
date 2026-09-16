@@ -1,23 +1,13 @@
 -- ---------------------------------------------------------------------------
 -- A purge pass sweeps every table, not just the one that woke it
 -- ---------------------------------------------------------------------------
--- As first written, the pass read `tg_table_name` and cleaned only the table
--- whose update fired it. For `daily_updates` and `tasks` that is fine, because
--- they are written constantly. For the roster it is not: a mentor or project is
--- deleted once in months, and if nothing else in `mentors` is ever updated
--- again, the expired row waits indefinitely for a trigger that never fires.
--- Retention would then hold for the busy tables and quietly not for the others.
+-- Reading `tg_table_name` meant retention held for `tasks` and `daily_updates`,
+-- which are written constantly, and quietly failed for the roster: a mentor
+-- deleted once in months waits for another write to `mentors` that may never
+-- come.
 --
--- So a pass now sweeps all six, whichever table woke it. The cost is six index
--- lookups instead of one, on partial indexes that only cover deleted rows, and
--- still only once per transaction.
---
--- Dependent tables come first, which also makes a pass go further than before:
--- `RESTRICT` keys mean an expired task cannot be destroyed while its feedback
--- is still present, and taking feedback first frees the task within the same
--- pass rather than the next one.
---
--- The triggers are unchanged: they already call this function by name.
+-- Dependent tables first, so removing expired feedback frees its expired task
+-- in the same pass. Triggers are unchanged; they call this by name.
 
 create or replace function public.purge_expired_deletions()
 returns trigger
@@ -61,4 +51,4 @@ end;
 $$;
 
 comment on function public.purge_expired_deletions is
-  'Destroys rows soft-deleted longer ago than retention_days, across every table with a bin, skipping any a foreign key still holds. Restoring sets deleted_at back to null, which takes the row out of reach of this entirely.';
+  'Destroys rows soft-deleted longer ago than retention_days, across every table with a bin, skipping any a foreign key still holds. Restoring clears deleted_at, which puts the row out of reach of this.';
