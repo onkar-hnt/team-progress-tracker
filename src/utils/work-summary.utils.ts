@@ -2,7 +2,7 @@ import type { DailyWorkEntry, Developer, Project } from '@models/index'
 
 import type { DateRange } from './date.utils'
 import { isWorkingDay, listDatesInRange } from './date.utils'
-import { isEntryBlocked, isEntryCompleted } from './task.utils'
+import { isEntryBlocked, isEntryCompleted, STANDARD_WORKING_HOURS } from './task.utils'
 
 /** Aggregations over daily work entries; callers supply the filtered set. */
 
@@ -57,8 +57,33 @@ export function calculateCompletionRate(entries: readonly DailyWorkEntry[]): num
   return Math.round((completed / entries.length) * 1000) / 10
 }
 
+/**
+ * Hours a set of entries comes to, by the same rule the database uses for a
+ * task: the hours reported on a day where any were, and a standard working day
+ * for a day where none were.
+ *
+ * Grouped by date and developer, because two people working the same day are
+ * two days of effort while one person logging two tasks is not two days.
+ */
 export function sumHoursLogged(entries: readonly DailyWorkEntry[]): number {
-  const total = entries.reduce((sum, entry) => sum + (entry.hoursSpent ?? 0), 0)
+  const byDay = new Map<string, { reported: number; hasReport: boolean }>()
+
+  for (const entry of entries) {
+    const key = `${entry.developerId}:${entry.date}`
+    const day = byDay.get(key) ?? { reported: 0, hasReport: false }
+
+    byDay.set(key, {
+      reported: day.reported + (entry.hoursSpent ?? 0),
+      hasReport: day.hasReport || entry.hoursSpent !== undefined,
+    })
+  }
+
+  let total = 0
+
+  for (const day of byDay.values()) {
+    total += day.hasReport ? day.reported : STANDARD_WORKING_HOURS
+  }
+
   return Math.round(total * 100) / 100
 }
 

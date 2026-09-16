@@ -41,4 +41,25 @@
     color: $color-danger;
     font-weight: $font-weight-semibold;
   }
+
+  &__hours {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  &__variance {
+    display: block;
+    margin-top: $space-1;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+
+    &--over {
+      color: $color-danger;
+    }
+
+    &--on,
+    &--under {
+      color: $color-success;
+    }
+  }
 }

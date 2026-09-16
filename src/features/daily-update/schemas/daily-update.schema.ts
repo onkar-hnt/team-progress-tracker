@@ -41,55 +41,78 @@ const baseSchema = z
     /** Hours the whole task is expected to take; blank keeps the current figure. */
     estimatedHours: z.string(),
 
+    /** Hours this day cost, which is what makes the total exact rather than assumed. */
+    hoursSpent: z.string(),
+
     // Not shown in the form but required when editing an existing entry.
     priority: z.enum(TASK_PRIORITIES),
   })
 
-const ESTIMATE_MAX = 999.99
+const HOURS_MAX = 999.99
 
 /**
- * Required on a new entry, because that is the moment the figure is worth
- * asking for, and optional when correcting an old one, where the person
- * editing may have no idea what was expected at the time.
+ * Both hour figures are required on a new entry and optional when correcting an
+ * old one, where the person editing may have no idea what the day cost or what
+ * was expected at the time.
  */
-export function dailyUpdateFormSchema(options: { requireEstimate: boolean }) {
+export function dailyUpdateFormSchema(options: { requireHours: boolean }) {
   return baseSchema.superRefine((values, ctx) => {
     checkProgress(values, ctx)
 
-    const estimate = values.estimatedHours.trim()
+    checkHours(ctx, {
+      value: values.estimatedHours,
+      field: 'estimatedHours',
+      isRequired: options.requireHours,
+      missingMessage: 'Enter the hours you expect this task to take',
+    })
 
-    if (estimate === '') {
-      if (options.requireEstimate) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estimatedHours'],
-          message: 'Enter the hours you expect this task to take',
-        })
-      }
-
-      return
-    }
-
-    const parsed = Number(estimate)
-
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['estimatedHours'],
-        message: 'Enter a number of hours above zero',
-      })
-
-      return
-    }
-
-    if (parsed > ESTIMATE_MAX) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['estimatedHours'],
-        message: `Keep the estimate under ${String(ESTIMATE_MAX)} hours`,
-      })
-    }
+    checkHours(ctx, {
+      value: values.hoursSpent,
+      field: 'hoursSpent',
+      isRequired: options.requireHours,
+      missingMessage: 'Enter the hours you spent on this today',
+    })
   })
+}
+
+function checkHours(
+  ctx: z.RefinementCtx<z.infer<typeof baseSchema>>,
+  options: {
+    value: string
+    field: 'estimatedHours' | 'hoursSpent'
+    isRequired: boolean
+    missingMessage: string
+  },
+) {
+  const trimmed = options.value.trim()
+
+  if (trimmed === '') {
+    if (options.isRequired) {
+      ctx.addIssue({ code: 'custom', path: [options.field], message: options.missingMessage })
+    }
+
+    return
+  }
+
+  const hours = Number(trimmed)
+
+  if (!Number.isFinite(hours) || hours <= 0) {
+    ctx.addIssue({
+      code: 'custom',
+      path: [options.field],
+      message: 'Enter a number of hours above zero',
+    })
+
+    return
+  }
+
+  if (hours > HOURS_MAX) {
+    ctx.addIssue({
+      code: 'custom',
+      path: [options.field],
+      message: `Keep this under ${String(HOURS_MAX)} hours`,
+    })
+  }
 }
 
 function checkProgress(
@@ -125,6 +148,7 @@ export function toFormValues(entry: DailyWorkEntry): DailyUpdateFormValues {
     status: entry.status,
     progress: String(entry.progress),
     estimatedHours: entry.estimatedHours === undefined ? '' : String(entry.estimatedHours),
+    hoursSpent: entry.hoursSpent === undefined ? '' : String(entry.hoursSpent),
     priority: entry.priority,
   }
 }
@@ -142,6 +166,7 @@ export function createEmptyFormValues(options: {
     status: 'in-progress',
     progress: '0',
     estimatedHours: '',
+    hoursSpent: '',
     priority: 'medium',
   }
 }
@@ -151,6 +176,7 @@ export function toCreateDailyWorkEntryRequest(
 ): CreateDailyWorkEntryRequest {
   const isBlocked = values.status === 'blocked'
   const estimate = values.estimatedHours.trim()
+  const spent = values.hoursSpent.trim()
 
   return {
     date: values.date,
@@ -163,6 +189,7 @@ export function toCreateDailyWorkEntryRequest(
     progress: Number(values.progress),
     isBlocked,
     ...(estimate === '' ? {} : { estimatedHours: Number(estimate) }),
+    ...(spent === '' ? {} : { hoursSpent: Number(spent) }),
     ...(isBlocked ? {} : { blockerDescription: undefined }),
   }
 }

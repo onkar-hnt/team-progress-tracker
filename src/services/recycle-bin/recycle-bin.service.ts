@@ -13,7 +13,7 @@ export function isRecycleBinAvailable(): boolean {
 /** Delete confirmation text depends on whether soft-delete is available. */
 export function describeDeleteOutcome(): string {
   return isRecycleBinAvailable()
-    ? 'It moves to Recently deleted, where it can be restored.'
+    ? 'It moves to Recently deleted, where it can be restored for fifteen days.'
     : 'This cannot be undone.'
 }
 

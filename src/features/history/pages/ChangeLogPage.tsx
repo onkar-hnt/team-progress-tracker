@@ -91,14 +91,15 @@ export function ChangeLogPage() {
   return (
     <div className="change-log">
       <Panel
-        description="Every change to a record, with what it was before."
+        description="Every change to a record in the last fifteen days, with what it was before."
         isPageHeading
         title="Change log"
       >
         <p className="change-log__note">
           Written as things happen and never edited, including by the person who made the change.
           You see the history of the work you can see, which for a developer is their own — so a
-          task moved to completed by somebody else shows here, with their name against it.
+          task moved to completed by somebody else shows here, with their name against it. Lines
+          are kept for fifteen days.
         </p>
       </Panel>
 

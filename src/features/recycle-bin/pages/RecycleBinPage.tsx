@@ -127,16 +127,16 @@ export function RecycleBinPage() {
   return (
     <div className="recycle-bin">
       <Panel
-        description="Everything you have deleted, and how to put it back."
+        description="Everything deleted in the last fifteen days, and how to put it back."
         isPageHeading
         title="Recently deleted"
       >
         <p className="recycle-bin__note">
           Deleting no longer destroys: a work entry, task or comment — and an employee, mentor or
-          project — stops appearing anywhere and waits here instead, with everything it had.
-          Nothing leaves this list on a schedule, so what is here stays until it is restored or
-          destroyed. You see what you could delete in the first place, which for a developer is
-          their own work entries.
+          project — stops appearing anywhere and waits here instead, with everything it had. It
+          waits fifteen days, and is then destroyed for good unless somebody restored it first. You
+          see what you could delete in the first place, which for a developer is their own work
+          entries.
         </p>
       </Panel>
 

@@ -10,12 +10,20 @@ import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { useTableSort } from '@hooks/use-table-sort'
 import type { AssignedTaskView } from '@services/work-tracker.service'
 import { formatShortDate } from '@utils/date.utils'
-import { comparePriority, compareStatus } from '@utils/task.utils'
+import { compareEffort, comparePriority, compareStatus, describeEffort } from '@utils/task.utils'
 import { compareText, sortRows } from '@utils/table.utils'
 
 import './TaskTable.scss'
 
-type SortKey = 'developer' | 'due' | 'priority' | 'project' | 'status' | 'task'
+type SortKey =
+  | 'allocated'
+  | 'developer'
+  | 'due'
+  | 'priority'
+  | 'project'
+  | 'status'
+  | 'task'
+  | 'used'
 
 function compareTasks(left: AssignedTaskView, right: AssignedTaskView, key: SortKey): number {
   switch (key) {
@@ -31,6 +39,11 @@ function compareTasks(left: AssignedTaskView, right: AssignedTaskView, key: Sort
       return compareStatus(left.status, right.status)
     case 'due':
       return compareText(left.dueDate, right.dueDate)
+    case 'allocated':
+      // Unestimated last either way, so ascending is not a list of blanks.
+      return (left.estimatedHours ?? Infinity) - (right.estimatedHours ?? Infinity)
+    case 'used':
+      return left.actualHours - right.actualHours
   }
 }
 
@@ -74,6 +87,8 @@ export function TaskTable({
             <SortableHeader columnKey="priority" label="Priority" onSort={toggle} sort={sort} />
             <SortableHeader columnKey="status" label="Status" onSort={toggle} sort={sort} />
             <SortableHeader columnKey="due" label="Due" onSort={toggle} sort={sort} />
+            <SortableHeader columnKey="allocated" label="Allocated" onSort={toggle} sort={sort} />
+            <SortableHeader columnKey="used" label="Used" onSort={toggle} sort={sort} />
             {commentCounts === undefined ? null : <th scope="col">Comments</th>}
             {renderActions === undefined ? null : <th scope="col">Actions</th>}
           </tr>
@@ -115,6 +130,12 @@ export function TaskTable({
                   </span>
                 )}
               </td>
+              <td className="task-table__hours">
+                {task.estimatedHours === undefined ? '—' : `${String(task.estimatedHours)} h`}
+              </td>
+              <td className="task-table__hours">
+                <UsedHours task={task} />
+              </td>
               {commentCounts === undefined ? null : (
                 <td>
                   <CommentCount count={commentCounts.get(task.id) ?? 0} />
@@ -126,6 +147,33 @@ export function TaskTable({
         </tbody>
       </table>
     </div>
+  )
+}
+
+/**
+ * Hours used, with the standing against the allocation underneath.
+ *
+ * The days behind the figure are named in the title rather than in the cell:
+ * the column is read down for the one task that is running long, and the
+ * workings belong on the task itself.
+ */
+function UsedHours({ task }: { task: AssignedTaskView }) {
+  if (task.workedDays === 0) return <>—</>
+
+  const comparison = compareEffort(task)
+
+  return (
+    <>
+      <span title={`${String(task.workedDays)} ${task.workedDays === 1 ? 'day' : 'days'} logged`}>
+        {String(task.actualHours)} h
+      </span>
+
+      {comparison === null ? null : (
+        <span className={`task-table__variance task-table__variance--${comparison.verdict}`}>
+          {describeEffort(comparison)}
+        </span>
+      )}
+    </>
   )
 }
 

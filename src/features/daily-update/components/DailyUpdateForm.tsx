@@ -74,7 +74,7 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
     reset,
     setValue,
   } = useForm<DailyUpdateFormValues>({
-    resolver: zodResolver(dailyUpdateFormSchema({ requireEstimate: !isEditing })),
+    resolver: zodResolver(dailyUpdateFormSchema({ requireHours: !isEditing })),
     defaultValues:
       entry === undefined
         ? createEmptyFormValues({ date, developerId: ownDeveloperId })
@@ -348,6 +348,22 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
           step="0.25"
           type="number"
           {...register('estimatedHours')}
+        />
+
+        <TextField
+          error={errors.hoursSpent?.message}
+          hint={
+            selectedTask === undefined
+              ? 'Only today, on this task.'
+              : `${String(selectedTask.actualHours)} h on this task so far.`
+          }
+          id="update-hours-spent"
+          inputMode="decimal"
+          label="Hours spent today"
+          min="0"
+          step="0.25"
+          type="number"
+          {...register('hoursSpent')}
         />
       </div>
 
