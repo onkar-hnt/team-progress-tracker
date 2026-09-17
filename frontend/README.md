@@ -42,9 +42,20 @@ Run all commands from **`frontend/`**:
 | Preview build | `npm run preview` |
 | Typecheck | `npm run typecheck` |
 | Lint | `npm run lint` |
+| Test | `npm test` (watches) or `npm test -- --run` |
 | Bundle analysis | `npm run analyze` |
 
-There is **no** `npm test` script.
+### Tests
+
+Vitest, configured in [`vitest.config.ts`](vitest.config.ts). Tests live beside what they test as
+`*.test.ts` and cover the layer everything else is built on: the API client (envelope parsing,
+which status becomes which error, the session and its expiry, what is retried and what must never
+be, offline and timeout), the token store, who announces a failure, and the access scope the
+screens use to decide what to show.
+
+They run in Node by default. A file that needs a browser — `localStorage`, online and offline
+events — asks for one with a `@vitest-environment jsdom` docblock, which keeps the suite at a
+couple of seconds rather than tens.
 
 ---
 

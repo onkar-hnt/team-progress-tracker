@@ -13,6 +13,9 @@ team-progress-tracker/
     TeamProgressTracker.slnx
     Directory.Build.props          net10.0, shared analyser settings
     appsettings.Local.example.json  copy per host (git-ignored locally)
+    Dockerfile                      one image definition for all six hosts
+    docker-compose.yml              SQL Server + services + gateway, ports 5100-5105
+    .env.example → .env             compose values and container configuration
     scripts/                        run-all, stop-all, smoke-test
     src/
       ApiGateway/                   YARP, Swagger aggregation, profile gate
@@ -37,6 +40,7 @@ team-progress-tracker/
         auth/         session, permissions, access-scope
         data-provider/   seam; http/ implementation
       config/       app.config.ts, api/endpoints.ts, api/http.config.ts
+    vitest.config.ts                tests beside their subject as *.test.ts
     .env.example → .env.local
 ```
 
@@ -91,6 +95,38 @@ pwsh ./scripts/stop-all.ps1
 
 ---
 
+## Running in containers
+
+`backend/docker-compose.yml` runs SQL Server, the five services and the gateway on the **same
+ports** as `run-all.ps1`, so nothing in the frontend changes.
+
+```powershell
+cd backend
+copy .env.example .env
+docker compose up --build
+```
+
+`.env` must carry `Jwt__SigningKey`, `Seed__AdminPassword` and `MSSQL_SA_PASSWORD`; compose stops
+with a message naming whichever is missing rather than starting a stack nobody can sign in to.
+The SQL Server password has to satisfy its own policy — 8 characters or more from three of upper,
+lower, digit and symbol.
+
+| Detail | How it works |
+| --- | --- |
+| Image | One [`backend/Dockerfile`](backend/Dockerfile) for all six hosts, with `PROJECT` and `APP_DLL` as build arguments |
+| Start order | `depends_on` on each other's health: SQL Server → Identity → Team → Work → Reporting, with Notifications before Work |
+| Health | Every service answers `/health`; the image checks it with curl, which is what `depends_on: service_healthy` waits for |
+| Schema | `Database__MigrateOnStartup=true` on the four services that own one, so a fresh volume becomes a working database |
+| Gateway | Cluster destinations are overridden to `http://identity:8080` and friends, because `appsettings.json` names the ports of a local run |
+| Data | The `sqlserver-data` volume survives `docker compose down`; add `-v` to discard it |
+
+**This is a runnable stack, not a production deployment.** It speaks plain HTTP, signs in to SQL
+Server as `sa`, and migrates on startup. A real environment wants TLS at the edge, a database
+account per service with rights to its own schema, and migrations applied as a deliberate step
+rather than by whichever replica starts first.
+
+---
+
 ## Tests and frontend checks
 
 Backend (from `backend/`):
@@ -99,15 +135,32 @@ Backend (from `backend/`):
 dotnet test TeamProgressTracker.slnx
 ```
 
+Unit tests run anywhere. The integration tests need SQL Server: they create
+**`TeamProgressTracker_IntegrationTests`** on the instance in
+`tests/Backend.IntegrationTests/Infrastructure/TestConfiguration.cs` and refuse to run against the
+application's own database, so a run cannot leave rows in what you are developing against.
+
+| Variable | Use |
+| --- | --- |
+| `INTEGRATION_TEST_DATABASE` | Another database name on the same instance |
+| `INTEGRATION_TEST_CONNECTION` | A whole connection string, for another server — what CI passes |
+
+A server that is still starting is waited for, up to 90 seconds, rather than failing the first
+test.
+
 Frontend (from `frontend/`):
 
 ```powershell
 npm run typecheck
 npm run lint
+npm test          # watches; `npm test -- --run` for a single pass
 npm run build
 ```
 
-There is no `npm test` script.
+Vitest covers the API client and the services under it — the envelope and error mapping, the
+session and its expiry, retries and what is never retried, offline and timeout, and the access
+scope the screens use to hide what a person cannot reach. Tests sit beside what they test as
+`*.test.ts`, and run in Node unless the file asks for jsdom with a `@vitest-environment` docblock.
 
 ---
 
@@ -241,7 +294,18 @@ while **`navigator.onLine`** is false. Globally owned failures are announced fro
 
 ## GitHub Actions
 
-`.github/workflows/checks.yml` runs frontend typecheck and lint on pull requests.
+`.github/workflows/checks.yml` runs three jobs on pull requests and on pushes to any branch but
+`main`:
+
+| Job | Does |
+| --- | --- |
+| **Frontend** | `npm ci`, typecheck, lint, `vitest --run`, then a build with no API configured |
+| **Backend** | `dotnet build`, then `dotnet test` — unit and integration — against a SQL Server service container, with `INTEGRATION_TEST_CONNECTION` pointing at it |
+| **Container image** | Builds the Identity image from `backend/Dockerfile`; nothing is pushed |
+
+The backend job uses a throwaway SQL Server, so the password in the workflow guards nothing beyond
+that runner. The frontend build runs without `VITE_API_BASE_URL` deliberately: it proves the bundle
+does not need one at build time.
 
 `.github/workflows/deploy.yml` publishes the frontend to GitHub Pages and requires
 **`VITE_API_BASE_URL`** (HTTPS or same-origin path) as a repository variable or secret. The backend

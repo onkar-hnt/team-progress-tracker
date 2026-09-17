@@ -164,6 +164,15 @@ dotnet build TeamProgressTracker.slnx
 dotnet test TeamProgressTracker.slnx
 ```
 
+**In containers**, on the same ports, including SQL Server:
+
+```powershell
+copy .env.example .env   # Jwt__SigningKey, Seed__AdminPassword, MSSQL_SA_PASSWORD
+docker compose up --build
+```
+
+All six hosts are built from one [`Dockerfile`](Dockerfile) with `PROJECT` and `APP_DLL` as build arguments; [`docker-compose.yml`](docker-compose.yml) starts them in dependency order and waits on each `/health`. It is a runnable stack rather than a production deployment — see [DEVELOPMENT.md](../DEVELOPMENT.md#running-in-containers).
+
 ---
 
 ## Swagger
@@ -226,7 +235,11 @@ Full route tables: [../API.md](../API.md).
 | [`tests/Backend.UnitTests`](tests/Backend.UnitTests) | Unit tests for domain rules, validators, synchronizers, etc. |
 | [`tests/Backend.IntegrationTests`](tests/Backend.IntegrationTests) | HTTP workflow tests against real service hosts and SQL Server |
 
-`dotnet test TeamProgressTracker.slnx` discovers and runs both. Integration tests require database and JWT configuration (see test infrastructure under `tests/Backend.IntegrationTests/Infrastructure/`). There is **no** frontend test project in this repository.
+`dotnet test TeamProgressTracker.slnx` discovers and runs both. JWT configuration for the hosts under test is supplied by the fixture, not by your `appsettings.Local.json`.
+
+The integration tests own **`TeamProgressTracker_IntegrationTests`**, create it if it is absent, and refuse to run against **`TeamProgressTracker`** — so a run can never leave test rows in the database you develop against. Point them elsewhere with **`INTEGRATION_TEST_DATABASE`** (a different name on the same instance) or **`INTEGRATION_TEST_CONNECTION`** (a whole connection string; this is how CI reaches its SQL Server container). A server that is still starting is retried for up to 90 seconds.
+
+The frontend has its own tests — `npm test` in [`../frontend`](../frontend).
 
 ---
 

@@ -145,19 +145,41 @@ document. You can also use each service directly on ports **5101–5105**. Sign 
 
 ---
 
-## Testing (honest summary)
+## Testing
 
-| Area | Status |
-| --- | --- |
-| **Frontend** | No `npm test` script. CI runs `typecheck`, `lint`, and `build` from `frontend/`. |
-| **Backend** | `Backend.UnitTests` and `Backend.IntegrationTests` exist; `dotnet test` from `backend/` runs them. Integration tests need SQL Server and JWT configuration; some failures can appear if seed data on a shared database conflicts with test roster creation. |
-| **Manual** | `backend/scripts/smoke-test.ps1` after `run-all.ps1` exercises the gateway end to end. |
+| Area | Command | What it covers |
+| --- | --- | --- |
+| **Frontend** | `npm test` in `frontend/` | Vitest over the API client (envelope, error mapping, session, retries, offline, timeout), the token store, failure ownership, and access scope |
+| **Backend** | `dotnet test` in `backend/` | `Backend.UnitTests` (domain and application rules) and `Backend.IntegrationTests` (each service over HTTP against SQL Server) |
+| **Manual** | `pwsh ./scripts/smoke-test.ps1` after `run-all.ps1` | The gateway end to end, against the running stack |
+
+The integration tests create and use **`TeamProgressTracker_IntegrationTests`**, never the
+application's database — they refuse to start against `TeamProgressTracker`. Point them elsewhere
+with `INTEGRATION_TEST_DATABASE` (another name on the same instance) or `INTEGRATION_TEST_CONNECTION`
+(a whole connection string, which is what CI uses).
+
+[`.github/workflows/checks.yml`](.github/workflows/checks.yml) runs all of it on every push and
+pull request: frontend typecheck, lint, test and build; backend build and tests against a SQL
+Server container; and a build of the service image.
 
 ---
 
-## Deployment note
+## Deployment
 
-GitHub Actions [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) publishes the
-**frontend** to GitHub Pages and requires **`VITE_API_BASE_URL`** (HTTPS or same-origin path). The
-backend is not deployed by that workflow — host the .NET stack separately and point the variable at
-your gateway.
+**Frontend.** GitHub Actions [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+publishes it to GitHub Pages and requires **`VITE_API_BASE_URL`** (HTTPS or a same-origin path)
+pointing at wherever your gateway runs.
+
+**Backend.** [`backend/docker-compose.yml`](backend/docker-compose.yml) brings up SQL Server, the
+five services and the gateway on the same ports as a local run, so the frontend needs no change:
+
+```powershell
+cd backend
+copy .env.example .env   # fill in Jwt__SigningKey, Seed__AdminPassword, MSSQL_SA_PASSWORD
+docker compose up --build
+```
+
+All six hosts share [`backend/Dockerfile`](backend/Dockerfile), which takes the project and
+assembly as build arguments. The stack is runnable rather than production-ready: plain HTTP, `sa`
+for the database, and migrations applied on startup. See
+[DEVELOPMENT.md](DEVELOPMENT.md#running-in-containers) before putting it anywhere shared.

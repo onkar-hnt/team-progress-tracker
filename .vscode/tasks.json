@@ -110,6 +110,18 @@
       "problemMatcher": "$eslint-stylish"
     },
     {
+      // A single pass. `npm test` on its own watches, which is what you want
+      // from a terminal and not what you want from a task that has to finish.
+      "label": "frontend: test",
+      "detail": "Vitest, once",
+      "type": "shell",
+      "command": "npm",
+      "args": ["test", "--", "--run"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
       "label": "frontend: build",
       "type": "shell",
       "command": "npm",
@@ -119,9 +131,14 @@
     },
     {
       "label": "frontend: checks",
-      "detail": "typecheck, lint and build - what CI runs",
+      "detail": "typecheck, lint, test and build - what CI runs",
       "dependsOrder": "sequence",
-      "dependsOn": ["frontend: typecheck", "frontend: lint", "frontend: build"],
+      "dependsOn": [
+        "frontend: typecheck",
+        "frontend: lint",
+        "frontend: test",
+        "frontend: build"
+      ],
       "problemMatcher": []
     },
     {
@@ -143,9 +160,30 @@
     },
     {
       "label": "stack: verify",
-      "detail": "Backend tests then frontend typecheck, lint and build",
+      "detail": "Backend tests then frontend typecheck, lint, test and build",
       "dependsOrder": "sequence",
       "dependsOn": ["backend: test", "frontend: checks"],
+      "problemMatcher": []
+    },
+    {
+      // The containers bring their own SQL Server, so stop a local run first
+      // if it is holding 5100-5105.
+      "label": "stack: containers up",
+      "detail": "docker compose: SQL Server, five services and the gateway on 5100-5105",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "up", "--build"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "stack: containers down",
+      "detail": "Stops the containers; the database volume is kept",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "down"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
       "problemMatcher": []
     }
   ]

@@ -7,6 +7,10 @@ name: Checks
 # deploy of a broken build as the way of finding out. This is the same two
 # commands moved to where they can still stop something.
 #
+# The backend is built and tested here too, against a SQL Server started for
+# the job, so a change to a migration or a query is caught by the pull request
+# rather than by whoever runs `dotnet test` next.
+#
 # `main` is deliberately excluded from the push trigger: a push there runs the
 # deploy workflow, which does both checks itself, and duplicating them would
 # double every run for no extra signal.
@@ -28,9 +32,8 @@ concurrency:
 
 jobs:
   verify:
+    name: Frontend
     runs-on: ubuntu-latest
-    # Frontend checks. The backend is built by `dotnet build` locally; there is
-    # no .NET job here yet.
     defaults:
       run:
         working-directory: frontend
@@ -57,9 +60,94 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test
+        run: npm run test -- --run
+
       # Built without any API configuration, on purpose. This proves the bundle
       # compiles and that nothing reads a variable at build time that it cannot
       # do without — which is the one thing the deploy workflow cannot tell us,
       # since it always builds with a gateway address configured.
       - name: Build
         run: npm run build
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    # The integration tests talk to a real SQL Server, because what they are
+    # checking — migrations, unique indexes, cross-schema reads — is exactly
+    # what an in-memory provider does not have. This one is thrown away with
+    # the job, so the password below guards nothing beyond the runner.
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Integration-CI-1
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Integration-CI-1' -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+          --health-start-period 20s
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # No lock files in the repo, so the key is the project files: a package
+      # change invalidates it, an ordinary code change does not.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj', 'backend/Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore TeamProgressTracker.slnx
+
+      - name: Build
+        run: dotnet build TeamProgressTracker.slnx --configuration Release --no-restore
+
+      # Unit and integration tests together. The connection names the service
+      # container; the test fixture creates its own database on it and refuses
+      # to run against the application's.
+      - name: Test
+        run: dotnet test TeamProgressTracker.slnx --configuration Release --no-build --nologo
+        env:
+          INTEGRATION_TEST_CONNECTION: Server=localhost,1433;Database=TeamProgressTracker_IntegrationTests;User Id=sa;Password=Integration-CI-1;TrustServerCertificate=True;MultipleActiveResultSets=True
+
+  # All six hosts share one Dockerfile, so building one of them proves it.
+  # Nothing is pushed: this asks whether `docker compose up` would still work,
+  # which is not a question the .NET build answers.
+  image:
+    name: Container image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the Identity image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: false
+          build-args: |
+            PROJECT=src/Services/Identity/Identity.Api/Identity.Api.csproj
+            APP_DLL=Identity.Api.dll
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

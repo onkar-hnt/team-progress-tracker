@@ -1,0 +1,170 @@
+# The whole backend on one machine: SQL Server, the five services and the
+# gateway, addressed the same way as a local run (5100-5105) so the frontend
+# needs no change - `VITE_API_BASE_URL=http://localhost:5100` either way.
+#
+# Values come from `backend/.env`; copy `.env.example` and fill it in. Nothing
+# here has a default password: a stack that starts with a known one is worse
+# than one that refuses to start.
+#
+# This is a runnable stack, not a production deployment. It speaks plain HTTP,
+# signs in to SQL Server as `sa`, and keeps Development on so the schema is
+# migrated and seeded on first start. Putting it somewhere real means TLS, a
+# database account per service, and migrations applied as a deliberate step.
+
+name: team-progress-tracker
+
+x-service-environment: &service-environment
+  ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+  ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=TeamProgressTracker;User Id=sa;Password=${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in backend/.env};TrustServerCertificate=True;MultipleActiveResultSets=True
+  Jwt__SigningKey: ${Jwt__SigningKey:?set Jwt__SigningKey in backend/.env - 32 characters or more, the same for every service}
+  Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:5173}
+
+x-service-defaults: &service-defaults
+  build:
+    context: .
+  restart: unless-stopped
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in backend/.env}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  # Identity first: it creates its schema and the first administrator, and
+  # every other service trusts the tokens it issues.
+  identity:
+    <<: *service-defaults
+    build:
+      context: .
+      args:
+        PROJECT: src/Services/Identity/Identity.Api/Identity.Api.csproj
+        APP_DLL: Identity.Api.dll
+    environment:
+      <<: *service-environment
+      Database__MigrateOnStartup: "true"
+      Seed__AdminEmail: ${Seed__AdminEmail:-admin@handt.ai}
+      Seed__AdminName: ${Seed__AdminName:-Administrator}
+      Seed__AdminPassword: ${Seed__AdminPassword:?set Seed__AdminPassword in backend/.env}
+    ports:
+      - "5101:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+  # After Identity, because the roster seeder attaches people to logins.
+  team:
+    <<: *service-defaults
+    build:
+      context: .
+      args:
+        PROJECT: src/Services/Team/Team.Api/Team.Api.csproj
+        APP_DLL: Team.Api.dll
+    environment:
+      <<: *service-environment
+      Database__MigrateOnStartup: "true"
+    ports:
+      - "5102:8080"
+    depends_on:
+      identity:
+        condition: service_healthy
+
+  notifications:
+    <<: *service-defaults
+    build:
+      context: .
+      args:
+        PROJECT: src/Services/Notifications/Notifications.Api/Notifications.Api.csproj
+        APP_DLL: Notifications.Api.dll
+    environment:
+      <<: *service-environment
+      Database__MigrateOnStartup: "true"
+    ports:
+      - "5104:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+  # After both: the Work seeder needs a roster to attach work to, and Work
+  # writes notifications straight into the `notify` schema.
+  work:
+    <<: *service-defaults
+    build:
+      context: .
+      args:
+        PROJECT: src/Services/Work/Work.Api/Work.Api.csproj
+        APP_DLL: Work.Api.dll
+    environment:
+      <<: *service-environment
+      Database__MigrateOnStartup: "true"
+    ports:
+      - "5103:8080"
+    depends_on:
+      team:
+        condition: service_healthy
+      notifications:
+        condition: service_healthy
+
+  # Owns no schema; reads across `team` and `work`, so it starts after them.
+  reporting:
+    <<: *service-defaults
+    build:
+      context: .
+      args:
+        PROJECT: src/Services/Reporting/Reporting.Api/Reporting.Api.csproj
+        APP_DLL: Reporting.Api.dll
+    environment:
+      <<: *service-environment
+    ports:
+      - "5105:8080"
+    depends_on:
+      work:
+        condition: service_healthy
+
+  # The only address the browser needs. Destinations are overridden here
+  # because appsettings.json names the ports of a local run.
+  gateway:
+    <<: *service-defaults
+    build:
+      context: .
+      args:
+        PROJECT: src/ApiGateway/ApiGateway.csproj
+        APP_DLL: ApiGateway.dll
+    environment:
+      <<: *service-environment
+      ReverseProxy__Clusters__identity__Destinations__identity-api__Address: http://identity:8080
+      ReverseProxy__Clusters__team__Destinations__team-api__Address: http://team:8080
+      ReverseProxy__Clusters__work__Destinations__work-api__Address: http://work:8080
+      ReverseProxy__Clusters__notifications__Destinations__notifications-api__Address: http://notifications:8080
+      ReverseProxy__Clusters__reporting__Destinations__reporting-api__Address: http://reporting:8080
+    ports:
+      - "5100:8080"
+    depends_on:
+      identity:
+        condition: service_healthy
+      team:
+        condition: service_healthy
+      work:
+        condition: service_healthy
+      notifications:
+        condition: service_healthy
+      reporting:
+        condition: service_healthy
+
+volumes:
+  sqlserver-data:

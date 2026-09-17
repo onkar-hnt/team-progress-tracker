@@ -1,0 +1,35 @@
+# The build context is the whole backend directory, so what is kept out of it
+# matters twice: it is copy time on every build, and anything local that lands
+# in an image stays in it.
+
+# Build output. The image builds its own; copying a Windows one in would at
+# best be ignored and at worst be published.
+**/bin/
+**/obj/
+
+# Local configuration and secrets. Containers are configured by environment,
+# and appsettings.Local.json would otherwise override it from inside the image.
+**/appsettings.Local.json
+.env
+
+# Run state written by the scripts.
+logs/
+.run/
+
+# Version control and editor state.
+.git/
+.gitignore
+.vs/
+.idea/
+*.user
+
+# Tests do not ship. The image is the service, and `dotnet test` runs in CI.
+tests/
+
+# Documentation.
+*.md
+
+# Docker's own files.
+Dockerfile
+.dockerignore
+docker-compose*.yml
