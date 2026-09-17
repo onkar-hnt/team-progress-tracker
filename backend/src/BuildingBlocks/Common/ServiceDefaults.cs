@@ -39,6 +39,12 @@ public static class ServiceDefaults
         // or in environment variables, never in a committed appsettings file.
         builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
+        // Re-applied because the file above was added after them and would
+        // otherwise win. A container and a CI run have no Local.json and
+        // configure everything this way, so the environment has to be the last
+        // word - which is also the order DEVELOPMENT.md describes.
+        builder.Configuration.AddEnvironmentVariables();
+
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<ICurrentUser, CurrentUserAccessor>();
 

@@ -53,9 +53,10 @@ public sealed class ServiceWebApplicationFactory<TEntryPoint> : WebApplicationFa
                 services.Remove(descriptor);
             }
 
-            // appsettings.Local.json beside each API is loaded after the in-memory
-            // collection above, so without this every service would disagree on the
-            // signing key and the seeded administrator password.
+            // Belt and braces alongside TestHostEnvironment: whatever a
+            // developer's appsettings.Local.json says, every host under test
+            // validates tokens with the fixture's key, so one issued by
+            // Identity is accepted by the others.
             services.PostConfigure<JwtOptions>(options =>
             {
                 options.SigningKey = TestConfiguration.JwtSigningKey;
