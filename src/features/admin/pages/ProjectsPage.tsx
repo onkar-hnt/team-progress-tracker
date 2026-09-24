@@ -478,15 +478,12 @@ function ProjectForm({
 }
 
 function initialMentorIds(project: Project | undefined, lockedMentorId: string | undefined): string[] {
-  const stored = project?.mentorIds ?? []
-  const primary = project?.mentorId
-  const ids =
-    primary !== undefined && stored.includes(primary)
-      ? [primary, ...stored.filter((id) => id !== primary)]
-      : [...stored]
-
-  if (lockedMentorId !== undefined && !ids.includes(lockedMentorId)) ids.push(lockedMentorId)
-  if (ids.length === 0 && lockedMentorId !== undefined) return [lockedMentorId]
-
-  return ids
+  /// The primary mentor leads, so saving the form keeps `mentorId` as the first of `mentorIds`.
+  return [
+    ...new Set([
+      ...(project?.mentorId === undefined ? [] : [project.mentorId]),
+      ...(project?.mentorIds ?? []),
+      ...(lockedMentorId === undefined ? [] : [lockedMentorId]),
+    ]),
+  ]
 }
