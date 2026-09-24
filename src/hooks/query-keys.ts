@@ -13,6 +13,8 @@ export const queryKeys = {
 
   mentorAssignments: () => [ROOT, 'mentor-assignments'] as const,
 
+  responsibleProjects: () => [ROOT, 'responsible-projects'] as const,
+
   projects: () => [ROOT, 'projects'] as const,
 
   /** Roster keys are separate from scoped lists because they return different rows. */

@@ -4,8 +4,7 @@ A team's daily work in one place: what each developer did, what they are assigne
 blocking them, and what their mentor has said about it.
 
 Three kinds of people use it, and each sees a different application. A **developer** logs their
-own day and reads their own feedback. A **mentor** maintains the roster and sees the developers
-assigned to them. An **administrator** sees and administers everything. Those rules are written
+own day and reads their own feedback, including which mentors are assigned to them. A **mentor** maintains the projects they are responsible for and sees assigned developers only on those projects. An **administrator** sees and administers everything. Those rules are written
 once, in `src/services/auth/permissions.ts`, and enforced again in the database by row-level
 security — the interface decides what to draw, and Postgres decides what may actually be read or
 written.

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import type { AccessScope } from '@services/auth/index'
+import { canViewDeveloperProject } from '@services/auth/index'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
 
@@ -44,7 +45,7 @@ export function mayActOnDeletedRecord(scope: AccessScope | null, record: Deleted
       return (
         record.developerId !== undefined &&
         scope.mentorId !== undefined &&
-        isVisible(scope, record.developerId)
+        canViewDeveloperProject(scope, record.developerId, record.projectId)
       )
 
     case 'feedback':
@@ -55,10 +56,6 @@ export function mayActOnDeletedRecord(scope: AccessScope | null, record: Deleted
     case 'project':
       return scope.role === 'mentor'
   }
-}
-
-function isVisible(scope: AccessScope, developerId: string): boolean {
-  return scope.visibleDeveloperIds === null || scope.visibleDeveloperIds.includes(developerId)
 }
 
 export const DELETED_RECORD_LABELS: Readonly<Record<DeletedRecordKind, string>> = {

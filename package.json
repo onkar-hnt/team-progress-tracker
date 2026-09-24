@@ -9,6 +9,7 @@
     "analyze": "vite build --sourcemap --outDir dist-analyze && node scripts/analyze-bundle.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -38,6 +39,7 @@
     "sass": "^1.104.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.67.0",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vitest": "^5.0.1"
   }
 }

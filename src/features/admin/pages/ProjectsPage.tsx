@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { useConfirm } from '@app/providers/confirm-context'
+import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { SortableHeader } from '@components/ui/data-table/SortableHeader'
@@ -57,7 +58,7 @@ const projectFormSchema = z
     status: z.enum(PROJECT_STATUSES),
     startDate: z.string(),
     endDate: z.string(),
-    mentorId: z.string(),
+    mentorIds: z.array(z.string()),
     assignedDeveloperIds: z.array(z.string()),
     active: z.boolean(),
   })
@@ -90,6 +91,8 @@ function compareProjects(left: Project, right: Project, key: SortKey): number {
 export function ProjectsPage() {
   const confirm = useConfirm()
   const snackbar = useSnackbar()
+  const { user } = useAuth()
+  const lockedMentorId = user?.role === 'mentor' ? user.mentorId : undefined
 
   const [editing, setEditing] = useState<Project | null>(null)
   const [isCreating, setIsCreating] = useState(false)
@@ -123,6 +126,9 @@ export function ProjectsPage() {
   const developerName = (id: string) =>
     developersQuery.data?.find((developer) => developer.id === id)?.name ?? id
 
+  const mentorName = (id: string) =>
+    mentorsQuery.data?.find((mentor) => mentor.id === id)?.name ?? id
+
   const visible = useMemo(() => {
     const rows = (projectsQuery.data ?? []).filter((project) =>
       matchesSearch([project.name, project.client, project.description], search),
@@ -136,7 +142,7 @@ export function ProjectsPage() {
   return (
     <AdminPageLayout
       createLabel="Add project"
-      description="Projects, their clients and the developers assigned to them."
+      description="Projects, the mentors responsible for them, and the developers assigned to them."
       onCreate={() => {
         setIsCreating(true)
       }}
@@ -193,6 +199,7 @@ export function ProjectsPage() {
                         sort={sort}
                       />
                       <SortableHeader columnKey="start" label="Dates" onSort={toggle} sort={sort} />
+                      <th scope="col">Mentors</th>
                       <SortableHeader
                         columnKey="developers"
                         label="Developers"
@@ -216,6 +223,12 @@ export function ProjectsPage() {
                           {project.endDate === undefined
                             ? ''
                             : ` – ${formatShortDate(project.endDate)}`}
+                        </td>
+                        <td>
+                          <NameList
+                            names={project.mentorIds.map(mentorName)}
+                            title={`Mentors responsible for ${project.name}`}
+                          />
                         </td>
                         <td>
                           <NameList
@@ -256,6 +269,7 @@ export function ProjectsPage() {
       <Modal isOpen={isCreating} onClose={() => setIsCreating(false)} title="Add project">
         <ProjectForm
           developers={developersQuery.data ?? []}
+          lockedMentorId={lockedMentorId}
           mentors={mentorsQuery.data ?? []}
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
@@ -276,6 +290,7 @@ export function ProjectsPage() {
         {editing === null ? null : (
           <ProjectForm
             developers={developersQuery.data ?? []}
+            lockedMentorId={lockedMentorId}
             mentors={mentorsQuery.data ?? []}
             onCancel={() => setEditing(null)}
             onSubmit={async (values) => {
@@ -298,29 +313,34 @@ export function ProjectsPage() {
 }
 
 function toRequest(values: ProjectFormValues) {
+  const mentorIds = [...new Set(values.mentorIds)]
+
   return {
     name: values.name,
     client: values.client,
     status: values.status,
     active: values.active,
     assignedDeveloperIds: values.assignedDeveloperIds,
+    mentorIds,
+    ...(mentorIds[0] === undefined ? {} : { mentorId: mentorIds[0] }),
     ...(values.description === undefined || values.description === ''
       ? {}
       : { description: values.description }),
     ...(values.startDate === '' ? {} : { startDate: values.startDate }),
     ...(values.endDate === '' ? {} : { endDate: values.endDate }),
-    ...(values.mentorId === '' ? {} : { mentorId: values.mentorId }),
   }
 }
 
 function ProjectForm({
   developers,
+  lockedMentorId,
   mentors,
   onCancel,
   onSubmit,
   project,
 }: {
   developers: readonly { id: string; name: string }[]
+  lockedMentorId?: string | undefined
   mentors: readonly { id: string; name: string }[]
   onCancel: () => void
   onSubmit: (values: ProjectFormValues) => Promise<void>
@@ -341,7 +361,7 @@ function ProjectForm({
       status: project?.status ?? 'planned',
       startDate: project?.startDate ?? '',
       endDate: project?.endDate ?? '',
-      mentorId: project?.mentorId ?? '',
+      mentorIds: initialMentorIds(project, lockedMentorId),
       assignedDeveloperIds: [...(project?.assignedDeveloperIds ?? [])],
       active: project?.active ?? true,
     },
@@ -349,11 +369,24 @@ function ProjectForm({
 
   // useWatch, not watch: watch returns a function the React compiler cannot memoise.
   const assigned = useWatch({ control, name: 'assignedDeveloperIds' })
+  const selectedMentors = useWatch({ control, name: 'mentorIds' }) ?? []
 
   const toggleDeveloper = (id: string) => {
     setValue(
       'assignedDeveloperIds',
       assigned.includes(id) ? assigned.filter((value) => value !== id) : [...assigned, id],
+      { shouldDirty: true },
+    )
+  }
+
+  const toggleMentor = (id: string) => {
+    if (id === lockedMentorId) return
+
+    setValue(
+      'mentorIds',
+      selectedMentors.includes(id)
+        ? selectedMentors.filter((value) => value !== id)
+        : [...selectedMentors, id],
       { shouldDirty: true },
     )
   }
@@ -391,24 +424,14 @@ function ProjectForm({
           />
         </Field>
 
-        <Field htmlFor="project-mentor" label="Mentor">
-          <Controller
-            control={control}
-            name="mentorId"
-            render={({ field }) => (
-              <Dropdown
-                id="project-mentor"
-                onBlur={field.onBlur}
-                onChange={field.onChange}
-                options={[
-                  { value: '', label: 'Unassigned' },
-                  ...mentors.map((mentor) => ({ value: mentor.id, label: mentor.name })),
-                ]}
-                value={field.value}
-              />
-            )}
-          />
-        </Field>
+        <ChecklistField
+          disabledIds={lockedMentorId === undefined ? [] : [lockedMentorId]}
+          hint="Each mentor sees this project's work only for the developers assigned to them."
+          label="Responsible mentors"
+          onToggle={toggleMentor}
+          options={mentors}
+          selected={selectedMentors}
+        />
 
         <TextField id="project-start" label="Start date" type="date" {...register('startDate')} />
 
@@ -452,4 +475,18 @@ function ProjectForm({
       </div>
     </form>
   )
+}
+
+function initialMentorIds(project: Project | undefined, lockedMentorId: string | undefined): string[] {
+  const stored = project?.mentorIds ?? []
+  const primary = project?.mentorId
+  const ids =
+    primary !== undefined && stored.includes(primary)
+      ? [primary, ...stored.filter((id) => id !== primary)]
+      : [...stored]
+
+  if (lockedMentorId !== undefined && !ids.includes(lockedMentorId)) ids.push(lockedMentorId)
+  if (ids.length === 0 && lockedMentorId !== undefined) return [lockedMentorId]
+
+  return ids
 }

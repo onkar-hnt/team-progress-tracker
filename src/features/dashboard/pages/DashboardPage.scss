@@ -63,6 +63,12 @@
     font-size: $font-size-xs;
   }
 
+  &__mentors {
+    margin: 0 0 $space-4;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
   &__entry-status {
     @include flex($inline: true, $gap: $space-2);
   }

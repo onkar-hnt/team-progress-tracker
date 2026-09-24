@@ -2,7 +2,7 @@ import type { AssignedTask, DailyWorkEntry, MentorComment } from '@models/index'
 import type { AppUser, UserRole } from '@models/user.model'
 
 import type { AccessScope } from './access-scope'
-import { canViewDeveloper } from './access-scope'
+import { canViewDeveloper, canViewDeveloperProject } from './access-scope'
 
 export function isAdmin(user: AppUser | null): boolean {
   return user?.role === 'admin'
@@ -129,16 +129,16 @@ export function canUpdateTaskStatus(
 ): boolean {
   if (user === null || scope === null) return false
   if (isAdmin(user)) return true
-  if (isMentor(user)) return canViewDeveloper(scope, task.developerId)
+  if (isMentor(user)) return canViewDeveloperProject(scope, task.developerId, task.projectId)
   return user.developerId === task.developerId
 }
 
 /**
  * Who may add to a task's comment trail.
  *
- * Mirrors `feedback_insert`: a mentor's assignment to the developer decides,
- * not who created or assigned the task. A developer writes on their own tasks
- * only.
+ * Mirrors `feedback_insert`: a mentor may comment when they are assigned to the
+ * developer and responsible for the task's project. A developer writes on their
+ * own tasks only.
  */
 export function canCommentOnTask(
   user: AppUser | null,
@@ -147,7 +147,7 @@ export function canCommentOnTask(
 ): boolean {
   if (user === null || scope === null) return false
   if (isAdmin(user)) return true
-  if (isMentor(user)) return canViewDeveloper(scope, task.developerId)
+  if (isMentor(user)) return canViewDeveloperProject(scope, task.developerId, task.projectId)
   return user.developerId === task.developerId
 }
 

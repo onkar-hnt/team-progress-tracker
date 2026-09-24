@@ -57,6 +57,9 @@ export interface DataProvider {
 
   getProjects(): Promise<Project[]>
 
+  /** Projects one mentor is responsible for. Used to build a mentor's access scope. */
+  getResponsibleProjectIds(mentorId: string): Promise<string[]>
+
   createProject(request: CreateProjectRequest): Promise<Project>
 
   updateProject(id: string, request: UpdateProjectRequest): Promise<Project>

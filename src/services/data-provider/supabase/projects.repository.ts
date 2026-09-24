@@ -21,15 +21,63 @@ export async function selectProjects(client: AppSupabaseClient): Promise<Project
   return parseRows('Projects', projectRowSchema, data ?? [], toProject)
 }
 
+/** Projects the given mentor is responsible for. RLS drops any other mentor's rows. */
+export async function selectResponsibleProjectIds(
+  client: AppSupabaseClient,
+  mentorId: string,
+): Promise<string[]> {
+  const [junction, primary] = await Promise.all([
+    client.from('project_mentors').select('project_id').eq('mentor_id', mentorId),
+    client.from('projects').select('id').eq('mentor_id', mentorId).is('deleted_at', null),
+  ])
+
+  if (junction.error !== null) {
+    throw mapPostgrestError(junction.error, { table: 'Projects', operation: 'read' })
+  }
+
+  if (primary.error !== null) {
+    throw mapPostgrestError(primary.error, { table: 'Projects', operation: 'read' })
+  }
+
+  const ids = [
+    ...(junction.data ?? []).map((row) => (row as { project_id: string }).project_id),
+    ...(primary.data ?? []).map((row) => (row as { id: string }).id),
+  ]
+
+  return [...new Set(ids)]
+}
+
 async function assertProjectReferences(
   client: AppSupabaseClient,
-  references: { mentorId?: string | undefined; assignedDeveloperIds?: readonly string[] },
+  references: {
+    mentorId?: string | undefined
+    mentorIds?: readonly string[] | undefined
+    assignedDeveloperIds?: readonly string[]
+  },
 ): Promise<void> {
-  if (references.mentorId !== undefined) await assertMentorExists(client, references.mentorId)
+  const mentorIds = [
+    ...new Set([
+      ...(references.mentorIds ?? []),
+      ...(references.mentorId === undefined ? [] : [references.mentorId]),
+    ]),
+  ]
+
+  for (const mentorId of mentorIds) {
+    await assertMentorExists(client, mentorId)
+  }
 
   if (references.assignedDeveloperIds !== undefined) {
     await assertDevelopersExist(client, references.assignedDeveloperIds)
   }
+}
+
+function mentorIdsToStore(request: {
+  mentorId?: string | undefined
+  mentorIds?: readonly string[] | undefined
+}): readonly string[] | undefined {
+  if (request.mentorIds !== undefined) return [...new Set(request.mentorIds)]
+  if (request.mentorId !== undefined) return [request.mentorId]
+  return undefined
 }
 
 export async function insertProject(
@@ -53,6 +101,9 @@ export async function insertProject(
   if (request.assignedDeveloperIds.length > 0) {
     await setMembers(client, id, request.assignedDeveloperIds)
   }
+
+  const mentorIds = mentorIdsToStore(request) ?? []
+  await setProjectMentors(client, id, mentorIds)
 
   return requireProject(client, id)
 }
@@ -88,6 +139,9 @@ export async function updateProjectRow(
     await setMembers(client, id, request.assignedDeveloperIds)
   }
 
+  const mentorIds = mentorIdsToStore(request)
+  if (mentorIds !== undefined) await setProjectMentors(client, id, mentorIds)
+
   return requireProject(client, id)
 }
 
@@ -111,6 +165,21 @@ export async function requireProject(client: AppSupabaseClient, id: string): Pro
   if (data === null) throw new RecordNotFoundError('Projects', id)
 
   return parseRows('Projects', projectRowSchema, [data], toProject)[0]!
+}
+
+async function setProjectMentors(
+  client: AppSupabaseClient,
+  projectId: string,
+  mentorIds: readonly string[],
+): Promise<void> {
+  const { error } = await client.rpc('set_project_mentors', {
+    p_project_id: projectId,
+    p_mentor_ids: [...mentorIds],
+  })
+
+  if (error !== null) {
+    throw mapPostgrestError(error, { table: 'Projects', operation: 'update', recordId: projectId })
+  }
 }
 
 async function setMembers(

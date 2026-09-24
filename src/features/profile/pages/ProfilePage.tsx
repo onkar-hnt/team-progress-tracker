@@ -5,6 +5,7 @@ import { Button } from '@components/ui/button/Button'
 import { NameList } from '@components/ui/name-list/NameList'
 import { Panel } from '@components/ui/panel/Panel'
 import { NotificationPreferences } from '@features/notifications/components/NotificationPreferences'
+import { AssignedMentorNames } from '@features/profile/components/AssignedMentors'
 import { PasswordManagement } from '@features/profile/components/PasswordManagement'
 import { useDevelopers, useProjects } from '@hooks/use-work-tracker'
 import { USER_ROLE_LABELS } from '@models/user.model'
@@ -75,6 +76,15 @@ function AccountPanel() {
         )}
         {record?.employeeId === undefined ? null : (
           <Fact label="Employee reference" value={record.employeeId} />
+        )}
+
+        {developerId === undefined ? null : (
+          <div className="profile__fact">
+            <dt>Mentors</dt>
+            <dd className="profile__value">
+              <AssignedMentorNames title={`Mentors assigned to ${user.name}`} />
+            </dd>
+          </div>
         )}
 
         {developerId === undefined ? null : (

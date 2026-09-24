@@ -20,6 +20,7 @@ import { StatCard } from '@components/ui/stat-card/StatCard'
 import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { DailyUpdateForm } from '@features/daily-update/components/DailyUpdateForm'
+import { AssignedMentorNames } from '@features/profile/components/AssignedMentors'
 import type { ActivitySlice } from '@features/team-activity/activity-filters'
 import { activityLink, activityRangeLink } from '@features/team-activity/activity-filters'
 import { TASK_STATUS_LABELS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
@@ -167,7 +168,14 @@ export function DashboardPage() {
         {isLoading || day === undefined ? (
           <Skeleton label="Loading dashboard metrics…" rows={4} />
         ) : (
-          <div className="stat-card-grid">
+          <>
+            {isTeamView || user?.developerId === undefined ? null : (
+              <p className="dashboard__mentors">
+                Mentors:{' '}
+                <AssignedMentorNames title={`Mentors assigned to ${user.name}`} />
+              </p>
+            )}
+            <div className="stat-card-grid">
             <StatCard
               icon="calendar"
               label="Updates today"
@@ -240,6 +248,7 @@ export function DashboardPage() {
               />
             )}
           </div>
+          </>
         )}
       </Panel>
 

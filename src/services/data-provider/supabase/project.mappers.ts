@@ -7,7 +7,8 @@ export const PROJECT_COLUMNS =
   'id, code, name, client, description, status, active, start_date, end_date, mentor_id, deleted_at' as const
 
 /** With the membership rows embedded, which is how a project is read. */
-export const PROJECT_WITH_MEMBERS = `${PROJECT_COLUMNS}, project_developers(developer_id)` as const
+export const PROJECT_WITH_MEMBERS =
+  `${PROJECT_COLUMNS}, project_developers(developer_id), project_mentors(mentor_id)` as const
 
 export const projectRowSchema = z.object({
   id: z.string().min(1),
@@ -25,6 +26,7 @@ export const projectRowSchema = z.object({
 
   // Absent when the caller selected the project without its members.
   project_developers: z.array(z.object({ developer_id: z.string() })).optional(),
+  project_mentors: z.array(z.object({ mentor_id: z.string() })).optional(),
 })
 
 export type ProjectRow = z.infer<typeof projectRowSchema>
@@ -37,12 +39,24 @@ function optional<TKey extends string, TValue>(
 }
 
 export function toProject(row: ProjectRow): Project {
+  const mentorIdSet = new Set([
+    ...(row.project_mentors ?? []).map((member) => member.mentor_id),
+    ...(row.mentor_id === null ? [] : [row.mentor_id]),
+  ])
+  const mentorIds = [
+    ...(row.mentor_id !== null && mentorIdSet.has(row.mentor_id) ? [row.mentor_id] : []),
+    ...[...mentorIdSet]
+      .filter((id) => id !== row.mentor_id)
+      .sort((left, right) => left.localeCompare(right)),
+  ]
+
   return {
     id: row.id,
     code: row.code,
     name: row.name,
     active: row.active,
     status: row.status,
+    mentorIds,
     assignedDeveloperIds: (row.project_developers ?? [])
       .map((member) => member.developer_id)
       .sort((left, right) => left.localeCompare(right)),
@@ -50,7 +64,7 @@ export function toProject(row: ProjectRow): Project {
     ...optional('description', row.description),
     ...optional('startDate', row.start_date),
     ...optional('endDate', row.end_date),
-    ...optional('mentorId', row.mentor_id),
+    ...optional('mentorId', row.mentor_id ?? mentorIds[0] ?? null),
     ...optional('deletedAt', row.deleted_at),
   }
 }
@@ -75,8 +89,17 @@ export function toProjectInsert(request: CreateProjectRequest): ProjectInsert {
     active: request.active,
     start_date: blankToNull(request.startDate),
     end_date: blankToNull(request.endDate),
-    mentor_id: request.mentorId ?? null,
+    mentor_id: primaryMentorId(request),
   }
+}
+
+function primaryMentorId(request: {
+  mentorId?: string
+  mentorIds?: readonly string[]
+}): string | null {
+  const fromSet = request.mentorIds?.[0]
+  if (fromSet !== undefined && fromSet !== '') return fromSet
+  return request.mentorId ?? null
 }
 
 export function toProjectUpdate(request: UpdateProjectRequest): Partial<ProjectInsert> {
@@ -89,7 +112,11 @@ export function toProjectUpdate(request: UpdateProjectRequest): Partial<ProjectI
   if ('active' in request && request.active !== undefined) payload.active = request.active
   if ('startDate' in request) payload.start_date = blankToNull(request.startDate)
   if ('endDate' in request) payload.end_date = blankToNull(request.endDate)
-  if ('mentorId' in request) payload.mentor_id = request.mentorId ?? null
+  if (request.mentorIds !== undefined) {
+    payload.mentor_id = request.mentorIds[0] ?? null
+  } else if ('mentorId' in request) {
+    payload.mentor_id = request.mentorId ?? null
+  }
 
   return payload
 }

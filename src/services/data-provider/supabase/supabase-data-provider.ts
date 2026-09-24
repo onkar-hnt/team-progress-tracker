@@ -58,6 +58,7 @@ import {
   deleteProjectRow,
   insertProject,
   selectProjects,
+  selectResponsibleProjectIds,
   updateProjectRow,
 } from './projects.repository'
 import {
@@ -130,6 +131,10 @@ export class SupabaseDataProvider implements DataProvider {
 
   getProjects(): Promise<Project[]> {
     return selectProjects(this.client)
+  }
+
+  getResponsibleProjectIds(mentorId: string): Promise<string[]> {
+    return selectResponsibleProjectIds(this.client, mentorId)
   }
 
   createProject(request: CreateProjectRequest): Promise<Project> {

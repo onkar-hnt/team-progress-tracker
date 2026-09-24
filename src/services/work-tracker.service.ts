@@ -30,9 +30,11 @@ import type { DataProvider, DataProviderCapabilities } from './data-provider/ind
 import type { AccessScope } from './auth/access-scope'
 import {
   canViewDeveloper,
+  canViewDeveloperProject,
   describeScope,
   filterByScope,
   restrictDeveloperIds,
+  restrictProjectIds,
 } from './auth/access-scope'
 import { isAdmin } from './auth/permissions'
 import type { DateRange } from '@utils/date.utils'
@@ -221,9 +223,18 @@ export class WorkTrackerService {
 
   private async readInvolvedProjects(scope: AccessScope): Promise<Project[]> {
     const projects = (await this.projectLookup.get()).filter(onTheRoster)
-    if (scope.visibleDeveloperIds === null) return projects
+    if (scope.visibleDeveloperIds === null && scope.visibleProjectIds === null) return projects
 
-    const visibleIds = scope.visibleDeveloperIds
+    if (scope.visibleProjectIds !== null) {
+      const ownId = scope.developerId
+      return projects.filter(
+        (project) =>
+          scope.visibleProjectIds?.includes(project.id) === true ||
+          (ownId !== undefined && project.assignedDeveloperIds.includes(ownId)),
+      )
+    }
+
+    const visibleIds = scope.visibleDeveloperIds ?? []
     const [tasks, entries] = await Promise.all([
       this.provider.getTasks({ developerIds: visibleIds }),
       this.provider.getDailyWorkEntries({ developerIds: visibleIds }),
@@ -259,7 +270,9 @@ export class WorkTrackerService {
     id: string,
   ): Promise<DailyWorkEntry | null> {
     const entry = await this.provider.getDailyWorkEntryById(id)
-    if (entry === null || !canViewDeveloper(scope, entry.developerId)) return null
+    if (entry === null || !canViewDeveloperProject(scope, entry.developerId, entry.projectId)) {
+      return null
+    }
     return entry
   }
 
@@ -268,9 +281,14 @@ export class WorkTrackerService {
     query?: AssignedTaskQuery,
   ): Promise<AssignedTaskView[]> {
     const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
+    const projectIds = projectIdsForRead(scope, query?.projectIds)
 
     const [tasks, developers, projects, mentors] = await Promise.all([
-      this.provider.getTasks({ ...query, ...withDeveloperIds(effectiveIds) }),
+      this.provider.getTasks({
+        ...query,
+        ...withDeveloperIds(effectiveIds),
+        ...withProjectIds(projectIds),
+      }),
       this.developerLookup.get(),
       this.projectLookup.get(),
       this.mentorLookup.get(),
@@ -278,7 +296,7 @@ export class WorkTrackerService {
 
     const today = todayIsoDate()
 
-    return narrowToDevelopers(effectiveIds, tasks).map((task) =>
+    return filterByScope(scope, narrowToDevelopers(effectiveIds, tasks)).map((task) =>
       this.toTaskView(task, { developers, mentors, projects }, today),
     )
   }
@@ -286,7 +304,9 @@ export class WorkTrackerService {
   /** Returns null for an out-of-scope, deleted or missing task. */
   async getTaskViewById(scope: AccessScope, id: string): Promise<AssignedTaskView | null> {
     const task = await this.provider.getTaskById(id)
-    if (task === null || !canViewDeveloper(scope, task.developerId)) return null
+    if (task === null || !canViewDeveloperProject(scope, task.developerId, task.projectId)) {
+      return null
+    }
 
     const [developers, projects, mentors] = await Promise.all([
       this.developerLookup.get(),
@@ -318,16 +338,21 @@ export class WorkTrackerService {
     query?: MentorCommentQuery,
   ): Promise<MentorCommentView[]> {
     const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
+    const projectIds = projectIdsForRead(scope, query?.projectIds)
 
     const [comments, developers, projects, mentors, tasks] = await Promise.all([
-      this.provider.getComments({ ...query, ...withDeveloperIds(effectiveIds) }),
+      this.provider.getComments({
+        ...query,
+        ...withDeveloperIds(effectiveIds),
+        ...withProjectIds(projectIds),
+      }),
       this.developerLookup.get(),
       this.projectLookup.get(),
       this.mentorLookup.get(),
       this.provider.getTasks({ ...withDeveloperIds(effectiveIds) }),
     ])
 
-    return narrowToDevelopers(effectiveIds, comments)
+    return filterByScope(scope, narrowToDevelopers(effectiveIds, comments))
       .sort((left, right) => right.date.localeCompare(left.date))
       .map((comment) => {
         const project = projects.find((candidate) => candidate.id === comment.projectId)
@@ -376,6 +401,10 @@ export class WorkTrackerService {
     developerIds: readonly string[],
   ): Promise<MentorAssignment[]> {
     return this.provider.setMentorAssignments(mentorId, developerIds)
+  }
+
+  getResponsibleProjectIds(mentorId: string): Promise<string[]> {
+    return this.provider.getResponsibleProjectIds(mentorId)
   }
 
   createProject(request: CreateProjectRequest): Promise<Project> {
@@ -482,12 +511,14 @@ export class WorkTrackerService {
     query?: DailyWorkQuery,
   ): Promise<DailyWorkEntry[]> {
     const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
+    const projectIds = projectIdsForRead(scope, query?.projectIds)
     const entries = await this.provider.getDailyWorkEntries({
       ...query,
       ...withDeveloperIds(effectiveIds),
+      ...withProjectIds(projectIds),
     })
 
-    return narrowToDevelopers(effectiveIds, entries)
+    return filterByScope(scope, narrowToDevelopers(effectiveIds, entries))
   }
 
   private async decorateEntries(
@@ -516,6 +547,26 @@ function withDeveloperIds(
   developerIds: readonly string[] | undefined,
 ): { developerIds?: readonly string[] } {
   return developerIds === undefined ? {} : { developerIds }
+}
+
+function withProjectIds(
+  projectIds: readonly string[] | undefined,
+): { projectIds?: readonly string[] } {
+  return projectIds === undefined ? {} : { projectIds }
+}
+
+/**
+ * A pure mentor is asked only for the projects they are responsible for.
+ * Someone who also has an employee row keeps an open project list so their own
+ * work on other projects is not dropped before the in-memory filter.
+ */
+function projectIdsForRead(
+  scope: AccessScope,
+  requested: readonly string[] | undefined,
+): readonly string[] | undefined {
+  if (scope.visibleProjectIds === null) return requested
+  if (scope.developerId !== undefined && requested === undefined) return undefined
+  return restrictProjectIds(scope, requested)
 }
 
 /** Re-filters by developer in memory even when the provider accepts developerIds. */
