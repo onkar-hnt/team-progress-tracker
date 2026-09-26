@@ -31,9 +31,13 @@ export const queryKeys = {
 
   resourceUsage: () => [ROOT, 'resource-usage'] as const,
 
-  /** null rather than undefined so the key serialises consistently. */
+  /**
+   * The filter is a string, not a nested object. A nested object can keep the
+   * previous cache entry when the selection changes, so the screen keeps the
+   * previous rows after a new response arrives.
+   */
   dailyWork: (scopeId: string, query?: DailyWorkQuery) =>
-    [ROOT, 'daily-work', scopeId, query ?? null] as const,
+    [ROOT, 'daily-work', scopeId, serializeDailyWorkQuery(query)] as const,
 
   dailyWorkEntry: (id: string) => [ROOT, 'daily-work', 'entry', id] as const,
 
@@ -70,4 +74,62 @@ export const queryKeys = {
   allNotifications: () => [ROOT, 'notifications'] as const,
   allRangeOverviews: () => [ROOT, 'range-overview'] as const,
   allTasks: () => [ROOT, 'tasks'] as const,
+}
+
+function listOrNull(values: readonly string[] | undefined): string[] | null {
+  return values === undefined ? null : [...values].sort()
+}
+
+/** Stable text for one daily-work read. Field order is fixed so equal filters match. */
+export function serializeDailyWorkQuery(query?: DailyWorkQuery): string {
+  return JSON.stringify([
+    query?.dateFrom ?? null,
+    query?.dateTo ?? null,
+    listOrNull(query?.developerIds),
+    listOrNull(query?.projectIds),
+    listOrNull(query?.statuses),
+    listOrNull(query?.priorities),
+    query?.isBlocked ?? null,
+    query?.limit ?? null,
+  ])
+}
+
+function readList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+/** Inverse of `serializeDailyWorkQuery`. Null slots are an open filter, not an empty one. */
+export function parseDailyWorkQuery(serialized: string): DailyWorkQuery | undefined {
+  let parsed: unknown
+
+  try {
+    parsed = JSON.parse(serialized)
+  } catch {
+    return undefined
+  }
+
+  if (!Array.isArray(parsed)) return undefined
+
+  const [dateFrom, dateTo, developerIds, projectIds, statuses, priorities, isBlocked, limit] =
+    parsed
+  const query: DailyWorkQuery = {}
+
+  if (typeof dateFrom === 'string') query.dateFrom = dateFrom
+  if (typeof dateTo === 'string') query.dateTo = dateTo
+
+  const developers = readList(developerIds)
+  const projects = readList(projectIds)
+  const statusList = readList(statuses)
+  const priorityList = readList(priorities)
+
+  if (developers !== undefined) query.developerIds = developers
+  if (projects !== undefined) query.projectIds = projects
+  if (statusList !== undefined) query.statuses = statusList as DailyWorkQuery['statuses']
+  if (priorityList !== undefined) query.priorities = priorityList as DailyWorkQuery['priorities']
+  if (typeof isBlocked === 'boolean') query.isBlocked = isBlocked
+  if (typeof limit === 'number') query.limit = limit
+
+  return query
 }

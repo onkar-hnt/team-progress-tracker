@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, type To } from 'react-router-dom'
 
 import { Icon, type IconName } from '@components/ui/icons/Icon'
 import { useCountUp } from '@hooks/use-count-up'
@@ -17,7 +17,7 @@ interface StatCardProps {
   /** Decorative; label already states meaning. */
   icon?: IconName
 
-  to?: string
+  to?: To
 
   /** Rate out of 100 only — not for raw counts. */
   progress?: number

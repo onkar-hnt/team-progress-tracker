@@ -1,5 +1,7 @@
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from '@constants/task.constants'
 import type { DailyWorkQuery, TaskPriority, TaskStatus } from '@models/index'
+import type { AccessScope } from '@services/auth/index'
+import { canRequestProject, canViewDeveloper } from '@services/auth/index'
 import type { DateRange } from '@utils/date.utils'
 import {
   getMonthRange,
@@ -64,7 +66,13 @@ export function resolvePeriod(filters: ActivityFilterState): DateRange {
   }
 }
 
-// Search stays client-side; the provider only filters indexed columns.
+/**
+ * The list request for the current filters.
+ *
+ * Search stays off this object: the provider has no text column for it, so the
+ * page narrows the returned rows. Every other control is part of the request,
+ * so changing it changes the query key and `list_daily_updates` runs again.
+ */
 export function toDailyWorkQuery(filters: ActivityFilterState): DailyWorkQuery {
   const period = resolvePeriod(filters)
 
@@ -79,7 +87,32 @@ export function toDailyWorkQuery(filters: ActivityFilterState): DailyWorkQuery {
   }
 }
 
-// Filters live in the URL so other screens can link to a slice. Values are validated; defaults are omitted.
+/**
+ * The filter that puts this view outside what the signed-in person may read,
+ * or null when the view is reachable.
+ *
+ * A link from another screen, or a pasted URL, can name a developer or project
+ * the scope does not cover. The data layer answers that with no rows and no
+ * request, which is indistinguishable from a quiet week unless the screen says
+ * which filter is responsible.
+ */
+export function unreachableFilter(
+  scope: AccessScope | null,
+  filters: ActivityFilterState,
+): 'developer' | 'project' | null {
+  if (scope === null) return null
+
+  if (filters.developerId !== '' && !canViewDeveloper(scope, filters.developerId)) {
+    return 'developer'
+  }
+
+  if (filters.projectId !== '' && !canRequestProject(scope, filters.projectId)) return 'project'
+
+  return null
+}
+
+// Older links put a slice in the query string. The page reads that once, then
+// drops it. Changing a filter does not write the address bar.
 const PARAMS = {
   blocked: 'blocked',
   developer: 'developer',
@@ -135,27 +168,6 @@ export function filtersFromSearchParams(params: URLSearchParams): ActivityFilter
   }
 }
 
-export function filtersToSearchParams(filters: ActivityFilterState): URLSearchParams {
-  const defaults = createDefaultFilters()
-  const params = new URLSearchParams()
-
-  if (filters.preset !== defaults.preset) params.set(PARAMS.period, filters.preset)
-
-  if (filters.preset === 'custom') {
-    params.set(PARAMS.from, filters.customRange.from)
-    params.set(PARAMS.to, filters.customRange.to)
-  }
-
-  if (filters.developerId !== '') params.set(PARAMS.developer, filters.developerId)
-  if (filters.projectId !== '') params.set(PARAMS.project, filters.projectId)
-  if (filters.status !== '') params.set(PARAMS.status, filters.status)
-  if (filters.priority !== '') params.set(PARAMS.priority, filters.priority)
-  if (filters.blockedOnly) params.set(PARAMS.blocked, '1')
-  if (filters.search !== '') params.set(PARAMS.search, filters.search)
-
-  return params
-}
-
 export interface ActivitySlice {
   status?: TaskStatus
   developerId?: string
@@ -163,22 +175,58 @@ export interface ActivitySlice {
   blockedOnly?: boolean
 }
 
-export function activityRangeLink(range: DateRange, slice: ActivitySlice = {}): string {
-  const params = filtersToSearchParams({
-    ...createDefaultFilters(),
-    preset: 'custom',
-    customRange: range,
-    ...(slice.status === undefined ? {} : { status: slice.status }),
-    ...(slice.developerId === undefined ? {} : { developerId: slice.developerId }),
-    ...(slice.projectId === undefined ? {} : { projectId: slice.projectId }),
-    ...(slice.blockedOnly === undefined ? {} : { blockedOnly: slice.blockedOnly }),
-  })
-
-  return `/team-activity?${params.toString()}`
+/** Router state for a drill-down. The path stays `/team-activity` with no query string. */
+export function activityRangeLink(range: DateRange, slice: ActivitySlice = {}): {
+  pathname: '/team-activity'
+  state: { activityFilters: ActivityFilterState }
+} {
+  return {
+    pathname: '/team-activity',
+    state: {
+      activityFilters: {
+        ...createDefaultFilters(),
+        preset: 'custom',
+        customRange: range,
+        ...(slice.status === undefined ? {} : { status: slice.status }),
+        ...(slice.developerId === undefined ? {} : { developerId: slice.developerId }),
+        ...(slice.projectId === undefined ? {} : { projectId: slice.projectId }),
+        ...(slice.blockedOnly === undefined ? {} : { blockedOnly: slice.blockedOnly }),
+      },
+    },
+  }
 }
 
-export function activityLink(date: string, slice: ActivitySlice = {}): string {
+export function activityLink(date: string, slice: ActivitySlice = {}): {
+  pathname: '/team-activity'
+  state: { activityFilters: ActivityFilterState }
+} {
   return activityRangeLink({ from: date, to: date }, slice)
 }
 
-export { matchesSearch } from '@utils/table.utils'
+export function activityFiltersFromNavigation(
+  state: unknown,
+  params: URLSearchParams,
+): ActivityFilterState {
+  if (typeof state === 'object' && state !== null && 'activityFilters' in state) {
+    const filters = state.activityFilters
+    if (isActivityFilterState(filters)) return filters
+  }
+
+  return filtersFromSearchParams(params)
+}
+
+function isActivityFilterState(value: unknown): value is ActivityFilterState {
+  if (typeof value !== 'object' || value === null) return false
+
+  const candidate = value as ActivityFilterState
+  const preset = PERIOD_PRESETS.find((item) => item === candidate.preset)
+
+  return (
+    preset !== undefined &&
+    typeof candidate.developerId === 'string' &&
+    typeof candidate.projectId === 'string' &&
+    typeof candidate.customRange?.from === 'string' &&
+    typeof candidate.customRange?.to === 'string'
+  )
+}
+

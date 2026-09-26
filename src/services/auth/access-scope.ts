@@ -101,6 +101,19 @@ export function canViewProject(scope: AccessScope, projectId: string): boolean {
 }
 
 /**
+ * Whether a read naming one project can return anything at all.
+ *
+ * Wider than `canViewProject`, because somebody who also has an employee row
+ * keeps their own work on every project. Only a pure mentor is held to the
+ * projects they are responsible for.
+ */
+export function canRequestProject(scope: AccessScope, projectId: string): boolean {
+  if (scope.visibleProjectIds === null) return true
+  if (scope.developerId !== undefined) return true
+  return scope.visibleProjectIds.includes(projectId)
+}
+
+/**
  * Whether this person may see one developer's work on one project.
  *
  * A missing project id is not another project's data: general feedback stays

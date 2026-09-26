@@ -22,7 +22,9 @@ interface ActivityFiltersProps {
   onChange: (filters: ActivityFilterState) => void
   developers: readonly Developer[]
   projects: readonly Project[]
-  resultCount: number
+  resultCount: number | null
+  /** Replaces the count, for example while a failed load must not read as zero entries. */
+  resultLabel?: string
 }
 
 export function ActivityFilters({
@@ -31,6 +33,7 @@ export function ActivityFilters({
   onChange,
   projects,
   resultCount,
+  resultLabel,
 }: ActivityFiltersProps) {
   const update = (changes: Partial<ActivityFilterState>) => {
     onChange({ ...filters, ...changes })
@@ -137,7 +140,10 @@ export function ActivityFilters({
         </label>
 
         <p className="activity-filters__count" role="status">
-          {resultCount} {resultCount === 1 ? 'entry' : 'entries'}
+          {resultLabel ??
+            (resultCount === null
+              ? 'Loading…'
+              : `${String(resultCount)} ${resultCount === 1 ? 'entry' : 'entries'}`)}
         </p>
       </div>
     </div>

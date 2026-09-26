@@ -49,7 +49,7 @@ import type {
 } from '@services/work-tracker.service'
 import type { DateRange } from '@utils/date.utils'
 
-import { queryKeys } from './query-keys'
+import { parseDailyWorkQuery, queryKeys } from './query-keys'
 import { useAccessScope } from './use-access-scope'
 
 function useScopedQuery<TValue>(
@@ -164,13 +164,31 @@ export function useActiveProjects(): UseQueryResult<Project[]> {
 
 export function useDailyWorkEntries(
   query?: DailyWorkQuery,
+  options: { enabled?: boolean; staleTime?: number } = {},
 ): UseQueryResult<DailyWorkEntryView[]> {
   const service = getWorkTrackerService()
+  const { isResolving, scope } = useAccessScope()
+  const scopeId = scope === null ? 'none' : describeScope(scope)
 
-  return useScopedQuery(
-    (scopeId) => queryKeys.dailyWork(scopeId, query),
-    (scope) => service.getDailyWorkEntryViews(scope, query),
-  )
+  return useQuery({
+    queryKey: queryKeys.dailyWork(scopeId, query),
+    queryFn: ({ queryKey }) => {
+      if (scope === null) throw new Error('No access scope is available.')
+
+      // The serialized filter on the key is what this cache entry means.
+      // Reading it here, rather than from the hook closure, keeps a slow
+      // response from being stored as another selection's rows.
+      return service.getDailyWorkEntryViews(scope, dailyQueryFromKey(queryKey))
+    },
+    enabled: !isResolving && scope !== null && options.enabled !== false,
+    ...(options.staleTime === undefined ? {} : { staleTime: options.staleTime }),
+  })
+}
+
+function dailyQueryFromKey(queryKey: readonly unknown[]): DailyWorkQuery | undefined {
+  const serialized = queryKey.find((part) => typeof part === 'string' && part.startsWith('['))
+
+  return typeof serialized === 'string' ? parseDailyWorkQuery(serialized) : undefined
 }
 
 export function useTasks(query?: AssignedTaskQuery): UseQueryResult<AssignedTaskView[]> {

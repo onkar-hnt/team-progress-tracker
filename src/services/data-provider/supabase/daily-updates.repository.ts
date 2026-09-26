@@ -19,6 +19,13 @@ import { filterList } from './rpc-params'
 import { softDeleteRow } from './soft-delete'
 import { mapPostgrestError, parseRows } from './supabase-errors'
 
+/** `setof` is an array. A single object is one row, not a failed read. */
+function asDailyUpdateRows(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+  if (data === null || data === undefined) return []
+  return [data]
+}
+
 function matchesNothing(query: DailyWorkQuery): boolean {
   return (
     query.developerIds?.length === 0 ||
@@ -54,7 +61,7 @@ export async function selectDailyUpdates(
 
   if (error !== null) throw mapPostgrestError(error, { table: 'DailyWork', operation: 'read' })
 
-  return parseRows('DailyWork', dailyUpdateRowSchema, data ?? [], toDailyWorkEntry)
+  return parseRows('DailyWork', dailyUpdateRowSchema, asDailyUpdateRows(data), toDailyWorkEntry)
 }
 
 export async function selectDailyUpdateById(

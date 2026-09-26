@@ -106,7 +106,7 @@ export interface RangeOverview {
 export class WorkTrackerService {
   private readonly provider: DataProvider
 
-  /** Brief memo of roster lookups; cleared by forgetLookups after roster writes. */
+  /** Memo of roster lookups; cleared by forgetLookups after roster writes. */
   private readonly developerLookup: ShortLivedRead<Developer>
   private readonly projectLookup: ShortLivedRead<Project>
   private readonly mentorLookup: ShortLivedRead<Mentor>
@@ -280,8 +280,11 @@ export class WorkTrackerService {
     scope: AccessScope,
     query?: AssignedTaskQuery,
   ): Promise<AssignedTaskView[]> {
-    const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
-    const projectIds = projectIdsForRead(scope, query?.projectIds)
+    const effectiveIds = idsForRead(
+      query?.developerIds,
+      restrictDeveloperIds(scope, query?.developerIds),
+    )
+    const projectIds = idsForRead(query?.projectIds, projectIdsForRead(scope, query?.projectIds))
 
     const [tasks, developers, projects, mentors] = await Promise.all([
       this.provider.getTasks({
@@ -337,8 +340,11 @@ export class WorkTrackerService {
     scope: AccessScope,
     query?: MentorCommentQuery,
   ): Promise<MentorCommentView[]> {
-    const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
-    const projectIds = projectIdsForRead(scope, query?.projectIds)
+    const effectiveIds = idsForRead(
+      query?.developerIds,
+      restrictDeveloperIds(scope, query?.developerIds),
+    )
+    const projectIds = idsForRead(query?.projectIds, projectIdsForRead(scope, query?.projectIds))
 
     const [comments, developers, projects, mentors, tasks] = await Promise.all([
       this.provider.getComments({
@@ -505,28 +511,23 @@ export class WorkTrackerService {
     return this.getDayOverview(scope, toNearestWorkingDay(isoDate))
   }
 
-  /** Passes developerIds to the provider and re-filters in memory. */
+  /** Passes the caller's filters to the provider. RLS decides which rows come back. */
   private async readScopedEntries(
     scope: AccessScope,
     query?: DailyWorkQuery,
   ): Promise<DailyWorkEntry[]> {
-    const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
-    const projectIds = projectIdsForRead(scope, query?.projectIds)
-    const entries = await this.provider.getDailyWorkEntries({
-      ...query,
-      ...withDeveloperIds(effectiveIds),
-      ...withProjectIds(projectIds),
-    })
+    const readQuery = buildDailyWorkReadQuery(scope, query)
+    const entries = await this.provider.getDailyWorkEntries(readQuery)
 
-    return filterByScope(scope, narrowToDevelopers(effectiveIds, entries))
+    return filterByScope(scope, entries)
   }
 
   private async decorateEntries(
     entries: readonly DailyWorkEntry[],
   ): Promise<DailyWorkEntryView[]> {
     const [developers, projects] = await Promise.all([
-      this.developerLookup.get(),
-      this.projectLookup.get(),
+      this.developerLookup.get().catch(() => [] as Developer[]),
+      this.projectLookup.get().catch(() => [] as Project[]),
     ])
 
     return sortByMostRecent(entries).map((entry) => {
@@ -559,23 +560,65 @@ function withProjectIds(
  * A pure mentor is asked only for the projects they are responsible for.
  * Someone who also has an employee row keeps an open project list so their own
  * work on other projects is not dropped before the in-memory filter.
+ *
+ * An explicit selection is sent as selected. Replacing it with an empty
+ * intersection made `list_daily_updates` never run and the screen show no rows.
  */
 function projectIdsForRead(
   scope: AccessScope,
   requested: readonly string[] | undefined,
 ): readonly string[] | undefined {
+  if (requested !== undefined && requested.length > 0) return requested
   if (scope.visibleProjectIds === null) return requested
-  if (scope.developerId !== undefined && requested === undefined) return undefined
+  if (scope.developerId !== undefined) return requested
   return restrictProjectIds(scope, requested)
 }
 
-/** Re-filters by developer in memory even when the provider accepts developerIds. */
+/**
+ * Builds the daily-work read passed to the provider.
+ *
+ * A chosen developer or project id is always included, so the request is made
+ * and row visibility stays with RLS. Scope lists apply only when that dimension
+ * was left open.
+ */
+export function buildDailyWorkReadQuery(
+  scope: AccessScope,
+  query?: DailyWorkQuery,
+): DailyWorkQuery {
+  const developerIds = idsForRead(
+    query?.developerIds,
+    restrictDeveloperIds(scope, query?.developerIds),
+  )
+  const projectIds = idsForRead(query?.projectIds, projectIdsForRead(scope, query?.projectIds))
+
+  return {
+    ...query,
+    ...withDeveloperIds(developerIds),
+    ...withProjectIds(projectIds),
+  }
+}
+
+/**
+ * Repeats the requested developer filter in memory.
+ *
+ * The provider is asked for these ids as well. This is the second half of the
+ * same pair as `filterByScope`: what a policy allows and what was asked for are
+ * different questions, and neither is left to the other side alone.
+ */
 function narrowToDevelopers<TRecord extends { developerId: string }>(
-  effectiveIds: readonly string[] | undefined,
+  ids: readonly string[] | undefined,
   records: readonly TRecord[],
-): TRecord[] {
-  if (effectiveIds === undefined) return [...records]
-  return records.filter((record) => effectiveIds.includes(record.developerId))
+): readonly TRecord[] {
+  if (ids === undefined) return records
+  return records.filter((record) => ids.includes(record.developerId))
+}
+
+function idsForRead(
+  requested: readonly string[] | undefined,
+  restricted: readonly string[] | undefined,
+): readonly string[] | undefined {
+  if (requested !== undefined && requested.length > 0) return [...requested]
+  return restricted
 }
 
 /** Soft-deleted roster rows stay in lookups for resolveName but are filtered from lists. */
@@ -620,9 +663,17 @@ function resolveName(
   return records.find((record) => record.id === id)?.name ?? `Unknown (${id})`
 }
 
-const LOOKUP_TTL_MS = 2_000
+/**
+ * Matches the roster staleTime the query hooks use.
+ *
+ * Every write that changes these tables calls `forgetLookups`, so the age of
+ * the memo only delays a change somebody else made, which the refresh control
+ * clears. At two seconds it expired between one filter change and the next, and
+ * a list of work could not be named without reading the roster again first.
+ */
+const LOOKUP_TTL_MS = 5 * 60_000
 
-/** Shares one in-flight read per table for ~2s; callers get a copied array. */
+/** Shares one in-flight read per table; callers get a copied array. */
 class ShortLivedRead<TRow> {
   private entry: { readAt: number; rows: Promise<readonly TRow[]> } | null = null
 

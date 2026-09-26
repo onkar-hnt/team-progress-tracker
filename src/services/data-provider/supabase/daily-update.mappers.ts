@@ -11,21 +11,38 @@ import { isIsoDateString } from '@utils/date.utils'
 export const DAILY_UPDATE_COLUMNS =
   'id, developer_id, project_id, task_id, entry_date, task_title, description, work_done, planned_work, status, priority, progress, hours_spent, estimated_hours, is_blocked, blocker_description, remarks, created_at, updated_at' as const
 
+/** PostgREST sends `numeric` as a string so the scale is preserved. */
+const jsonNumber = z.union([
+  z.number(),
+  z
+    .string()
+    .regex(/^-?\d+(\.\d+)?$/u)
+    .transform(Number),
+])
+
+const jsonNumberOrNull = z.union([jsonNumber, z.null()])
+
+/** A date column may arrive as `yyyy-MM-dd` or as a timestamp with that prefix. */
+const entryDate = z
+  .string()
+  .transform((value) => value.slice(0, 10))
+  .refine(isIsoDateString, { message: 'expected a yyyy-MM-dd date' })
+
 export const dailyUpdateRowSchema = z.object({
   id: z.string().min(1),
   developer_id: z.string().min(1),
   project_id: z.string().min(1),
   task_id: z.string().nullable(),
-  entry_date: z.string().refine(isIsoDateString, { message: 'expected a yyyy-MM-dd date' }),
+  entry_date: entryDate,
   task_title: z.string().min(1),
   description: z.string().nullable(),
   work_done: z.string().nullable(),
   planned_work: z.string().nullable(),
   status: z.enum(TASK_STATUSES),
   priority: z.enum(TASK_PRIORITIES),
-  progress: z.number(),
-  hours_spent: z.number().nullable(),
-  estimated_hours: z.number().nullable(),
+  progress: jsonNumber,
+  hours_spent: jsonNumberOrNull,
+  estimated_hours: jsonNumberOrNull,
   is_blocked: z.boolean(),
   blocker_description: z.string().nullable(),
   remarks: z.string().nullable(),

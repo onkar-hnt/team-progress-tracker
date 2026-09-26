@@ -4,6 +4,7 @@ import type { AppUser, MentorAssignment } from '@models/index'
 import {
   assignedMentorIds,
   buildAccessScope,
+  canRequestProject,
   canViewDeveloperProject,
   filterByScope,
   restrictProjectIds,
@@ -152,5 +153,36 @@ describe('developer and admin visibility', () => {
     expect(scope?.visibleProjectIds).toBeNull()
     expect(canViewDeveloperProject(scope!, developerA, projectY)).toBe(true)
     expect(restrictProjectIds(scope!, [projectY])).toEqual([projectY])
+  })
+})
+
+describe('asking for one project', () => {
+  it('refuses a pure mentor a project they are not responsible for', () => {
+    const scope = buildAccessScope(
+      user({ role: 'mentor', mentorId: mentor1 }),
+      [assignment(mentor1, developerA)],
+      [projectX],
+    )
+
+    expect(canRequestProject(scope!, projectX)).toBe(true)
+    expect(canRequestProject(scope!, projectY)).toBe(false)
+  })
+
+  // The in-memory filter already keeps their own rows; dropping the id before
+  // the read meant the request was never made and the screen looked empty.
+  it('allows a mentor with an employee row any project, for their own work', () => {
+    const scope = buildAccessScope(
+      user({ role: 'mentor', mentorId: mentor1, developerId: 'mentor-as-developer' }),
+      [assignment(mentor1, developerA)],
+      [projectX],
+    )
+
+    expect(canRequestProject(scope!, projectY)).toBe(true)
+  })
+
+  it('allows an administrator any project', () => {
+    expect(canRequestProject(buildAccessScope(user({ role: 'admin' }), [], [])!, projectY)).toBe(
+      true,
+    )
   })
 })
