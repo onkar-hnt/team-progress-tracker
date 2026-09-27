@@ -157,7 +157,7 @@ attempts on top of these would turn one failed screen into nine requests.
 [`src/services/api/api-client.ts`](src/services/api/api-client.ts) is the **only** HTTP client:
 
 - Base URL from config; **Bearer** token attached centrally (except `anonymous: true` for login)
-- Query serialisation — arrays **comma-separated**; empty arrays sent as empty values where filters mean “match nothing”
+- Query serialisation — arrays **comma-separated**; an **empty array is not “match nothing”** — the services read an empty filter as no filter, so a screen that is waiting on the reader must disable its query rather than send one
 - Parses **`{ message, status, data }`** envelope; maps status to typed errors
 - **Retry loop** in `apiEnvelope` — **`GET` retried by default**; mutations **not** retried unless `retry: true` (avoid duplicate POSTs)
 - Failures handed to **`reportApiFailure`** when globally owned

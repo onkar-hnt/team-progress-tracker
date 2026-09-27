@@ -106,10 +106,13 @@ const POLL_INTERVAL_MS = 45_000
  * Keeps the bell current.
  *
  * The database used to push changes over a realtime channel; the API has no
- * push channel, so this asks instead — on a timer, and immediately when the
- * tab is brought back to the front, which is when somebody is about to look.
- * Nothing is asked while the tab is hidden, so a window left open overnight
- * costs nothing.
+ * push channel, so this asks instead — on a timer, and only while the tab is
+ * being looked at, so a window left open overnight costs nothing.
+ *
+ * Deliberately not also on `focus` and `visibilitychange`. Clicking into the
+ * devtools and back is a focus event, and re-reading the inbox twice every
+ * time somebody glances away is noise for the sake of shaving at most one
+ * poll interval off how old the badge can be.
  */
 export function subscribeToNotifications(onChange: () => void): () => void {
   const isHidden = (): boolean =>
@@ -119,27 +122,7 @@ export function subscribeToNotifications(onChange: () => void): () => void {
     if (!isHidden()) onChange()
   }, POLL_INTERVAL_MS)
 
-  const onVisible = (): void => {
-    if (!isHidden()) onChange()
-  }
-
-  if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', onVisible)
-  }
-
-  if (typeof window !== 'undefined') {
-    window.addEventListener('focus', onVisible)
-  }
-
   return () => {
     clearInterval(timer)
-
-    if (typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', onVisible)
-    }
-
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('focus', onVisible)
-    }
   }
 }

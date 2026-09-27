@@ -34,19 +34,20 @@ interface DeveloperReport {
   error: Error | null
 }
 
-// Empty developerIds skips the fetch until Generate is pressed.
-const NOTHING_REQUESTED = { developerIds: [] } as const
-
 export function useDeveloperReport(filters: DeveloperReportFilters | null): DeveloperReport {
   const query = useDailyWorkEntries(
     filters === null
-      ? NOTHING_REQUESTED
+      ? undefined
       : {
           dateFrom: filters.from,
           dateTo: filters.to,
           developerIds: [filters.developerId],
           ...(filters.projectId === '' ? {} : { projectIds: [filters.projectId] }),
         },
+    // Nothing is read until Generate is pressed. This used to be said with an
+    // empty developer filter, which the services read as no filter and
+    // answered with every update the reader could see.
+    { enabled: filters !== null },
   )
 
   const entries = useMemo(() => query.data ?? [], [query.data])
