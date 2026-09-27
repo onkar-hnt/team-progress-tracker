@@ -4,12 +4,15 @@ import type {
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
+  CreateLeaveDayRequest,
   CreateMentorCommentRequest,
   CreateMentorRequest,
   CreateProjectRequest,
   DailyWorkEntry,
   DailyWorkQuery,
   Developer,
+  LeaveDay,
+  LeaveDayQuery,
   Mentor,
   MentorAssignment,
   MentorComment,
@@ -44,6 +47,11 @@ import {
   selectComments,
   updateCommentRow,
 } from './feedback.repository'
+import {
+  deleteLeaveDayRow,
+  insertLeaveDay,
+  selectLeaveDays,
+} from './leave-days.repository'
 import {
   replaceMentorAssignments,
   selectMentorAssignments,
@@ -190,6 +198,18 @@ export class SupabaseDataProvider implements DataProvider {
 
   deleteDailyWorkEntry(id: string): Promise<void> {
     return deleteDailyUpdateRow(this.client, id)
+  }
+
+  getLeaveDays(query?: LeaveDayQuery): Promise<LeaveDay[]> {
+    return selectLeaveDays(this.client, query)
+  }
+
+  createLeaveDay(request: CreateLeaveDayRequest): Promise<LeaveDay> {
+    return insertLeaveDay(this.client, request)
+  }
+
+  deleteLeaveDay(id: string): Promise<void> {
+    return deleteLeaveDayRow(this.client, id)
   }
 
   getComments(query?: MentorCommentQuery): Promise<MentorComment[]> {

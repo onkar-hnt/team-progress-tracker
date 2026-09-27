@@ -3,6 +3,7 @@ export type DataSourceTable =
   | 'Comments'
   | 'DailyWork'
   | 'Developers'
+  | 'LeaveDays'
   | 'MentorMapping'
   | 'Mentors'
   | 'Projects'

@@ -38,6 +38,7 @@ const UNIQUE_CONSTRAINT_MESSAGES: Readonly<Record<string, string>> = {
   developers_email_key: 'Another employee already uses that email address.',
   developers_employee_id_key: 'Another employee already has that employee id.',
   mentor_assignments_unique_pair: 'That developer is already assigned to this mentor.',
+  leave_days_one_per_day: 'That day is already marked as leave.',
 }
 
 /** Maps a foreign-key column onto the reference the taxonomy names. */

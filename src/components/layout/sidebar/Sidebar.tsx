@@ -88,6 +88,12 @@ const navigationGroups: readonly NavigationGroup[] = [
     heading: 'Team',
     items: [
       { label: 'Team Activity', path: '/team-activity', icon: 'activity', isVisible: canViewTeamData },
+      {
+        label: 'Missing Updates',
+        path: '/missing-updates',
+        icon: 'alert',
+        isVisible: canViewTeamData,
+      },
       { label: 'Developers', path: '/developers', icon: 'users', isVisible: canViewTeamData },
       { label: 'Feedback', path: '/feedback', icon: 'comments', isVisible: canWriteFeedback },
       { label: 'Reports', path: '/reports', icon: 'chart', isVisible: canViewTeamData },

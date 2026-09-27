@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 
 import { Header } from '@components/layout/header/Header'
 import { Sidebar } from '@components/layout/sidebar/Sidebar'
+import { UpdateReminder } from '@features/daily-update/components/UpdateReminder'
 
 import './AppLayout.scss'
 
@@ -68,6 +69,10 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* In the shell, not on a screen: the person who has not logged the day
+          is by definition somewhere else in the application. */}
+      <UpdateReminder />
     </div>
   )
 }

@@ -20,6 +20,7 @@ export {
   type TaskStatus,
   type UpdateDailyWorkEntryRequest,
 } from './daily-work.model'
+export type { CreateLeaveDayRequest, LeaveDay, LeaveDayQuery } from './leave.model'
 export type {
   CreateMentorRequest,
   Mentor,

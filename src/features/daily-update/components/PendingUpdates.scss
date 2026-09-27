@@ -1,0 +1,87 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.pending-updates {
+
+  &__clear {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  &__list {
+    @include grid($gap: $space-2);
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__day {
+    @include flex($justify: space-between, $align: center, $gap: $space-3);
+
+    flex-wrap: wrap;
+    padding: $space-3;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: $color-surface-subtle;
+
+    &--active {
+      border-color: $color-brand-muted;
+      background: $color-brand-light;
+    }
+  }
+
+  &__when {
+    @include flex($align: baseline, $gap: $space-2);
+  }
+
+  &__weekday {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__date {
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+  }
+
+  &__actions {
+    @include flex($align: center, $gap: $space-2);
+
+    flex-wrap: wrap;
+  }
+
+  &__leave {
+    margin-top: $space-4;
+    padding-top: $space-3;
+    border-top: 1px solid $color-border;
+  }
+
+  &__leave-heading {
+    margin: 0 0 $space-2;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__leave-list {
+    @include grid($gap: $space-1);
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__leave-day {
+    @include flex($justify: space-between, $align: center, $gap: $space-3);
+
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+}

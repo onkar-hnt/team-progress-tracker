@@ -1,0 +1,40 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.missing-updates-table {
+
+  &__count {
+    font-weight: $font-weight-semibold;
+
+    &--behind {
+      color: $color-danger;
+    }
+  }
+
+  &__days {
+    @include flex($align: center, $gap: $space-1);
+
+    flex-wrap: wrap;
+  }
+
+  &__chip {
+    padding: 0.125rem $space-2;
+    border: 1px solid $color-danger-border;
+    border-radius: $radius-pill;
+    background: $color-danger-surface;
+    color: $color-danger;
+    font-size: $font-size-xs;
+    white-space: nowrap;
+
+    &--more {
+      border-color: $color-neutral-border;
+      background: $color-neutral-surface;
+      color: $color-neutral-text;
+    }
+  }
+
+  &__clear {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+}

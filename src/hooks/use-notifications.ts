@@ -3,7 +3,10 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
 
 import { useAuth } from '@app/providers/auth-context'
+import { useSnackbar } from '@app/providers/snackbar-context'
 import type { AppNotification, NotificationType } from '@models/index'
+import { logFailure, toUserMessage } from '@services/errors/error-message'
+import type { DailyUpdateReminder } from '@services/notifications/notification.service'
 import {
   NOTIFICATION_PAGE_SIZE,
   areNotificationsAvailable,
@@ -13,6 +16,7 @@ import {
   markNotificationRead,
   readMutedNotificationTypes,
   saveMutedNotificationTypes,
+  sendDailyUpdateReminder,
   subscribeToNotifications,
 } from '@services/notifications/notification.service'
 
@@ -99,6 +103,23 @@ export function useMarkAllNotificationsRead(): UseMutationResult<void, Error, vo
   const invalidate = useInvalidateNotifications()
 
   return useMutation({ mutationFn: markAllNotificationsRead, onSuccess: invalidate })
+}
+
+/**
+ * Sends one developer a reminder. Nothing of this reader's own is invalidated:
+ * the row lands in somebody else's inbox, and their client hears about it over
+ * Realtime.
+ */
+export function useSendUpdateReminder(): UseMutationResult<void, Error, DailyUpdateReminder> {
+  const snackbar = useSnackbar()
+
+  return useMutation({
+    mutationFn: sendDailyUpdateReminder,
+    onError: (error) => {
+      logFailure('write:reminder', error)
+      snackbar.error(toUserMessage(error, 'The reminder could not be sent.'))
+    },
+  })
 }
 
 export function useMutedNotificationTypes(): UseQueryResult<NotificationType[]> {

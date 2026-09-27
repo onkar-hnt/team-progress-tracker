@@ -11,6 +11,7 @@ const PAGE_TITLES: Readonly<Record<string, string>> = {
   dashboard: 'Dashboard',
   developers: 'Developers',
   feedback: 'Feedback',
+  'missing-updates': 'Missing Updates',
   'my-tasks': 'My Tasks',
   profile: 'Profile',
   'recently-deleted': 'Recently Deleted',

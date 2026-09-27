@@ -49,6 +49,12 @@ export const queryKeys = {
   comments: (scopeId: string, query?: MentorCommentQuery) =>
     [ROOT, 'comments', scopeId, query ?? null] as const,
 
+  leaveDays: (scopeId: string, range: DateRange, developerIds?: readonly string[]) =>
+    [ROOT, 'leave-days', scopeId, range.from, range.to, listOrNull(developerIds)] as const,
+
+  updateCoverage: (scopeId: string, range: DateRange, developerIds?: readonly string[]) =>
+    [ROOT, 'update-coverage', scopeId, range.from, range.to, listOrNull(developerIds)] as const,
+
   dayOverview: (scopeId: string, isoDate: string) =>
     [ROOT, 'day-overview', scopeId, isoDate] as const,
 
@@ -71,9 +77,11 @@ export const queryKeys = {
   allComments: () => [ROOT, 'comments'] as const,
   allDailyWork: () => [ROOT, 'daily-work'] as const,
   allDayOverviews: () => [ROOT, 'day-overview'] as const,
+  allLeaveDays: () => [ROOT, 'leave-days'] as const,
   allNotifications: () => [ROOT, 'notifications'] as const,
   allRangeOverviews: () => [ROOT, 'range-overview'] as const,
   allTasks: () => [ROOT, 'tasks'] as const,
+  allUpdateCoverage: () => [ROOT, 'update-coverage'] as const,
 }
 
 function listOrNull(values: readonly string[] | undefined): string[] | null {

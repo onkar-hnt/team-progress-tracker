@@ -2,6 +2,7 @@
 
 /** Must match the notifications.type check constraint in the database. */
 export const NOTIFICATION_TYPES = [
+  'daily_update_reminder',
   'daily_update_submitted',
   'feedback_added',
   'task_assigned',

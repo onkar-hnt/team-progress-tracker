@@ -327,3 +327,11 @@ Kept honest rather than aspirational:
   API with a token that has rights over the entire project, which is not a credential to put behind
   a browser screen. Those three are listed with their allowances and a link to the project's own
   report instead of being quietly left out.
+- **Leave is a statement, not a request.** A day with no daily update is a gap until somebody says
+  it was leave, and **Missing updates** shows those gaps to whoever may see that developer, with a
+  reminder they can send. What it is not is an absence system: a developer records their own leave
+  and an administrator can record anybody's, nobody approves it, and there is no balance. Public
+  holidays are still unmodelled, so a shut office shows up as a team-wide gap until each person
+  marks it — `WORKING_WEEKDAYS` is the whole of the calendar. The two reminders are at 11:00 and
+  16:00 on the reader's own clock and are not configurable, which is deliberate for now: one fewer
+  setting, and the only person they reach is somebody who has not logged the day.

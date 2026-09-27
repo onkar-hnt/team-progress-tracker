@@ -1,0 +1,10 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.missing-updates {
+  @include page-stack;
+
+  &__stats {
+    margin-top: $space-5;
+  }
+}

@@ -61,6 +61,9 @@ const AdminProjectsPage = lazy(async () => ({
 const AdminTasksPage = lazy(async () => ({
   default: (await import('@features/admin/pages/TasksPage')).TasksPage,
 }))
+const MissingUpdatesPage = lazy(async () => ({
+  default: (await import('@features/missing-updates/pages/MissingUpdatesPage')).MissingUpdatesPage,
+}))
 const ReportsPage = lazy(async () => ({
   default: (await import('@features/reports/pages/ReportsPage')).ReportsPage,
 }))
@@ -144,6 +147,7 @@ function LazyRoutes() {
 
       <Route element={<RequireTeamAccess />}>
         <Route path="team-activity" element={<TeamActivityPage />} />
+        <Route path="missing-updates" element={<MissingUpdatesPage />} />
         <Route path="developers" element={<DevelopersPage />} />
         <Route path="reports" element={<ReportsPage />} />
       </Route>

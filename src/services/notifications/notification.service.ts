@@ -31,7 +31,14 @@ function requireClient() {
 }
 
 /** 42P01/PGRST205 means notifications migration is not applied yet. */
-const MISSING_TABLE_CODES: ReadonlySet<string> = new Set(['42P01', 'PGRST205'])
+const MISSING_TABLE_CODES: ReadonlySet<string> = new Set(['42P01', 'PGRST205', 'PGRST202'])
+
+/**
+ * Raised by `send_daily_update_reminder` when the caller may not ask this
+ * developer, or when the developer has no login. Both are written for whoever
+ * pressed the button, so they are passed through rather than replaced.
+ */
+const SPOKEN_FOR_CODES: ReadonlySet<string> = new Set(['22023', '42501'])
 
 const PREFERENCES_MIGRATION = '20260913150000_notification_preferences.sql'
 
@@ -182,6 +189,40 @@ export async function saveMutedNotificationTypes(
       error,
       'Your notification preferences could not be saved.',
       PREFERENCES_MIGRATION,
+    )
+  }
+}
+
+export interface DailyUpdateReminder {
+  developerId: string
+
+  /** Added to the wording in the recipient's own notification, if given. */
+  message?: string
+}
+
+/**
+ * The one notification a person can send by hand.
+ *
+ * Through an RPC because `notifications` takes no client INSERT and
+ * `enqueue_notification` is not callable from here — the function decides
+ * whether the caller may ask this developer for anything, then writes the row
+ * as the owner. Nothing about the sender is passed: it reads their profile.
+ */
+export async function sendDailyUpdateReminder(reminder: DailyUpdateReminder): Promise<void> {
+  const { error } = await requireClient().rpc('send_daily_update_reminder', {
+    p_developer_id: reminder.developerId,
+    p_message: reminder.message?.trim() === '' ? null : (reminder.message ?? null),
+  })
+
+  if (error !== null) {
+    if (SPOKEN_FOR_CODES.has(error.code)) {
+      throw new DataProviderError(error.message, { cause: error })
+    }
+
+    throw mapNotificationError(
+      error,
+      'The reminder could not be sent.',
+      '20260927120000_update_reminders_and_leave.sql',
     )
   }
 }

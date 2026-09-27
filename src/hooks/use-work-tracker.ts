@@ -8,12 +8,14 @@ import type {
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
+  CreateLeaveDayRequest,
   CreateMentorCommentRequest,
   CreateMentorRequest,
   CreateProjectRequest,
   DailyWorkEntry,
   DailyWorkQuery,
   Developer,
+  LeaveDay,
   Mentor,
   MentorComment,
   MentorCommentQuery,
@@ -48,6 +50,7 @@ import type {
   RangeOverview,
 } from '@services/work-tracker.service'
 import type { DateRange } from '@utils/date.utils'
+import type { UpdateCoverage } from '@utils/update-coverage.utils'
 
 import { parseDailyWorkQuery, queryKeys } from './query-keys'
 import { useAccessScope } from './use-access-scope'
@@ -243,6 +246,44 @@ export function useDayOverview(isoDate: string): UseQueryResult<DayOverview> {
   )
 }
 
+export function useLeaveDays(
+  range: DateRange,
+  developerIds?: readonly string[],
+): UseQueryResult<LeaveDay[]> {
+  const service = getWorkTrackerService()
+
+  return useScopedQuery(
+    (scopeId) => queryKeys.leaveDays(scopeId, range, developerIds),
+    (scope) =>
+      service.getLeaveDays(scope, {
+        dateFrom: range.from,
+        dateTo: range.to,
+        ...(developerIds === undefined ? {} : { developerIds }),
+      }),
+  )
+}
+
+/** `developerIds` narrows the read; left out, it covers everyone in scope. */
+export function useUpdateCoverage(
+  range: DateRange,
+  developerIds?: readonly string[],
+  options: { enabled?: boolean } = {},
+): UseQueryResult<UpdateCoverage> {
+  const service = getWorkTrackerService()
+  const { isResolving, scope } = useAccessScope()
+  const scopeId = scope === null ? 'none' : describeScope(scope)
+
+  return useQuery({
+    queryKey: queryKeys.updateCoverage(scopeId, range, developerIds),
+    queryFn: () => {
+      if (scope === null) throw new Error('No access scope is available.')
+      return service.getUpdateCoverage(scope, range, developerIds)
+    },
+    enabled: !isResolving && scope !== null && options.enabled !== false,
+    placeholderData: keepPreviousData,
+  })
+}
+
 export function useRangeOverview(range: DateRange): UseQueryResult<RangeOverview> {
   const service = getWorkTrackerService()
 
@@ -270,6 +311,8 @@ const AFFECTED_BY: Readonly<Record<WriteScope, readonly (readonly unknown[])[]>>
     queryKeys.allDayOverviews(),
     queryKeys.allRangeOverviews(),
     queryKeys.allComments(),
+    queryKeys.allLeaveDays(),
+    queryKeys.allUpdateCoverage(),
   ],
 
   comments: [queryKeys.allComments()],
@@ -360,6 +403,24 @@ export function useDeleteDailyWorkEntry(): UseMutationResult<void, Error, string
     (id: string) => service.deleteDailyWorkEntry(id),
     'work',
     'The daily update could not be deleted. Please try again.',
+  )
+}
+
+export function useMarkLeaveDay(): UseMutationResult<LeaveDay, Error, CreateLeaveDayRequest> {
+  const service = getWorkTrackerService()
+  return useWorkTrackerMutation(
+    (request: CreateLeaveDayRequest) => service.createLeaveDay(request),
+    'work',
+    'That day could not be marked as leave. Please try again.',
+  )
+}
+
+export function useClearLeaveDay(): UseMutationResult<void, Error, string> {
+  const service = getWorkTrackerService()
+  return useWorkTrackerMutation(
+    (id: string) => service.clearLeaveDay(id),
+    'work',
+    'That leave day could not be removed. Please try again.',
   )
 }
 

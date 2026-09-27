@@ -4,8 +4,8 @@ import type { AppNotification, NotificationType } from '@models/index'
 /**
  * How each kind of notification is drawn and where it leads.
  *
- * A table rather than a chain of conditions in the panel, so that adding the
- * seventh notification type is one entry here — and so the compiler names this
+ * A table rather than a chain of conditions in the panel, so that adding
+ * another notification type is one entry here — and so the compiler names this
  * file if somebody adds one to `NOTIFICATION_TYPES` and forgets. `Record` over
  * the union is what makes that exhaustiveness check happen.
  */
@@ -35,6 +35,7 @@ export const NOTIFICATION_DISPLAY: Readonly<Record<NotificationType, Notificatio
   task_comment_added: { icon: 'comments', path: '/my-tasks', tone: 'attention' },
   feedback_added: { icon: 'comments', path: '/feedback', tone: 'informational' },
   daily_update_submitted: { icon: 'calendar', path: '/team-activity', tone: 'informational' },
+  daily_update_reminder: { icon: 'calendar', path: '/daily-update', tone: 'attention' },
   work_blocked: { icon: 'alert', path: '/team-activity', tone: 'attention' },
 }
 

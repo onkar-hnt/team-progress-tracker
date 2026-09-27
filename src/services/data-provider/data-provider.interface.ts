@@ -4,12 +4,15 @@ import type {
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
+  CreateLeaveDayRequest,
   CreateMentorCommentRequest,
   CreateMentorRequest,
   CreateProjectRequest,
   DailyWorkEntry,
   DailyWorkQuery,
   Developer,
+  LeaveDay,
+  LeaveDayQuery,
   Mentor,
   MentorAssignment,
   MentorComment,
@@ -98,4 +101,11 @@ export interface DataProvider {
   ): Promise<DailyWorkEntry>
 
   deleteDailyWorkEntry(id: string): Promise<void>
+
+  /** Days accounted for as leave, which is why no update exists for them. */
+  getLeaveDays(query?: LeaveDayQuery): Promise<LeaveDay[]>
+
+  createLeaveDay(request: CreateLeaveDayRequest): Promise<LeaveDay>
+
+  deleteLeaveDay(id: string): Promise<void>
 }

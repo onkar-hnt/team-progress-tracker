@@ -78,6 +78,13 @@ const PREFERENCE_GROUPS: readonly PreferenceGroup[] = [
     types: ['feedback_added'],
   },
   {
+    id: 'update-reminders',
+    capacity: 'developer',
+    event: 'a mentor asks you for a daily update',
+    hint: 'The automatic reminders on the day itself are not affected by this.',
+    types: ['daily_update_reminder'],
+  },
+  {
     id: 'task-comments',
     capacity: 'either',
     event: 'somebody comments on a task you are part of',

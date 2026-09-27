@@ -6,12 +6,15 @@ import type {
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
+  CreateLeaveDayRequest,
   CreateMentorCommentRequest,
   CreateMentorRequest,
   CreateProjectRequest,
   DailyWorkEntry,
   DailyWorkQuery,
   Developer,
+  LeaveDay,
+  LeaveDayQuery,
   Mentor,
   MentorAssignment,
   MentorComment,
@@ -25,7 +28,7 @@ import type {
   UpdateProjectRequest,
 } from '@models/index'
 
-import { getDataProvider } from './data-provider/index'
+import { DataSourceUnavailableError, getDataProvider } from './data-provider/index'
 import type { DataProvider, DataProviderCapabilities } from './data-provider/index'
 import type { AccessScope } from './auth/access-scope'
 import {
@@ -50,6 +53,8 @@ import {
   summariseStatuses,
 } from '@utils/work-summary.utils'
 import { sortByMostRecent } from '@utils/task.utils'
+import type { UpdateCoverage } from '@utils/update-coverage.utils'
+import { buildUpdateCoverage } from '@utils/update-coverage.utils'
 
 export interface DailyWorkEntryView extends DailyWorkEntry {
   developerName: string
@@ -88,7 +93,12 @@ export interface DayOverview {
   completionRate: number
   hoursLogged: number
   developersUpdated: Developer[]
+
+  /** Excludes anybody whose day is accounted for as leave. */
   developersMissingUpdate: Developer[]
+
+  developersOnLeave: Developer[]
+
   blockedEntries: DailyWorkEntryView[]
 }
 
@@ -464,13 +474,76 @@ export class WorkTrackerService {
     return this.provider.deleteDailyWorkEntry(id)
   }
 
+  async getLeaveDays(scope: AccessScope, query?: LeaveDayQuery): Promise<LeaveDay[]> {
+    const requested = restrictDeveloperIds(scope, query?.developerIds)
+    const effectiveIds = idsForRead(query?.developerIds, requested)
+
+    if (effectiveIds !== undefined && effectiveIds.length === 0) return []
+
+    const leaveDays = await this.provider.getLeaveDays({
+      ...query,
+      ...withDeveloperIds(effectiveIds),
+    })
+
+    return filterByScope(scope, narrowToDevelopers(effectiveIds, leaveDays))
+  }
+
+  createLeaveDay(request: CreateLeaveDayRequest): Promise<LeaveDay> {
+    return this.provider.createLeaveDay(request)
+  }
+
+  clearLeaveDay(id: string): Promise<void> {
+    return this.provider.deleteLeaveDay(id)
+  }
+
+  /**
+   * Which working days in a range each visible developer has accounted for.
+   *
+   * Reads the three sets separately and joins them here rather than asking the
+   * database for the gaps, because a gap is the absence of a row: there is
+   * nothing to select, and the list of days that should exist is a calendar
+   * question the client already answers for every other range screen.
+   */
+  async getUpdateCoverage(
+    scope: AccessScope,
+    range: DateRange,
+    developerIds?: readonly string[],
+  ): Promise<UpdateCoverage> {
+    const forDevelopers = withDeveloperIds(developerIds)
+
+    const [developers, entries, leaveDays] = await Promise.all([
+      this.getDevelopers(scope),
+      this.readScopedEntries(scope, {
+        dateFrom: range.from,
+        dateTo: range.to,
+        ...forDevelopers,
+      }),
+      this.readLeaveDaysIfPresent(scope, range, developerIds),
+    ])
+
+    return buildUpdateCoverage({
+      developers:
+        developerIds === undefined
+          ? developers
+          : developers.filter((developer) => developerIds.includes(developer.id)),
+      entries,
+      leaveDays,
+      range,
+    })
+  }
+
   async getDayOverview(scope: AccessScope, isoDate: string): Promise<DayOverview> {
     const entries = await this.readScopedEntries(scope, { dateFrom: isoDate, dateTo: isoDate })
 
-    const [views, developers] = await Promise.all([
+    const [views, developers, leaveDays] = await Promise.all([
       this.decorateEntries(entries),
       this.getDevelopers(scope),
+      this.readLeaveDaysIfPresent(scope, { from: isoDate, to: isoDate }),
     ])
+
+    // A day off is not a day somebody failed to account for, so the two lists
+    // are exclusive: whoever appears here is absent from the one below.
+    const onLeave = new Set(leaveDays.map((leaveDay) => leaveDay.developerId))
 
     return {
       date: isoDate,
@@ -479,7 +552,10 @@ export class WorkTrackerService {
       completionRate: calculateCompletionRate(entries),
       hoursLogged: sumHoursLogged(entries),
       developersUpdated: findDevelopersWithUpdate(developers, entries, isoDate),
-      developersMissingUpdate: findDevelopersMissingUpdate(developers, entries, isoDate),
+      developersMissingUpdate: findDevelopersMissingUpdate(developers, entries, isoDate).filter(
+        (developer) => !onLeave.has(developer.id),
+      ),
+      developersOnLeave: developers.filter((developer) => onLeave.has(developer.id)),
       blockedEntries: findBlockedEntries(views),
     }
   }
@@ -509,6 +585,33 @@ export class WorkTrackerService {
   /** Falls back to the previous working day so weekend dashboards are not empty. */
   getWorkingDayOverview(scope: AccessScope, isoDate: string): Promise<DayOverview> {
     return this.getDayOverview(scope, toNearestWorkingDay(isoDate))
+  }
+
+  /**
+   * Leave, for a screen that is about something else.
+   *
+   * The deploy carrying this code can land before the migration carrying the
+   * table, and the dashboard is not the place to find that out: an overview
+   * that failed for a missing leave table would take the whole screen with it.
+   * Unavailable therefore means "no leave recorded", which is what every day
+   * before this feature already meant. Anything else is a real fault and is
+   * raised.
+   */
+  private async readLeaveDaysIfPresent(
+    scope: AccessScope,
+    range: DateRange,
+    developerIds?: readonly string[],
+  ): Promise<LeaveDay[]> {
+    try {
+      return await this.getLeaveDays(scope, {
+        dateFrom: range.from,
+        dateTo: range.to,
+        ...withDeveloperIds(developerIds),
+      })
+    } catch (error) {
+      if (error instanceof DataSourceUnavailableError) return []
+      throw error
+    }
   }
 
   /** Passes the caller's filters to the provider. RLS decides which rows come back. */
