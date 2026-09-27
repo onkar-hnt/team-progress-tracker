@@ -6,6 +6,7 @@ import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { Panel } from '@components/ui/panel/Panel'
 import { ShowMore } from '@components/ui/show-more/ShowMore'
+import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { useChangeLog } from '@features/history/hooks/use-history'
 import { usePaging } from '@hooks/use-paging'
 import { useTableSort } from '@hooks/use-table-sort'
@@ -91,7 +92,7 @@ export function ChangeLogPage() {
   return (
     <div className="change-log">
       <Panel
-        description="Every change to a record in the last fifteen days, with what it was before."
+        description="Every change to a record in the last seven days, with what it was before."
         isPageHeading
         title="Change log"
       >
@@ -99,7 +100,7 @@ export function ChangeLogPage() {
           Written as things happen and never edited, including by the person who made the change.
           You see the history of the work you can see, which for a developer is their own — so a
           task moved to completed by somebody else shows here, with their name against it. Lines
-          are kept for fifteen days.
+          are kept for seven days.
         </p>
       </Panel>
 
@@ -156,7 +157,13 @@ export function ChangeLogPage() {
                           <span className="change-log__kind">{HISTORY_KINDS[change.kind]}</span>
                         </td>
                         <td className="change-log__subject">
-                          {change.subject === '' ? '—' : change.subject}
+                          {change.subject === '' ? (
+                            '—'
+                          ) : (
+                            <Tooltip clips label={change.subject} markup={change.subjectMarkup}>
+                              {change.subject}
+                            </Tooltip>
+                          )}
                         </td>
                         <td>
                           {change.fields.length === 0 ? (

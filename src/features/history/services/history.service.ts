@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
-import { richTextToPlainText } from '@utils/rich-text/rich-text.utils'
+import { isMarkup, richTextToPlainText } from '@utils/rich-text/rich-text.utils'
 
 export function isHistoryAvailable(): boolean {
   return isSupabaseConfigured()
@@ -46,6 +46,7 @@ export interface ChangeRecord {
 
   /** The record this happened to, as it was named at the time. */
   subject: string
+  subjectMarkup?: string
 
   recordId: string
   changedAt: string
@@ -82,15 +83,23 @@ function humanise(column: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
+// The change log reads as one line per field, so a formatted description is
+// quoted as the words somebody wrote rather than as the markup holding them.
+function toOneLine(value: string): string {
+  // A subject is stored as `left(markup, 120)`, which can cut a tag in half.
+  // Half a tag is neither markup nor writing, so it comes off first.
+  const whole = isMarkup(value) ? value.replace(/<[^>]*$/u, '') : value
+
+  return richTextToPlainText(whole).replace(/\n+/gu, ' ')
+}
+
 function formatValue(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (typeof value === 'number') return String(value)
 
   if (typeof value === 'string') {
-    // The change log reads as one line per field, so a formatted description is
-    // quoted as the words somebody wrote rather than as the markup holding them.
-    const trimmed = richTextToPlainText(value).replace(/\n+/gu, ' ')
+    const trimmed = toOneLine(value)
     if (trimmed === '') return undefined
     return trimmed.length > 80 ? `${trimmed.slice(0, 79)}…` : trimmed
   }
@@ -144,7 +153,10 @@ function toChangeRecord(row: z.infer<typeof changeRowSchema>): ChangeRecord {
     id: row.id,
     kind: row.table_name,
     action: row.action,
-    subject: row.subject,
+
+    // A feedback comment is named by its body, which is written as rich text.
+    subject: toOneLine(row.subject),
+    ...(isMarkup(row.subject) ? { subjectMarkup: row.subject } : {}),
     recordId: row.record_id,
     changedAt: row.changed_at,
     ...(row.changed_by === null ? {} : { changedByProfileId: row.changed_by }),

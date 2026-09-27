@@ -306,7 +306,9 @@ Kept honest rather than aspirational:
   rather than destroying it, and **Recently deleted** stamps who did it and when; an employee,
   mentor or project can still only be deleted while no live work references it, which is a rule
   about deleting rather than about the bin. What nobody restores is destroyed after fifteen days,
-  and the change log is trimmed to the same window. Notifications go thirty days after they are
+  and the change log is trimmed to seven — a line is read while somebody works out what happened
+  this week, where a deleted record is restored once somebody notices it is gone, which takes
+  longer. Notifications go thirty days after they are
   read and ninety while unread — the one table that grew with traffic rather than with head-count.
   Each of those is a capped sweep on the table itself, carried by the next write rather than by a
   schedule, so a re-created project keeps its retention along with its schema.

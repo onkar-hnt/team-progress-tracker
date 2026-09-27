@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { RichText } from '@components/ui/rich-text/RichText'
+import { isRichTextEmpty } from '@utils/rich-text/rich-text.utils'
+
 import './Tooltip.scss'
 
 type TooltipSide = 'right' | 'top'
 
 interface TooltipProps {
-  /** Empty label keeps the tooltip off without changing markup. */
   label: string
+  markup?: string
 
   side?: TooltipSide
 
@@ -24,9 +27,10 @@ interface Position {
   left: number
 }
 
-export function Tooltip({ children, clips = false, label, side = 'top' }: TooltipProps) {
+export function Tooltip({ children, clips = false, label, markup, side = 'top' }: TooltipProps) {
   const anchorRef = useRef<HTMLSpanElement>(null)
   const [position, setPosition] = useState<Position | null>(null)
+  const rich = markup !== undefined && !isRichTextEmpty(markup) ? markup : null
 
   const open = useCallback(() => {
     const anchor = anchorRef.current
@@ -74,10 +78,10 @@ export function Tooltip({ children, clips = false, label, side = 'top' }: Toolti
       {position === null ? null : (
         <span
           aria-hidden="true"
-          className={`tooltip__bubble tooltip__bubble--${side}`}
+          className={`tooltip__bubble tooltip__bubble--${side}${rich === null ? '' : ' tooltip__bubble--rich'}`}
           style={{ left: position.left, top: position.top }}
         >
-          {label}
+          {rich === null ? label : <RichText value={rich} />}
         </span>
       )}
     </span>

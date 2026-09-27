@@ -36,5 +36,39 @@
     &--top {
       transform: translate(-50%, -100%);
     }
+
+    // Formatting shown rather than a single line, so the bubble reads as the
+    // writing it holds: ragged left, and wide enough for a sentence to breathe.
+    &--rich {
+      max-width: 24rem;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-regular;
+      line-height: $line-height-base;
+      text-align: left;
+    }
+  }
+
+  /// The shared rich-text spacing is drawn for a page, where a description has
+  /// room. Inside a bubble the blocks sit closer, and a heading takes the text
+  /// colour around it instead of the dark ink meant for a light background.
+  &__bubble--rich .rich-text {
+
+    h2,
+    h3,
+    h4 {
+      margin: $space-2 0 $space-1;
+      color: inherit;
+    }
+
+    p,
+    ul,
+    ol {
+      margin-bottom: $space-1;
+    }
+
+    ul,
+    ol {
+      padding-left: $space-4;
+    }
   }
 }
