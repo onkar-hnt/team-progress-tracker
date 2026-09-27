@@ -58,9 +58,7 @@ export function toTaskRequest(values: TaskFormValues) {
     status: values.status,
     createdDate: values.createdDate,
 
-    // Sent rather than omitted, so emptying the box on an edit clears the
-    // stored description instead of leaving the previous one in place. An
-    // editor left alone reports a paragraph, which is not a description.
+    // Sent rather than omitted, so emptying the box clears the stored description.
     description: normaliseRichText(values.description ?? ''),
 
     ...(values.mentorId === '' ? {} : { mentorId: values.mentorId }),

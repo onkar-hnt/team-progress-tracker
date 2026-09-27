@@ -56,9 +56,7 @@ export function toProjectRequest(values: ProjectFormValues) {
     mentorIds,
     ...(mentorIds[0] === undefined ? {} : { mentorId: mentorIds[0] }),
 
-    // Sent rather than omitted, so emptying the box on an edit clears the
-    // stored description instead of leaving the previous one in place. An
-    // editor left alone reports a paragraph, which is not a description.
+    // Sent rather than omitted, so emptying the box clears the stored description.
     description: normaliseRichText(values.description ?? ''),
 
     ...(values.startDate === '' ? {} : { startDate: values.startDate }),

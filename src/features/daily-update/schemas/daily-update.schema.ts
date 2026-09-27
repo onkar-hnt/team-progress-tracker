@@ -205,9 +205,8 @@ export function toCreateDailyWorkEntryRequest(
     projectId: values.projectId,
     taskId: values.taskId === '' ? undefined : values.taskId,
     taskTitle: values.taskTitle.trim(),
-    // Sent even when empty, so clearing it on an edit clears the stored value
-    // rather than leaving the previous day's text in place. An editor emptied
-    // by hand still reports an empty paragraph, which is stored as nothing.
+    // Sent even when empty, so clearing it clears the stored value rather than
+    // leaving the previous day's.
     workDone: normaliseRichText(values.workDone),
     status: values.status,
     priority: values.priority,
