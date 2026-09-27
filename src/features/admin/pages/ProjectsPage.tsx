@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 
 import { useConfirm } from '@app/providers/confirm-context'
 import { useAuth } from '@app/providers/auth-context'
@@ -10,17 +9,12 @@ import { Button } from '@components/ui/button/Button'
 import { SortableHeader } from '@components/ui/data-table/SortableHeader'
 import { TableSearch } from '@components/ui/data-table/TableSearch'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
-import {
-  CheckboxField,
-  ChecklistField,
-  Field,
-  TextAreaField,
-  TextField,
-} from '@components/ui/field/Field'
+import { CheckboxField, ChecklistField, Field, TextField } from '@components/ui/field/Field'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { NameList } from '@components/ui/name-list/NameList'
 import { Panel } from '@components/ui/panel/Panel'
+import { DeferredRichTextField } from '@components/ui/rich-text/DeferredRichTextField'
 import {
   useCreateProject,
   useDeleteProject,
@@ -34,9 +28,12 @@ import { PROJECT_STATUSES } from '@models/project.model'
 import type { Project, ProjectStatus } from '@models/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import { formatShortDate } from '@utils/date.utils'
+import { richTextToPlainText } from '@utils/rich-text.utils'
 import { compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
+import { projectFormSchema, toProjectFormValues, toProjectRequest } from '../schemas/project.schema'
+import type { ProjectFormValues } from '../schemas/project.schema'
 
 const PROJECT_STATUS_LABELS: Readonly<Record<ProjectStatus, string>> = {
   planned: 'Planned',
@@ -49,26 +46,6 @@ const PROJECT_STATUS_OPTIONS = PROJECT_STATUSES.map((status) => ({
   value: status,
   label: PROJECT_STATUS_LABELS[status],
 }))
-
-const projectFormSchema = z
-  .object({
-    name: z.string().trim().min(2, { message: 'Enter the project name' }),
-    client: z.string().trim().min(1, { message: 'Enter the client' }),
-    description: z.string().trim().max(500).optional(),
-    status: z.enum(PROJECT_STATUSES),
-    startDate: z.string(),
-    endDate: z.string(),
-    mentorIds: z.array(z.string()),
-    assignedDeveloperIds: z.array(z.string()),
-    active: z.boolean(),
-  })
-  .refine(
-    (values) =>
-      values.startDate === '' || values.endDate === '' || values.startDate <= values.endDate,
-    { message: 'The end date cannot be before the start date', path: ['endDate'] },
-  )
-
-type ProjectFormValues = z.infer<typeof projectFormSchema>
 
 type SortKey = 'client' | 'developers' | 'name' | 'start' | 'status'
 
@@ -131,7 +108,17 @@ export function ProjectsPage() {
 
   const visible = useMemo(() => {
     const rows = (projectsQuery.data ?? []).filter((project) =>
-      matchesSearch([project.name, project.client, project.description], search),
+      matchesSearch(
+        [
+          project.name,
+          project.client,
+          // Searched for as it reads, not as it is stored.
+          project.description === undefined
+            ? undefined
+            : richTextToPlainText(project.description),
+        ],
+        search,
+      ),
     )
 
     return sortRows(rows, sort, compareProjects, (left, right) =>
@@ -274,7 +261,7 @@ export function ProjectsPage() {
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
             const isSaved = await createProject
-              .mutateAsync(toRequest(values))
+              .mutateAsync(toProjectRequest(values))
               .then(() => true)
               .catch(() => false)
 
@@ -295,7 +282,7 @@ export function ProjectsPage() {
             onCancel={() => setEditing(null)}
             onSubmit={async (values) => {
               const isSaved = await updateProject
-                .mutateAsync({ id: editing.id, changes: toRequest(values) })
+                .mutateAsync({ id: editing.id, changes: toProjectRequest(values) })
                 .then(() => true)
                 .catch(() => false)
 
@@ -310,25 +297,6 @@ export function ProjectsPage() {
       </Modal>
     </AdminPageLayout>
   )
-}
-
-function toRequest(values: ProjectFormValues) {
-  const mentorIds = [...new Set(values.mentorIds)]
-
-  return {
-    name: values.name,
-    client: values.client,
-    status: values.status,
-    active: values.active,
-    assignedDeveloperIds: values.assignedDeveloperIds,
-    mentorIds,
-    ...(mentorIds[0] === undefined ? {} : { mentorId: mentorIds[0] }),
-    ...(values.description === undefined || values.description === ''
-      ? {}
-      : { description: values.description }),
-    ...(values.startDate === '' ? {} : { startDate: values.startDate }),
-    ...(values.endDate === '' ? {} : { endDate: values.endDate }),
-  }
 }
 
 function ProjectForm({
@@ -354,17 +322,7 @@ function ProjectForm({
     setValue,
   } = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
-    defaultValues: {
-      name: project?.name ?? '',
-      client: project?.client ?? '',
-      description: project?.description ?? '',
-      status: project?.status ?? 'planned',
-      startDate: project?.startDate ?? '',
-      endDate: project?.endDate ?? '',
-      mentorIds: initialMentorIds(project, lockedMentorId),
-      assignedDeveloperIds: [...(project?.assignedDeveloperIds ?? [])],
-      active: project?.active ?? true,
-    },
+    defaultValues: toProjectFormValues(project, lockedMentorId),
   })
 
   // useWatch, not watch: watch returns a function the React compiler cannot memoise.
@@ -444,11 +402,21 @@ function ProjectForm({
         />
       </div>
 
-      <TextAreaField
-        id="project-description"
-        isWide
-        label="Description"
-        {...register('description')}
+      <Controller
+        control={control}
+        name="description"
+        render={({ field }) => (
+          <DeferredRichTextField
+            error={errors.description?.message}
+            id="project-description"
+            isWide
+            label="Description"
+            onBlur={field.onBlur}
+            onChange={field.onChange}
+            placeholder="What the project is, and anything the team should know about it"
+            value={field.value ?? ''}
+          />
+        )}
       />
 
       <ChecklistField
@@ -477,13 +445,3 @@ function ProjectForm({
   )
 }
 
-function initialMentorIds(project: Project | undefined, lockedMentorId: string | undefined): string[] {
-  /// The primary mentor leads, so saving the form keeps `mentorId` as the first of `mentorIds`.
-  return [
-    ...new Set([
-      ...(project?.mentorId === undefined ? [] : [project.mentorId]),
-      ...(project?.mentorIds ?? []),
-      ...(lockedMentorId === undefined ? [] : [lockedMentorId]),
-    ]),
-  ]
-}

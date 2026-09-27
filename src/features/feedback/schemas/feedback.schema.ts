@@ -2,15 +2,19 @@ import { z } from 'zod'
 
 import type { CreateMentorCommentRequest, MentorComment } from '@models/index'
 import { todayIsoDate } from '@utils/date.utils'
-
-/** Shared with the task comment trail so both write the same column the same way. */
-export const commentTextSchema = z
-  .string()
-  .trim()
-  .min(3, { message: 'Write at least a sentence' })
-  .max(2000, { message: 'Keep this under 2000 characters' })
+import { richTextSchema } from '@utils/rich-text.schema'
+import { normaliseRichText } from '@utils/rich-text.utils'
 
 export const COMMENT_MAX_LENGTH = 2000
+
+const COMMENT_MIN_LENGTH = 3
+
+/** Shared with the task comment trail so both write the same column the same way. */
+export const commentTextSchema = richTextSchema({
+  max: COMMENT_MAX_LENGTH,
+  min: COMMENT_MIN_LENGTH,
+  tooShort: 'Write at least a sentence',
+})
 
 // Task is optional so general feedback can be recorded without attaching to one.
 export const feedbackFormSchema = z.object({
@@ -63,7 +67,7 @@ export function toCreateCommentRequest(
 
     projectId,
     date: values.date,
-    comment: values.comment.trim(),
+    comment: normaliseRichText(values.comment),
     ...omitBlank('progressUpdate', values.progressUpdate),
     ...omitBlank('blockers', values.blockers),
     ...omitBlank('recommendations', values.recommendations),

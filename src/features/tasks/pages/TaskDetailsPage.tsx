@@ -6,6 +6,7 @@ import { useSnackbar } from '@app/providers/snackbar-context'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { Panel } from '@components/ui/panel/Panel'
+import { RichText } from '@components/ui/rich-text/RichText'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { useAccessScope } from '@hooks/use-access-scope'
 import { useCreateComment, useTask, useTaskComments } from '@hooks/use-work-tracker'
@@ -131,7 +132,9 @@ export function TaskDetailsPage() {
             </dl>
 
             {task.description === undefined ? null : (
-              <p className="task-details__description">{task.description}</p>
+              <div className="task-details__description">
+                <RichText value={task.description} />
+              </div>
             )}
           </>
         )}

@@ -4,7 +4,8 @@ import { PROGRESS_MAX, PROGRESS_MIN } from '@constants/task.constants'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { CreateDailyWorkEntryRequest, DailyWorkEntry } from '@models/index'
 import { isIsoDateString, todayIsoDate } from '@utils/date.utils'
-import { isRichTextEmpty, normaliseRichText, richTextToPlainText } from '@utils/rich-text.utils'
+import { richTextSchema } from '@utils/rich-text.schema'
+import { isRichTextEmpty, normaliseRichText } from '@utils/rich-text.utils'
 
 const TASK_TITLE_MAX = 160
 const WORK_DONE_MAX = 2000
@@ -34,16 +35,8 @@ const baseSchema = z
      * What moved today, as formatting markup. The title names the task and
      * stays the same across the days it takes, so without this the whole day
      * ends up in the title and the task is named after one afternoon of it.
-     *
-     * Measured on the words rather than the markup, or a long list would be
-     * refused for the tags holding it together.
      */
-    workDone: z
-      .string()
-      .trim()
-      .refine((value) => richTextToPlainText(value).length <= WORK_DONE_MAX, {
-        message: `Keep this under ${WORK_DONE_MAX} characters`,
-      }),
+    workDone: richTextSchema({ max: WORK_DONE_MAX }),
 
     status: z.enum(TASK_STATUSES),
 

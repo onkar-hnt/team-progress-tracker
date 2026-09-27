@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { Field, TextAreaField, TextField } from '@components/ui/field/Field'
+import { RichTextField } from '@components/ui/rich-text/RichTextField'
 import { useActiveDevelopers, useTasks } from '@hooks/use-work-tracker'
 import type { MentorComment } from '@models/index'
 import { describeTask, groupTasksByCompletion } from '@utils/task.utils'
@@ -184,14 +185,21 @@ export function FeedbackForm({ comment, developerId, onCancel, onSubmit }: Feedb
         />
       </Field>
 
-      <TextAreaField
-        error={errors.comment?.message}
-        id="feedback-comment"
-        isWide
-        label="Feedback"
-        placeholder="What went well, what needs attention"
-        rows={4}
-        {...register('comment')}
+      <Controller
+        control={control}
+        name="comment"
+        render={({ field }) => (
+          <RichTextField
+            error={errors.comment?.message}
+            id="feedback-comment"
+            isWide
+            label="Feedback"
+            onBlur={field.onBlur}
+            onChange={field.onChange}
+            placeholder="What went well, what needs attention"
+            value={field.value}
+          />
+        )}
       />
 
       <div className="feedback-form__optional">

@@ -89,12 +89,14 @@
     font-size: $font-size-xs;
   }
 
+  // No white-space rule: the formatting says where the lines are. A comment
+  // written before the editor existed is plain text, and `RichText` keeps its
+  // breaks itself.
   &__body {
     margin: $space-2 0 0;
     color: $color-text;
     font-size: $font-size-sm;
     line-height: $line-height-base;
-    white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
 
@@ -127,5 +129,12 @@
     color: $color-text-muted;
     font-size: $font-size-xs;
     font-variant-numeric: tabular-nums;
+
+    // Over the limit the count is the reason the button is off, so it stops
+    // being an aside and says so.
+    &--over {
+      color: $color-danger;
+      font-weight: $font-weight-semibold;
+    }
   }
 }

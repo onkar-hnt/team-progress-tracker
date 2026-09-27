@@ -44,10 +44,11 @@
     }
   }
 
+  // No white-space rule: the formatting says where the lines are, and a
+  // description written before the editor existed keeps its own breaks.
   &__description {
     margin: $space-5 0 0;
     color: $color-text;
     line-height: $line-height-loose;
-    white-space: pre-wrap;
   }
 }

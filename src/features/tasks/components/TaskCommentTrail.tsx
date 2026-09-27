@@ -3,12 +3,14 @@ import type { ReactNode } from 'react'
 
 import { Button } from '@components/ui/button/Button'
 import { EmptyState } from '@components/ui/feedback/Feedback'
-import { TextAreaField } from '@components/ui/field/Field'
+import { RichText } from '@components/ui/rich-text/RichText'
+import { RichTextField } from '@components/ui/rich-text/RichTextField'
 import type { CommentAuthorRole } from '@models/index'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import type { MentorCommentView } from '@services/work-tracker.service'
 import { formatRelativeTime, formatTimestamp } from '@utils/date.utils'
 import { initialsOf } from '@utils/name.utils'
+import { isRichTextEmpty, normaliseRichText, richTextToPlainText } from '@utils/rich-text.utils'
 
 import { COMMENT_MAX_LENGTH, commentTextSchema } from '@features/feedback/schemas/feedback.schema'
 
@@ -70,7 +72,11 @@ export function TaskCommentTrail({
   const [error, setError] = useState<string | undefined>(undefined)
 
   const composer = COMPOSER[authorRole]
-  const isEmpty = draft.trim() === ''
+  const isEmpty = isRichTextEmpty(draft)
+
+  // Counted and refused on the words, since that is what the limit is about.
+  const length = richTextToPlainText(draft).length
+  const isOverLimit = length > COMMENT_MAX_LENGTH
 
   const submit = async () => {
     const checked = commentTextSchema.safeParse(draft)
@@ -80,7 +86,9 @@ export function TaskCommentTrail({
       return
     }
 
-    const isSaved = await onAddComment(checked.data)
+    // The editor keeps a paragraph below what was written so there is somewhere
+    // to click; it is furniture, and does not belong in the conversation.
+    const isSaved = await onAddComment(normaliseRichText(checked.data))
     if (!isSaved) return
 
     setDraft('')
@@ -116,28 +124,30 @@ export function TaskCommentTrail({
             void submit()
           }}
         >
-          <TextAreaField
+          <RichTextField
             error={error}
             id="task-comment"
             isWide
             label={composer.label}
-            maxLength={COMMENT_MAX_LENGTH}
-            onChange={(event) => {
-              setDraft(event.target.value)
+            onChange={(next) => {
+              setDraft(next)
               if (error !== undefined) setError(undefined)
             }}
             placeholder={composer.placeholder}
-            rows={3}
             value={draft}
           />
 
           <div className="task-trail__actions">
-            <p className="task-trail__count">
-              {draft.trim().length} / {COMMENT_MAX_LENGTH}
+            <p
+              className={
+                isOverLimit ? 'task-trail__count task-trail__count--over' : 'task-trail__count'
+              }
+            >
+              {length} / {COMMENT_MAX_LENGTH}
             </p>
 
             <Button
-              disabled={isEmpty || isSubmitting}
+              disabled={isEmpty || isOverLimit || isSubmitting}
               isLoading={isSubmitting}
               type="submit"
               variant="primary"
@@ -175,7 +185,9 @@ function TrailEntry({ actions, comment }: { actions?: ReactNode; comment: Mentor
         {actions === undefined ? null : <div className="task-trail__entry-actions">{actions}</div>}
       </div>
 
-      <p className="task-trail__body">{comment.comment}</p>
+      <div className="task-trail__body">
+        <RichText value={comment.comment} />
+      </div>
 
       <TrailDetail label="Progress" value={comment.progressUpdate} />
       <TrailDetail label="Blockers" value={comment.blockers} />

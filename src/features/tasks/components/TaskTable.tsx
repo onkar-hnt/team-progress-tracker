@@ -10,6 +10,7 @@ import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { useTableSort } from '@hooks/use-table-sort'
 import type { AssignedTaskView } from '@services/work-tracker.service'
 import { formatShortDate } from '@utils/date.utils'
+import { richTextToPlainText } from '@utils/rich-text.utils'
 import { compareEffort, comparePriority, compareStatus, describeEffort } from '@utils/task.utils'
 import { compareText, sortRows } from '@utils/table.utils'
 
@@ -105,11 +106,7 @@ export function TaskTable({
                   </Tooltip>
                 </Link>
                 {task.description === undefined ? null : (
-                  <span className="task-table__description">
-                    <Tooltip clips label={task.description}>
-                      {task.description}
-                    </Tooltip>
-                  </span>
+                  <TaskDescription description={task.description} />
                 )}
               </td>
               {showDeveloper ? <td>{task.developerName}</td> : null}
@@ -147,6 +144,25 @@ export function TaskTable({
         </tbody>
       </table>
     </div>
+  )
+}
+
+/**
+ * The description under the task name, as one clipped line.
+ *
+ * The words rather than the formatting it was written with: the column is
+ * scanned down, and a heading or a list in a cell this size would break the
+ * line the eye is following. The name links to the task, where it reads in full.
+ */
+function TaskDescription({ description }: { description: string }) {
+  const words = richTextToPlainText(description).replace(/\n/gu, ' ')
+
+  return (
+    <span className="task-table__description">
+      <Tooltip clips label={words}>
+        {words}
+      </Tooltip>
+    </span>
   )
 }
 

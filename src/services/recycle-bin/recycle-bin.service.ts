@@ -4,6 +4,7 @@ import type { AccessScope } from '@services/auth/index'
 import { canViewDeveloperProject } from '@services/auth/index'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
+import { richTextToPlainText } from '@utils/rich-text.utils'
 
 /** Supabase-only soft-delete bin; auth is enforced by RLS, not this module. */
 
@@ -270,7 +271,9 @@ function toRosterRecord(
 function summarise(comment: string | null): string | null {
   if (comment === null) return null
 
-  const firstLine = comment.split('\n')[0]?.trim() ?? ''
+  // The words the comment was written with, so a formatted one is named in the
+  // bin by its first line rather than by the tag that opens it.
+  const firstLine = richTextToPlainText(comment).split('\n')[0]?.trim() ?? ''
 
   if (firstLine === '') return null
 

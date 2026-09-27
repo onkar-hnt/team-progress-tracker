@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 
 import { useConfirm } from '@app/providers/confirm-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { TableSearch } from '@components/ui/data-table/TableSearch'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
-import { Field, TextAreaField, TextField } from '@components/ui/field/Field'
+import { Field, TextField } from '@components/ui/field/Field'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
+import { DeferredRichTextField } from '@components/ui/rich-text/DeferredRichTextField'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import { TaskTable } from '@features/tasks/components/TaskTable'
 import {
@@ -24,40 +24,15 @@ import {
   useTasks,
   useUpdateTask,
 } from '@hooks/use-work-tracker'
-import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { AssignedTask } from '@models/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
-import { todayIsoDate } from '@utils/date.utils'
+import { richTextToPlainText } from '@utils/rich-text.utils'
 import { matchesSearch } from '@utils/table.utils'
 import { countCommentsByTask } from '@utils/task.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
-
-const taskFormSchema = z
-  .object({
-    name: z.string().trim().min(3, { message: 'Describe the task in a few words' }),
-    description: z.string().trim().max(1000).optional(),
-    projectId: z.string().min(1, { message: 'Choose a project' }),
-    developerId: z.string().min(1, { message: 'Choose a developer' }),
-    mentorId: z.string(),
-    priority: z.enum(TASK_PRIORITIES),
-    status: z.enum(TASK_STATUSES),
-    createdDate: z.string().min(1, { message: 'Choose a start date' }),
-    dueDate: z.string(),
-    estimatedHours: z.string(),
-  })
-  .refine((values) => values.dueDate === '' || values.dueDate >= values.createdDate, {
-    message: 'The due date cannot be before the start date',
-    path: ['dueDate'],
-  })
-  .refine(
-    (values) =>
-      values.estimatedHours === '' ||
-      (Number.isFinite(Number(values.estimatedHours)) && Number(values.estimatedHours) > 0),
-    { message: 'Enter a number of hours above zero', path: ['estimatedHours'] },
-  )
-
-type TaskFormValues = z.infer<typeof taskFormSchema>
+import { taskFormSchema, toTaskFormValues, toTaskRequest } from '../schemas/task.schema'
+import type { TaskFormValues } from '../schemas/task.schema'
 
 export function TasksPage() {
   const confirm = useConfirm()
@@ -84,7 +59,16 @@ export function TasksPage() {
   const visible = useMemo(
     () =>
       (tasksQuery.data ?? []).filter((task) =>
-        matchesSearch([task.name, task.description, task.developerName, task.projectName], search),
+        matchesSearch(
+          [
+            task.name,
+            // Searched for as it reads, not as it is stored.
+            task.description === undefined ? undefined : richTextToPlainText(task.description),
+            task.developerName,
+            task.projectName,
+          ],
+          search,
+        ),
       ),
     [search, tasksQuery.data],
   )
@@ -196,7 +180,7 @@ export function TasksPage() {
           onCancel={() => setIsCreating(false)}
           onSubmit={async (values) => {
             const isSaved = await createTask
-              .mutateAsync(toRequest(values))
+              .mutateAsync(toTaskRequest(values))
               .then(() => true)
               .catch(() => false)
 
@@ -217,7 +201,7 @@ export function TasksPage() {
             onCancel={() => setEditing(null)}
             onSubmit={async (values) => {
               const isSaved = await updateTask
-                .mutateAsync({ id: editing.id, changes: toRequest(values) })
+                .mutateAsync({ id: editing.id, changes: toTaskRequest(values) })
                 .then(() => true)
                 .catch(() => false)
 
@@ -233,23 +217,6 @@ export function TasksPage() {
       </Modal>
     </AdminPageLayout>
   )
-}
-
-function toRequest(values: TaskFormValues) {
-  return {
-    name: values.name,
-    projectId: values.projectId,
-    developerId: values.developerId,
-    priority: values.priority,
-    status: values.status,
-    createdDate: values.createdDate,
-    ...(values.description === undefined || values.description === ''
-      ? {}
-      : { description: values.description }),
-    ...(values.mentorId === '' ? {} : { mentorId: values.mentorId }),
-    ...(values.dueDate === '' ? {} : { dueDate: values.dueDate }),
-    ...(values.estimatedHours === '' ? {} : { estimatedHours: Number(values.estimatedHours) }),
-  }
 }
 
 function TaskForm({
@@ -274,18 +241,7 @@ function TaskForm({
     register,
   } = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
-    defaultValues: {
-      name: task?.name ?? '',
-      description: task?.description ?? '',
-      projectId: task?.projectId ?? '',
-      developerId: task?.developerId ?? '',
-      mentorId: task?.mentorId ?? '',
-      priority: task?.priority ?? 'medium',
-      status: task?.status ?? 'not-started',
-      createdDate: task?.createdDate ?? todayIsoDate(),
-      dueDate: task?.dueDate ?? '',
-      estimatedHours: task?.estimatedHours === undefined ? '' : String(task.estimatedHours),
-    },
+    defaultValues: toTaskFormValues(task),
   })
 
   return (
@@ -417,11 +373,21 @@ function TaskForm({
         />
       </div>
 
-      <TextAreaField
-        id="task-description"
-        isWide
-        label="Description"
-        {...register('description')}
+      <Controller
+        control={control}
+        name="description"
+        render={({ field }) => (
+          <DeferredRichTextField
+            error={errors.description?.message}
+            id="task-description"
+            isWide
+            label="Description"
+            onBlur={field.onBlur}
+            onChange={field.onChange}
+            placeholder="What the task covers, and anything the developer needs to know"
+            value={field.value ?? ''}
+          />
+        )}
       />
 
       <div className="form__actions">

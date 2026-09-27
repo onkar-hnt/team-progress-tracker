@@ -17,6 +17,13 @@ interface FieldProps {
   /** Spans every column of a multi-column form grid. */
   isWide?: boolean
 
+  /**
+   * What clicking the caption should do, for a control a `<label>` cannot bind
+   * to. `for` reaches form controls only, so a rich-text box — which is a
+   * `contenteditable` element — has to be focused by hand.
+   */
+  onLabelClick?: () => void
+
   children: ReactNode
 }
 
@@ -24,10 +31,24 @@ function errorId(htmlFor: string): string {
   return `${htmlFor}-error`
 }
 
-export function Field({ children, error, hint, htmlFor, isWide = false, label }: FieldProps) {
+export function Field({
+  children,
+  error,
+  hint,
+  htmlFor,
+  isWide = false,
+  label,
+  onLabelClick,
+}: FieldProps) {
   return (
     <div className={isWide ? 'form__field form__field--wide' : 'form__field'}>
-      {htmlFor === undefined ? <span>{label}</span> : <label htmlFor={htmlFor}>{label}</label>}
+      {htmlFor === undefined ? (
+        <span>{label}</span>
+      ) : (
+        <label htmlFor={htmlFor} onClick={onLabelClick}>
+          {label}
+        </label>
+      )}
 
       {children}
 

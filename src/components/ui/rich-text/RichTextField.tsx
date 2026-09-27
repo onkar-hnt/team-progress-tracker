@@ -11,7 +11,7 @@ import { cleanPastedRichText, toEditorContent } from '@utils/rich-text.utils'
 
 import './RichTextField.scss'
 
-interface RichTextFieldProps {
+export interface RichTextFieldProps {
   id: string
   label: string
   hint?: string
@@ -19,7 +19,10 @@ interface RichTextFieldProps {
   isWide?: boolean
   placeholder?: string
   value: string
-  onBlur: () => void
+
+  /** Omitted where the value is held in state rather than by a form. */
+  onBlur?: () => void
+
   onChange: (next: string) => void
 }
 
@@ -114,7 +117,7 @@ export function RichTextField({
     content: toEditorContent(value),
     editorProps: editorPropsFor({ error, id, label }),
     onBlur: () => {
-      onBlur()
+      onBlur?.()
     },
     onUpdate: ({ editor: instance }) => {
       const written = instance.getHTML()
@@ -153,7 +156,19 @@ export function RichTextField({
   })
 
   return (
-    <Field error={error} hint={hint} htmlFor={id} isWide={isWide} label={label}>
+    <Field
+      error={error}
+      hint={hint}
+      htmlFor={id}
+      isWide={isWide}
+      label={label}
+      onLabelClick={() => {
+        // The element itself rather than `commands.focus()`, which defers to an
+        // animation frame: clicking a caption should land the caret at once,
+        // the same as it does for an input.
+        editor.view.dom.focus()
+      }}
+    >
       <div className="rich-text-field">
         <div className="rich-text-field__toolbar">
           <Tool
