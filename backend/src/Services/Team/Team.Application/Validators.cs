@@ -231,6 +231,23 @@ public sealed class ProjectUpdatePayloadValidator : AbstractValidator<UpdatePayl
     }
 }
 
+public sealed class SaveLeaveDayRequestValidator : AbstractValidator<SaveLeaveDayRequest>
+{
+    public SaveLeaveDayRequestValidator()
+    {
+        RuleFor(request => request.DeveloperId)
+            .NotEmpty().WithMessage("Say whose day this is.");
+
+        RuleFor(request => request.Date)
+            .NotEmpty().WithMessage("Say which day.")
+            .Must(date => ValidationDates.IsOptionalDate(date))
+            .WithMessage("Date must be a date like 2026-09-16.");
+
+        RuleFor(request => request.Note).MaximumLength(500)
+            .When(request => request.Note is not null);
+    }
+}
+
 public sealed class SetMentorAssignmentsRequestValidator : AbstractValidator<SetMentorAssignmentsRequest>
 {
     public SetMentorAssignmentsRequestValidator()

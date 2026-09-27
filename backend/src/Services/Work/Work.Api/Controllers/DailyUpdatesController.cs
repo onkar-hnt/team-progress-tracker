@@ -22,7 +22,9 @@ namespace Work.Api.Controllers;
 [Route("api/daily-updates")]
 [Authorize]
 [Tags("Daily updates")]
-public sealed class DailyUpdatesController(DailyWorkEntryService entries) : ControllerBase
+public sealed class DailyUpdatesController(
+    DailyWorkEntryService entries,
+    DailyUpdateReminderService reminders) : ControllerBase
 {
     /// <summary>Lists daily updates the caller may see, newest first.</summary>
     /// <param name="dateFrom">Earliest work date (yyyy-MM-dd).</param>
@@ -108,5 +110,28 @@ public sealed class DailyUpdatesController(DailyWorkEntryService entries) : Cont
         await entries.DeleteAsync(id, cancellationToken);
 
         return Ok(ApiResponse.Ok("Daily update moved to Recently deleted."));
+    }
+
+    /// <summary>Asks one developer for their daily update.</summary>
+    /// <remarks>
+    /// Callable by an administrator, or by a mentor who may see that developer.
+    /// The wording is built here so a reminder always reads as one and is
+    /// always attributed to whoever sent it; a message they add is appended as
+    /// their own words. Answers the same way whether or not a notification was
+    /// written, because the recipient may have switched reminders off.
+    /// </remarks>
+    /// <response code="400">That employee has no login to notify.</response>
+    [HttpPost("reminders")]
+    [Authorize(Policy = AppPolicies.Privileged)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ApiResponse>> Remind(
+        SendReminderRequest request,
+        CancellationToken cancellationToken)
+    {
+        await reminders.SendAsync(request, cancellationToken);
+
+        return Ok(ApiResponse.Ok("Reminder sent."));
     }
 }

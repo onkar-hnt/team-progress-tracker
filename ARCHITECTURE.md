@@ -46,6 +46,14 @@ Infrastructure (EF Core, SQL readers, publishers)
 `ApiResponse`), **Common** (JWT, CORS, Swagger, exception envelope), **Persistence**
 (interceptors), and **SharedKernel** (`AccessScope`, `DomainRules`, `Db` schema names).
 
+Every host composes controllers through `services.AddAppControllers()`, which adds the
+validation filter, camelCase JSON, and `CommaSeparatedListModelBinder`. That last one is
+why a list endpoint can take a `[FromQuery] SomeQuery` record: the frontend joins ids with
+commas into one parameter, and MVC alone understands only repeated parameters, so a
+collection property would otherwise fail to bind and answer with a `400` carrying no
+envelope. An empty filter binds an empty list, which `AccessScope.RestrictDeveloperIds`
+reads as no narrowing rather than as "match nothing".
+
 ---
 
 ## One database, explicit boundaries
@@ -62,6 +70,7 @@ through narrow interfaces:
 | `SqlRosterGateway` | Identity | `team.Developers`, `team.Mentors` for provisioning |
 | `SqlTeamDirectory` | Work, Reporting | Roster names, assignments, existence checks |
 | `SqlWorkEntryReader` | Reporting | Work entries for totals |
+| `SqlLeaveDayReader` | Reporting | `team.LeaveDays` for update coverage |
 | `SqlProfileStatusReader` | ApiGateway | `identity.Profiles.Status` for the active-account gate |
 
 That keeps coupling visible: there is no shared EF model spanning services.
@@ -91,10 +100,15 @@ Postgres **row-level security is gone**. The server is authoritative.
    optional `developer_id` / `mentor_id`, and `must_change_password`. Role comes from
    **`identity.Profiles`**, not from client-supplied metadata.
 2. **`ICurrentUser`** (`CurrentUserAccessor`): per-request identity from the validated token.
-3. **`AccessScope`** (`SharedKernel/AccessScope.cs`): what rows the caller may see — admin has
-   `VisibleDeveloperIds == null` (unrestricted); mentor gets assigned developer ids;
-   developer gets only themselves. Built by **`TeamAccessScopeProvider`** or
-   **`WorkAccessScopeProvider`** (and **`ReportAccessScopeFactory`** in Reporting).
+3. **`AccessScope`** (`SharedKernel/AccessScope.cs`): what rows the caller may see, along two
+   axes. **People** — admin has `VisibleDeveloperIds == null` (unrestricted); mentor gets
+   assigned developer ids; developer gets only themselves. **Projects** —
+   `VisibleProjectIds == null` for everyone except a mentor, who gets the projects they are
+   responsible for (`team.ProjectMentors`). `CanViewDeveloperProject` needs both: a mentor reads
+   another person's work only when assigned to that employee *and* responsible for the project.
+   Work with no project, and a person's own rows, are never narrowed by project. Built by
+   **`TeamAccessScopeProvider`** or **`WorkAccessScopeProvider`** (and
+   **`ReportAccessScopeFactory`** in Reporting).
 4. **ASP.NET policies**: `AppPolicies.Admin`, `AppPolicies.Privileged` (admin or mentor) on
    selected endpoints.
 5. **Application rules**: fine-grained checks (e.g. `TaskService.RequireTaskWriteAsync`,
@@ -134,7 +148,10 @@ Browser                    Gateway                 Service
 | BEFORE audit / soft delete triggers | `AuditInterceptor` |
 | `prune_record_history` / `purge_expired_deletions` (R12) | `RetentionBackgroundService` |
 | `may_reset_password` / `may_manage_account` | `AccountRules` in Identity.Domain |
-| RLS visibility policies | `AccessScope` + query filtering in Team/Work stores |
+| `sync_project_mentor` | `ProjectMentorSynchronizer` in Team.Application |
+| `leave_days` RLS write policies | `LeaveDayRules` in Team.Application |
+| `send_daily_update_reminder` (security definer) | `DailyUpdateReminderService` in Work.Application |
+| RLS visibility policies | `AccessScope` + query filtering in Team/Work/Reporting |
 
 **`WorkSyncContext`** breaks sync cycles the way Postgres used `pg_trigger_depth()`.
 
@@ -148,6 +165,30 @@ Work composes **`NotificationRequest`** lists (`WorkNotificationComposer`) and p
 **`DomainRules.NotificationTypes`** and **`NotificationEntityTypes`**.
 
 Default inbox page size: **20** (max **200**) when `limit` is omitted.
+
+A **daily update reminder** is the one notification somebody sends by hand.
+**`DailyUpdateReminderService`** (Work) names the sender from their own profile through
+**`IActorNameReader`**, so a reminder always reads as a reminder and is always attributed to
+whoever pressed the button. It returns nothing: whether a notification was written is not the
+sender's business, since the recipient may have muted reminders.
+
+---
+
+## Update coverage
+
+Which working days each employee has accounted for is a **calculation**, not stored state —
+**`UpdateCoverageCalculator`** in Reporting.Application. A day is answered by an entry in
+`work.DailyUpdates` or by a row in `team.LeaveDays`; anything else is a gap. Nothing has to be
+written when a day passes, and a day filled in later stops being missing the moment the entry
+lands.
+
+**`ReportService.GetUpdateCoverageAsync`** reads the three sets separately and joins them rather
+than asking the database for the gaps, because a gap is the absence of a row: there is nothing to
+select, and which days should exist is a calendar question (**`DomainRules.WorkingWeekdays`**).
+
+The updates are narrowed by project like every other work read, so a mentor's view of a shared
+employee stops at the projects they are responsible for. The leave days are not: a leave day names
+no project. The Missing updates screen says so in its wording for a mentor.
 
 ---
 

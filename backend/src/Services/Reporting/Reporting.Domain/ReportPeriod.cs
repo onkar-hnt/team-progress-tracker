@@ -22,4 +22,24 @@ public sealed record ReportPeriod(DateOnly From, DateOnly To)
 
         return new ReportPeriod(start, end);
     }
+
+    /// <summary>
+    /// The same window, but defaulting to a fixed look-back rather than the
+    /// calendar month. A month-to-date default would ask about nothing at all
+    /// on the first of the month, which is exactly when the days behind matter.
+    /// </summary>
+    public static ReportPeriod ResolveLookback(string? from, string? to, int days)
+    {
+        var end = string.IsNullOrWhiteSpace(to) ? DateStrings.Today() : DateStrings.ParseDate(to, "to");
+        var start = string.IsNullOrWhiteSpace(from)
+            ? end.AddDays(-days)
+            : DateStrings.ParseDate(from, "from");
+
+        if (start > end)
+        {
+            throw new ValidationFailedException("'from' must be on or before 'to'.");
+        }
+
+        return new ReportPeriod(start, end);
+    }
 }

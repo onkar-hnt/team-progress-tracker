@@ -155,3 +155,16 @@ public sealed record SetTaskStatusRequest
 {
     public string Status { get; init; } = string.Empty;
 }
+
+/// <summary>
+/// Asks one developer for their daily update. Nothing about the sender is sent:
+/// the service names them from their own profile, so a reminder always reads as
+/// a reminder and is always attributed to whoever pressed the button.
+/// </summary>
+public sealed record SendReminderRequest
+{
+    public Guid DeveloperId { get; init; }
+
+    /// <summary>Appended to the wording as the sender's own words, if given.</summary>
+    public string? Message { get; init; }
+}

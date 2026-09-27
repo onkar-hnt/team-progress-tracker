@@ -76,8 +76,10 @@ public sealed class WorkStore(WorkDbContext context, WorkBusinessCodeAllocator c
             .ThenByDescending(row => row.Id)
             .ToListAsync(cancellationToken);
 
-        list = [.. list.Where(row => scope.CanViewDeveloper(row.DeveloperId)
-            || (scope.MentorId is Guid mentorId && row.MentorId == mentorId))];
+        // A mentor reads a task only when they are assigned to its developer and
+        // responsible for its project. Being named as the task's own mentor does
+        // not widen that.
+        list = [.. list.Where(row => scope.CanViewDeveloperProject(row.DeveloperId, row.ProjectId))];
 
         if (query.Limit is int limit && limit > 0)
         {
@@ -131,6 +133,17 @@ public sealed class WorkStore(WorkDbContext context, WorkBusinessCodeAllocator c
         {
             var allowed = scope.VisibleDeveloperIds.ToList();
             rows = rows.Where(row => allowed.Contains(row.DeveloperId));
+        }
+
+        if (scope.VisibleProjectIds is not null)
+        {
+            // Daily updates follow the same project boundary as tasks. A
+            // developer still reads every update of their own.
+            var allowedProjects = scope.VisibleProjectIds.ToList();
+            var ownDeveloperId = scope.DeveloperId;
+
+            rows = rows.Where(row =>
+                row.DeveloperId == ownDeveloperId || allowedProjects.Contains(row.ProjectId));
         }
 
         if (query.ProjectIds is { Count: > 0 } projectIds)
@@ -220,6 +233,20 @@ public sealed class WorkStore(WorkDbContext context, WorkBusinessCodeAllocator c
         {
             var allowed = scope.VisibleDeveloperIds.ToList();
             rows = rows.Where(row => allowed.Contains(row.DeveloperId));
+        }
+
+        if (scope.VisibleProjectIds is not null)
+        {
+            // Feedback tied to a project is visible to the mentors responsible
+            // for it. Feedback with no project stays with every mentor assigned
+            // to the developer. The developer reads all of their own.
+            var allowedProjects = scope.VisibleProjectIds.ToList();
+            var ownDeveloperId = scope.DeveloperId;
+
+            rows = rows.Where(row =>
+                row.DeveloperId == ownDeveloperId
+                || row.ProjectId == null
+                || allowedProjects.Contains(row.ProjectId.Value));
         }
 
         if (query.MentorIds is { Count: > 0 } mentorIds)

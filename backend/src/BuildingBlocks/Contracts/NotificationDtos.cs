@@ -41,3 +41,13 @@ public interface INotificationPublisher
         IReadOnlyCollection<NotificationRequest> requests,
         CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// The caller's own display name, for wording written on their behalf. A
+/// notification a person sends by hand has to be attributed from their profile
+/// rather than from anything they typed, so the name is read here and not sent.
+/// </summary>
+public interface IActorNameReader
+{
+    Task<string> GetDisplayNameAsync(CancellationToken cancellationToken = default);
+}

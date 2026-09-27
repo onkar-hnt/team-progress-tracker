@@ -8,17 +8,23 @@ import type {
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
+  CreateLeaveDayRequest,
   CreateMentorCommentRequest,
   CreateMentorRequest,
   CreateProjectRequest,
+  DailyUpdateReminderRequest,
   DailyWorkEntry,
   DailyWorkQuery,
   Developer,
+  LeaveDay,
+  LeaveDayQuery,
   Mentor,
   MentorComment,
   MentorCommentQuery,
   Project,
   UpdateAssignedTaskRequest,
+  UpdateCoverage,
+  UpdateCoverageQuery,
   UpdateDailyWorkEntryRequest,
   UpdateDeveloperRequest,
   UpdateMentorCommentRequest,
@@ -55,7 +61,7 @@ import { useAccessScope } from './use-access-scope'
 function useScopedQuery<TValue>(
   buildKey: (scopeId: string) => readonly unknown[],
   run: (scope: AccessScope) => Promise<TValue>,
-  options: { staleTime?: number; keepsPreviousData?: boolean } = {},
+  options: { staleTime?: number; keepsPreviousData?: boolean; enabled?: boolean } = {},
 ): UseQueryResult<TValue> {
   const { isResolving, scope } = useAccessScope()
 
@@ -65,7 +71,7 @@ function useScopedQuery<TValue>(
       if (scope === null) throw new Error('No access scope is available.')
       return run(scope)
     },
-    enabled: !isResolving && scope !== null,
+    enabled: !isResolving && scope !== null && options.enabled !== false,
     ...(options.staleTime === undefined ? {} : { staleTime: options.staleTime }),
 
     ...(options.keepsPreviousData === true ? { placeholderData: keepPreviousData } : {}),
@@ -162,14 +168,24 @@ export function useActiveProjects(): UseQueryResult<Project[]> {
   )
 }
 
+/**
+ * Daily updates matching a filter.
+ *
+ * `enabled: false` is how a screen says "not yet" — a screen waiting for the
+ * reader to press a button must not express that as an empty filter, because
+ * an empty filter is not a narrower question. The services read one as no
+ * narrowing at all and answer with the caller's whole history.
+ */
 export function useDailyWorkEntries(
   query?: DailyWorkQuery,
+  options: { enabled?: boolean } = {},
 ): UseQueryResult<DailyWorkEntryView[]> {
   const service = getWorkTrackerService()
 
   return useScopedQuery(
     (scopeId) => queryKeys.dailyWork(scopeId, query),
     (scope) => service.getDailyWorkEntryViews(scope, query),
+    options,
   )
 }
 
@@ -225,6 +241,25 @@ export function useDayOverview(isoDate: string): UseQueryResult<DayOverview> {
   )
 }
 
+export function useLeaveDays(query?: LeaveDayQuery): UseQueryResult<LeaveDay[]> {
+  const service = getWorkTrackerService()
+
+  return useScopedQuery(
+    (scopeId) => queryKeys.leaveDays(scopeId, query),
+    (scope) => service.getLeaveDays(scope, query),
+  )
+}
+
+export function useUpdateCoverage(query?: UpdateCoverageQuery): UseQueryResult<UpdateCoverage> {
+  const service = getWorkTrackerService()
+
+  return useScopedQuery(
+    (scopeId) => queryKeys.updateCoverage(scopeId, query),
+    (scope) => service.getUpdateCoverage(scope, query),
+    { keepsPreviousData: true },
+  )
+}
+
 export function useRangeOverview(range: DateRange): UseQueryResult<RangeOverview> {
   const service = getWorkTrackerService()
 
@@ -252,6 +287,11 @@ const AFFECTED_BY: Readonly<Record<WriteScope, readonly (readonly unknown[])[]>>
     queryKeys.allDayOverviews(),
     queryKeys.allRangeOverviews(),
     queryKeys.allComments(),
+
+    // Marking a day either way changes which days are still missing, and both
+    // screens read that from the same two families.
+    queryKeys.allLeaveDays(),
+    queryKeys.allUpdateCoverage(),
   ],
 
   comments: [queryKeys.allComments()],
@@ -337,6 +377,41 @@ export function useUpdateDailyWorkEntry(): UseMutationResult<
     ({ changes, id }: UpdateDailyWorkEntryVariables) => service.updateDailyWorkEntry(id, changes),
     'work',
     'The daily update could not be saved. Please try again.',
+  )
+}
+
+export function useMarkLeaveDay(): UseMutationResult<LeaveDay, Error, CreateLeaveDayRequest> {
+  const service = getWorkTrackerService()
+  return useWorkTrackerMutation(
+    (request: CreateLeaveDayRequest) => service.markLeaveDay(request),
+    'work',
+    'The day could not be marked as leave. Please try again.',
+  )
+}
+
+export function useClearLeaveDay(): UseMutationResult<void, Error, string> {
+  const service = getWorkTrackerService()
+  return useWorkTrackerMutation(
+    (id: string) => service.clearLeaveDay(id),
+    'work',
+    'The leave day could not be cleared. Please try again.',
+  )
+}
+
+/**
+ * Sending a reminder writes nothing this client reads, so it invalidates
+ * nothing beyond the recipient's own inbox, which they refresh themselves.
+ */
+export function useSendDailyUpdateReminder(): UseMutationResult<
+  void,
+  Error,
+  DailyUpdateReminderRequest
+> {
+  const service = getWorkTrackerService()
+  return useWorkTrackerMutation(
+    (request: DailyUpdateReminderRequest) => service.sendDailyUpdateReminder(request),
+    'comments',
+    'The reminder could not be sent.',
   )
 }
 

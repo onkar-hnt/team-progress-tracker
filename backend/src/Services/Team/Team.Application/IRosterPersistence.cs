@@ -21,6 +21,11 @@ public interface IRosterPersistence
     Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetAllProjectMembersAsync(
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<Guid>> GetProjectMentorIdsAsync(Guid projectId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetAllProjectMentorsAsync(
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<MentorAssignment>> ListMentorAssignmentsAsync(
         CancellationToken cancellationToken);
 
@@ -36,6 +41,8 @@ public interface IRosterPersistence
 
     Task<bool> AllDevelopersExistAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
 
+    Task<bool> AllMentorsExistAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<Guid>> ListDeveloperProjectIdsAsync(
         Guid developerId,
         CancellationToken cancellationToken);
@@ -43,6 +50,25 @@ public interface IRosterPersistence
     Task<IReadOnlyList<Guid>> ListActiveMentorIdsForDeveloperAsync(
         Guid developerId,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<LeaveDay>> ListLeaveDaysAsync(
+        DateOnly? from,
+        DateOnly? to,
+        IReadOnlyCollection<Guid>? developerIds,
+        CancellationToken cancellationToken);
+
+    Task<LeaveDay?> FindLeaveDayAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// True when the day is already accounted for. The unique index is what
+    /// actually stops a second row, so this only exists to answer with a
+    /// conflict rather than a constraint violation.
+    /// </summary>
+    Task<bool> LeaveDayExistsAsync(Guid developerId, DateOnly date, CancellationToken cancellationToken);
+
+    void AddLeaveDay(LeaveDay leaveDay);
+
+    void RemoveLeaveDay(LeaveDay leaveDay);
 
     void AddDeveloper(Developer developer);
 
@@ -57,6 +83,12 @@ public interface IRosterPersistence
     Task ReplaceProjectMembersAsync(
         Guid projectId,
         IReadOnlyList<Guid> developerIds,
+        DateTimeOffset createdAt,
+        CancellationToken cancellationToken);
+
+    Task ReplaceProjectMentorsAsync(
+        Guid projectId,
+        IReadOnlyList<Guid> mentorIds,
         DateTimeOffset createdAt,
         CancellationToken cancellationToken);
 

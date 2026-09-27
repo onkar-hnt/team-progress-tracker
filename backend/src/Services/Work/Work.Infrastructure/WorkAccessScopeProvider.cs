@@ -29,6 +29,7 @@ public sealed class WorkAccessScopeProvider(ITeamDirectory teamDirectory, ICurre
     private async Task<AccessScope> BuildMentorScopeAsync(CancellationToken cancellationToken)
     {
         var visible = new HashSet<Guid>();
+        var projects = new HashSet<Guid>();
 
         if (currentUser.MentorId is Guid mentorId)
         {
@@ -37,6 +38,13 @@ public sealed class WorkAccessScopeProvider(ITeamDirectory teamDirectory, ICurre
             foreach (var developerId in assigned)
             {
                 visible.Add(developerId);
+            }
+
+            var responsible = await teamDirectory.GetResponsibleProjectIdsAsync(mentorId, cancellationToken);
+
+            foreach (var projectId in responsible)
+            {
+                projects.Add(projectId);
             }
         }
 
@@ -49,7 +57,8 @@ public sealed class WorkAccessScopeProvider(ITeamDirectory teamDirectory, ICurre
             DomainRules.RoleMentor,
             currentUser.DeveloperId,
             currentUser.MentorId,
-            visible);
+            visible,
+            projects);
     }
 
     private AccessScope BuildDeveloperScope()

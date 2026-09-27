@@ -77,7 +77,7 @@ namespace Notifications.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Notifications_EntityType", "[EntityType] IS NULL OR [EntityType] IN ('daily_update', 'feedback', 'task')");
 
-                            t.HasCheckConstraint("CK_Notifications_Type", "[Type] IN ('daily_update_submitted', 'feedback_added', 'task_assigned', 'task_comment_added', 'task_reassigned', 'task_status_changed', 'work_blocked')");
+                            t.HasCheckConstraint("CK_Notifications_Type", "[Type] IN ('daily_update_reminder', 'daily_update_submitted', 'feedback_added', 'task_assigned', 'task_comment_added', 'task_reassigned', 'task_status_changed', 'work_blocked')");
                         });
                 });
 

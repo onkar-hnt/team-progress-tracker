@@ -17,7 +17,11 @@ export interface Project {
   startDate?: string
   endDate?: string
 
+  /** Primary mentor, kept in step with the first id in mentorIds. */
   mentorId?: string
+
+  /** Every mentor responsible for the project. Empty when nobody is. */
+  mentorIds: readonly string[]
 
   assignedDeveloperIds: readonly string[]
 

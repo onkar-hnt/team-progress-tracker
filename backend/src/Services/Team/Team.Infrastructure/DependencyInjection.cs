@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<MentorService>();
         services.AddScoped<ProjectService>();
         services.AddScoped<MentorAssignmentService>();
+        services.AddScoped<LeaveService>();
 
         services.AddValidatorsFromAssemblyContaining<SaveDeveloperRequestValidator>();
 

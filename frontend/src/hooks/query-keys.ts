@@ -1,4 +1,10 @@
-import type { AssignedTaskQuery, DailyWorkQuery, MentorCommentQuery } from '@models/index'
+import type {
+  AssignedTaskQuery,
+  DailyWorkQuery,
+  LeaveDayQuery,
+  MentorCommentQuery,
+  UpdateCoverageQuery,
+} from '@models/index'
 import type { DateRange } from '@utils/date.utils'
 
 /** Scoped keys include scope identity so shared browser profiles do not cross-cache. */
@@ -14,6 +20,9 @@ export const queryKeys = {
   mentorAssignments: () => [ROOT, 'mentor-assignments'] as const,
 
   projects: () => [ROOT, 'projects'] as const,
+
+  /** Read before scope exists, so it cannot be keyed by scope identity. */
+  responsibleProjects: () => [ROOT, 'projects', 'responsible'] as const,
 
   /** Roster keys are separate from scoped lists because they return different rows. */
   roster: (table: 'developers' | 'mentors' | 'projects') => [ROOT, 'roster', table] as const,
@@ -43,6 +52,12 @@ export const queryKeys = {
   comments: (scopeId: string, query?: MentorCommentQuery) =>
     [ROOT, 'comments', scopeId, query ?? null] as const,
 
+  leaveDays: (scopeId: string, query?: LeaveDayQuery) =>
+    [ROOT, 'leave-days', scopeId, query ?? null] as const,
+
+  updateCoverage: (scopeId: string, query?: UpdateCoverageQuery) =>
+    [ROOT, 'update-coverage', scopeId, query ?? null] as const,
+
   dayOverview: (scopeId: string, isoDate: string) =>
     [ROOT, 'day-overview', scopeId, isoDate] as const,
 
@@ -65,7 +80,9 @@ export const queryKeys = {
   allComments: () => [ROOT, 'comments'] as const,
   allDailyWork: () => [ROOT, 'daily-work'] as const,
   allDayOverviews: () => [ROOT, 'day-overview'] as const,
+  allLeaveDays: () => [ROOT, 'leave-days'] as const,
   allNotifications: () => [ROOT, 'notifications'] as const,
   allRangeOverviews: () => [ROOT, 'range-overview'] as const,
   allTasks: () => [ROOT, 'tasks'] as const,
+  allUpdateCoverage: () => [ROOT, 'update-coverage'] as const,
 }

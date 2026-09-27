@@ -84,8 +84,8 @@ field is **cleared** — see `Team.Application.RequestApply` and `WorkMapping.Ap
 
 **Exception**: **`name`** on roster PUT is applied only when non-blank.
 
-**Lists**: `assignedDeveloperIds` and mentor assignment PUTs replace the **whole** list when that
-key is sent.
+**Lists**: `assignedDeveloperIds`, `mentorIds` and mentor assignment PUTs replace the **whole** list
+when that key is sent.
 
 ---
 
@@ -143,14 +143,29 @@ Base: `http://localhost:5102`.
 | --- | --- | --- | --- |
 | GET | `/` | Bearer | Scoped read-only |
 
+### Leave days — `/api/leave-days`
+
+| Method | Path | Auth | Query / body | Notes |
+| --- | --- | --- | --- | --- |
+| GET | `/` | Bearer | `dateFrom`, `dateTo`, `developerIds` | Newest first. Scoped like daily updates, but with no project axis: a leave day names no project |
+| POST | `/` | Bearer | `SaveLeaveDayRequest` | 201 `LeaveDayDto`. **Own days or admin only** — a mentor sends a reminder instead. 409 if the day is already accounted for; 400 beyond tomorrow |
+| DELETE | `/{id}` | Bearer | — | **Hard delete.** The row says nothing beyond "this day was leave", so the only undo is removing it |
+
+`RecordedBy` is taken from the token, never from the body, so the record of who said so stays
+honest when an administrator marks somebody else's day.
+
 ### Projects — `/api/projects`
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| GET | `/` | Bearer | Includes `assignedDeveloperIds` |
-| POST | `/` | Privileged | 201 |
-| PUT | `/{id}` | Privileged | Partial; membership replace when key sent |
+| GET | `/` | Bearer | Includes `assignedDeveloperIds` and `mentorIds`. A mentor gets the projects they are responsible for, plus any with no mentor yet |
+| GET | `/responsible` | Bearer | `Guid[]` — projects the caller is responsible for as a mentor; empty for anyone else |
+| POST | `/` | Privileged | 201. A mentor creating a project is added to `mentorIds` |
+| PUT | `/{id}` | Privileged | Partial; membership and `mentorIds` replace when key sent |
 | DELETE | `/{id}` | Privileged | 409 if tasks/entries |
+
+`mentorId` is the primary mentor and is always inside `mentorIds`; sending either keeps the other
+in step. Sending `mentorIds` replaces the whole list.
 
 ---
 
@@ -178,6 +193,7 @@ Base: `http://localhost:5103`.
 | POST | `/` | Bearer | `SaveDailyWorkEntryRequest` | Developer own only; creates/links task by title |
 | PUT | `/{id}` | Bearer | Partial | |
 | DELETE | `/{id}` | Bearer | — | Soft delete |
+| POST | `/reminders` | Privileged | `SendReminderRequest` | Asks one developer for their update. 200 with no data; 404 off-roster, 400 if they have no login. Nothing about the sender is sent — the service names them from their own profile |
 
 ### Feedback — `/api/feedback`
 
@@ -229,9 +245,16 @@ Base: `http://localhost:5105`.
 | GET | `/api/reports/team` | Privileged | `from`, `to`, `projectId` (`ScopedReportQuery`) | `TeamReportDto` |
 | GET | `/api/reports/developers/{developerId}` | Bearer | same | `DeveloperTotalsDto`; 403 other people's ids |
 | GET | `/api/reports/projects` | Privileged | `from`, `to` | `ProjectTotalsDto[]` |
+| GET | `/api/reports/update-coverage` | Bearer | `from`, `to`, `developerIds` | `UpdateCoverageDto` |
 | GET | `/api/usage` | Admin | — | `ResourceUsageDto` |
 
 Date query params: **`yyyy-MM-dd`**. Range must be valid and ≤ **366** days. Backwards range → 400.
+
+`update-coverage` is **Bearer**, not Privileged: a developer asks it for their own days. It defaults
+to the last **`DomainRules.MissingUpdateLookbackDays`** (**14**) days rather than month-to-date,
+which would ask about nothing at all on the first of the month. Each `days` entry is `submitted`,
+`leave` or `missing`, newest first; administrators and mentors are not asked for updates and so do
+not appear.
 
 ---
 

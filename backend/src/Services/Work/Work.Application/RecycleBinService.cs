@@ -159,7 +159,9 @@ public sealed class RecycleBinService(
                 break;
             case "task":
                 var task = await store.FindTaskIncludingDeletedAsync(id, cancellationToken);
-                if (task?.DeletedAt is not null && scope.IsMentor && scope.CanViewDeveloper(task.DeveloperId))
+                if (task?.DeletedAt is not null
+                    && scope.IsMentor
+                    && scope.CanViewDeveloperProject(task.DeveloperId, task.ProjectId))
                 {
                     return;
                 }
@@ -194,7 +196,7 @@ public sealed class RecycleBinService(
             return true;
         }
 
-        return scope.IsMentor && scope.CanViewDeveloper(task.DeveloperId);
+        return scope.IsMentor && scope.CanViewDeveloperProject(task.DeveloperId, task.ProjectId);
     }
 
     private bool CanSeeDeletedEntry(AccessScope scope, DailyUpdate entry)

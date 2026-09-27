@@ -93,9 +93,12 @@ public sealed class CommentService(
             return;
         }
 
+        // Feedback with no project stays open to every mentor assigned to the
+        // developer; feedback on a project needs responsibility for it too.
         if (scope.IsMentor
             && currentUser.MentorId == request.MentorId
-            && scope.CanViewDeveloper(request.DeveloperId))
+            && scope.CanViewDeveloper(request.DeveloperId)
+            && scope.CanViewDeveloperProject(request.DeveloperId, request.ProjectId))
         {
             return;
         }

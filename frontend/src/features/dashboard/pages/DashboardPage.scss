@@ -63,6 +63,12 @@
     font-size: $font-size-xs;
   }
 
+  &__missing-note {
+    margin: $space-3 0 0;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
   &__entry-status {
     @include flex($inline: true, $gap: $space-2);
   }

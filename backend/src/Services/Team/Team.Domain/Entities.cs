@@ -58,6 +58,7 @@ public sealed class Project : Entity, ISoftDeletable, IHasBusinessCode
 
     public Mentor? Mentor { get; set; }
     public ICollection<ProjectDeveloper> Members { get; set; } = [];
+    public ICollection<ProjectMentor> ResponsibleMentors { get; set; } = [];
 }
 
 public sealed class ProjectDeveloper
@@ -67,5 +68,55 @@ public sealed class ProjectDeveloper
     public DateTimeOffset CreatedAt { get; set; }
 
     public Project Project { get; set; } = null!;
+    public Developer Developer { get; set; } = null!;
+}
+
+/// <summary>
+/// A mentor who is responsible for a project. Project.MentorId still names the
+/// one mentor who owns it; this is the full list, and it is what decides whose
+/// work a mentor may read on that project.
+/// </summary>
+public sealed class ProjectMentor
+{
+    public Guid ProjectId { get; set; }
+    public Guid MentorId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public Project Project { get; set; } = null!;
+    public Mentor Mentor { get; set; } = null!;
+}
+
+/// <summary>
+/// A day a developer was on leave, which is why no daily update exists for
+/// them. One row per developer per date, written by the person themselves or by
+/// an administrator.
+/// <para>
+/// Deliberately not a daily update with a special title. An entry there is work
+/// on a task, and <c>DailyUpdateTaskEnsurer</c>, <c>EntryStatusToTaskSynchronizer</c>
+/// and <c>WorkNotificationComposer</c> all run on one; a day off would set all
+/// of it going.
+/// </para>
+/// <para>
+/// Not soft-deletable either. The row is a statement that a day was leave, and
+/// the only undo is removing it: there is nothing else to keep.
+/// </para>
+/// </summary>
+public sealed class LeaveDay : Entity
+{
+    public Guid DeveloperId { get; set; }
+    public DateOnly LeaveDate { get; set; }
+
+    /// <summary>
+    /// Expected to be empty. The reason belongs to whoever took the leave; this
+    /// exists so a note can be left, not so one can be required.
+    /// </summary>
+    public string? Note { get; set; }
+
+    /// <summary>
+    /// Who said so, which is not always whose day it was: an administrator may
+    /// record it for somebody.
+    /// </summary>
+    public Guid? RecordedBy { get; set; }
+
     public Developer Developer { get; set; } = null!;
 }

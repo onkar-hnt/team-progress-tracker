@@ -28,6 +28,7 @@ public sealed class TeamAccessScopeProvider(TeamDbContext context, ICurrentUser 
     private async Task<AccessScope> BuildMentorScopeAsync(CancellationToken cancellationToken)
     {
         var visible = new HashSet<Guid>();
+        var projects = new HashSet<Guid>();
 
         if (currentUser.MentorId is Guid mentorId)
         {
@@ -41,6 +42,22 @@ public sealed class TeamAccessScopeProvider(TeamDbContext context, ICurrentUser 
             {
                 visible.Add(developerId);
             }
+
+            // A project naming this mentor as its owner counts even without a
+            // responsibility row, so a write that only set Project.MentorId
+            // still lets that mentor read the project back.
+            var responsible = await context.Projects
+                .AsNoTracking()
+                .Where(row => row.DeletedAt == null
+                    && (row.MentorId == mentorId
+                        || row.ResponsibleMentors.Any(link => link.MentorId == mentorId)))
+                .Select(row => row.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var projectId in responsible)
+            {
+                projects.Add(projectId);
+            }
         }
 
         if (currentUser.DeveloperId is Guid ownDeveloperId)
@@ -52,7 +69,8 @@ public sealed class TeamAccessScopeProvider(TeamDbContext context, ICurrentUser 
             DomainRules.RoleMentor,
             currentUser.DeveloperId,
             currentUser.MentorId,
-            visible);
+            visible,
+            projects);
     }
 
     private AccessScope BuildDeveloperScope()

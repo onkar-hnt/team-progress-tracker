@@ -20,8 +20,26 @@ public sealed class TeamDirectory(TeamDbContext context) : ITeamDirectory
                 row.Name,
                 row.ProfileId,
                 row.Active,
-                row.PrimaryProjectId))
+                row.PrimaryProjectId,
+                row.AccessRole))
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<RosterDeveloper>> ListDevelopersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await context.Developers
+            .AsNoTracking()
+            .Where(row => row.DeletedAt == null)
+            .OrderBy(row => row.Name)
+            .Select(row => new RosterDeveloper(
+                row.Id,
+                row.Name,
+                row.ProfileId,
+                row.Active,
+                row.PrimaryProjectId,
+                row.AccessRole))
+            .ToListAsync(cancellationToken);
     }
 
     public Task<bool> DeveloperExistsAsync(Guid developerId, CancellationToken cancellationToken = default) =>
@@ -47,6 +65,19 @@ public sealed class TeamDirectory(TeamDbContext context) : ITeamDirectory
             .AsNoTracking()
             .Where(row => row.MentorId == mentorId && row.Active)
             .Select(row => row.DeveloperId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetResponsibleProjectIdsAsync(
+        Guid mentorId,
+        CancellationToken cancellationToken = default)
+    {
+        return await context.Projects
+            .AsNoTracking()
+            .Where(row => row.DeletedAt == null
+                && (row.MentorId == mentorId
+                    || row.ResponsibleMentors.Any(link => link.MentorId == mentorId)))
+            .Select(row => row.Id)
             .ToListAsync(cancellationToken);
     }
 

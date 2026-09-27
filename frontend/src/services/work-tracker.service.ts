@@ -6,18 +6,24 @@ import type {
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
+  CreateLeaveDayRequest,
   CreateMentorCommentRequest,
   CreateMentorRequest,
   CreateProjectRequest,
+  DailyUpdateReminderRequest,
   DailyWorkEntry,
   DailyWorkQuery,
   Developer,
+  LeaveDay,
+  LeaveDayQuery,
   Mentor,
   MentorAssignment,
   MentorComment,
   MentorCommentQuery,
   Project,
   UpdateAssignedTaskRequest,
+  UpdateCoverage,
+  UpdateCoverageQuery,
   UpdateDailyWorkEntryRequest,
   UpdateDeveloperRequest,
   UpdateMentorCommentRequest,
@@ -86,7 +92,12 @@ export interface DayOverview {
   completionRate: number
   hoursLogged: number
   developersUpdated: Developer[]
+
+  /** Excludes anybody whose day is accounted for as leave. */
   developersMissingUpdate: Developer[]
+
+  developersOnLeave: Developer[]
+
   blockedEntries: DailyWorkEntryView[]
 }
 
@@ -198,6 +209,16 @@ export class WorkTrackerService {
     return mentors.filter((mentor) => mentorIds.has(mentor.id))
   }
 
+  /**
+   * Takes AppUser, not AccessScope, for the same reason as the assignments
+   * below: scope is built from this, so it cannot be scoped itself.
+   */
+  async getResponsibleProjectIds(user: AppUser | null): Promise<string[]> {
+    if (user === null || user.role !== 'mentor') return []
+
+    return this.provider.getResponsibleProjectIds()
+  }
+
   /** Takes AppUser, not AccessScope, because scope is built from these rows. */
   async getMentorAssignments(user: AppUser | null): Promise<MentorAssignment[]> {
     if (user === null) return []
@@ -224,15 +245,30 @@ export class WorkTrackerService {
     if (scope.visibleDeveloperIds === null) return projects
 
     const visibleIds = scope.visibleDeveloperIds
-    const [tasks, entries] = await Promise.all([
-      this.provider.getTasks({ developerIds: visibleIds }),
-      this.provider.getDailyWorkEntries({ developerIds: visibleIds }),
-    ])
+    const involved = new Set<string>(scope.visibleProjectIds ?? [])
 
-    const involved = new Set<string>([
-      ...filterByScope(scope, tasks).map((task) => task.projectId),
-      ...filterByScope(scope, entries).map((entry) => entry.projectId),
-    ])
+    // A mentor's projects are already known, so nothing has to be read to
+    // learn them — and reading them was the expensive part, because work for
+    // a whole team has no natural end and the request grew with every update
+    // anybody had ever logged. Work outside those projects is unreadable to a
+    // mentor anyway, so offering the project would offer an empty list.
+    //
+    // A person reading only their own row is one developer's history, which
+    // stays small, and their dropdown has to keep every project they have
+    // ever logged against whether or not the roster still assigns them to it.
+    if (scope.visibleProjectIds === null) {
+      const [tasks, entries] = await Promise.all([
+        this.provider.getTasks({ developerIds: visibleIds }),
+        this.provider.getDailyWorkEntries({ developerIds: visibleIds }),
+      ])
+
+      for (const projectId of [
+        ...filterByScope(scope, tasks).map((task) => task.projectId),
+        ...filterByScope(scope, entries).map((entry) => entry.projectId),
+      ]) {
+        involved.add(projectId)
+      }
+    }
 
     return projects.filter(
       (project) =>
@@ -270,7 +306,7 @@ export class WorkTrackerService {
     const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
 
     const [tasks, developers, projects, mentors] = await Promise.all([
-      this.provider.getTasks({ ...query, ...withDeveloperIds(effectiveIds) }),
+      this.provider.getTasks({ ...query, ...sentDeveloperIds(scope, query?.developerIds) }),
       this.developerLookup.get(),
       this.projectLookup.get(),
       this.mentorLookup.get(),
@@ -320,11 +356,11 @@ export class WorkTrackerService {
     const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
 
     const [comments, developers, projects, mentors, tasks] = await Promise.all([
-      this.provider.getComments({ ...query, ...withDeveloperIds(effectiveIds) }),
+      this.provider.getComments({ ...query, ...sentDeveloperIds(scope, query?.developerIds) }),
       this.developerLookup.get(),
       this.projectLookup.get(),
       this.mentorLookup.get(),
-      this.provider.getTasks({ ...withDeveloperIds(effectiveIds) }),
+      this.provider.getTasks({ ...sentDeveloperIds(scope, query?.developerIds) }),
     ])
 
     return narrowToDevelopers(effectiveIds, comments)
@@ -429,13 +465,61 @@ export class WorkTrackerService {
     return this.provider.deleteDailyWorkEntry(id)
   }
 
+  getLeaveDays(scope: AccessScope, query?: LeaveDayQuery): Promise<LeaveDay[]> {
+    const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
+
+    if (effectiveIds !== undefined && effectiveIds.length === 0) return Promise.resolve([])
+
+    return this.provider.getLeaveDays({
+      ...query,
+      ...sentDeveloperIds(scope, query?.developerIds),
+    })
+  }
+
+  markLeaveDay(request: CreateLeaveDayRequest): Promise<LeaveDay> {
+    return this.provider.createLeaveDay(request)
+  }
+
+  clearLeaveDay(id: string): Promise<void> {
+    return this.provider.deleteLeaveDay(id)
+  }
+
+  /**
+   * Which working days each visible developer has accounted for.
+   *
+   * Asked of the Reporting service rather than joined here: the gaps come from
+   * three sets — the calendar, the updates and the leave days — and only one of
+   * them is work this client already holds.
+   */
+  getUpdateCoverage(scope: AccessScope, query?: UpdateCoverageQuery): Promise<UpdateCoverage> {
+    const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
+
+    if (effectiveIds !== undefined && effectiveIds.length === 0) {
+      return Promise.resolve(emptyCoverage(query))
+    }
+
+    return this.provider.getUpdateCoverage({
+      ...query,
+      ...sentDeveloperIds(scope, query?.developerIds),
+    })
+  }
+
+  sendDailyUpdateReminder(request: DailyUpdateReminderRequest): Promise<void> {
+    return this.provider.sendDailyUpdateReminder(request)
+  }
+
   async getDayOverview(scope: AccessScope, isoDate: string): Promise<DayOverview> {
     const entries = await this.readScopedEntries(scope, { dateFrom: isoDate, dateTo: isoDate })
 
-    const [views, developers] = await Promise.all([
+    const [views, developers, leaveDays] = await Promise.all([
       this.decorateEntries(entries),
       this.getDevelopers(scope),
+      this.getLeaveDays(scope, { dateFrom: isoDate, dateTo: isoDate }),
     ])
+
+    // A day off is not a day somebody failed to account for, so the two lists
+    // are exclusive: whoever appears in one is absent from the other.
+    const onLeave = new Set(leaveDays.map((leaveDay) => leaveDay.developerId))
 
     return {
       date: isoDate,
@@ -444,7 +528,10 @@ export class WorkTrackerService {
       completionRate: calculateCompletionRate(entries),
       hoursLogged: sumHoursLogged(entries),
       developersUpdated: findDevelopersWithUpdate(developers, entries, isoDate),
-      developersMissingUpdate: findDevelopersMissingUpdate(developers, entries, isoDate),
+      developersMissingUpdate: findDevelopersMissingUpdate(developers, entries, isoDate).filter(
+        (developer) => !onLeave.has(developer.id),
+      ),
+      developersOnLeave: developers.filter((developer) => onLeave.has(developer.id)),
       blockedEntries: findBlockedEntries(views),
     }
   }
@@ -484,7 +571,7 @@ export class WorkTrackerService {
     const effectiveIds = restrictDeveloperIds(scope, query?.developerIds)
     const entries = await this.provider.getDailyWorkEntries({
       ...query,
-      ...withDeveloperIds(effectiveIds),
+      ...sentDeveloperIds(scope, query?.developerIds),
     })
 
     return narrowToDevelopers(effectiveIds, entries)
@@ -511,11 +598,38 @@ export class WorkTrackerService {
   }
 }
 
+/** Nobody visible means no days to report on, without asking the server. */
+function emptyCoverage(query: UpdateCoverageQuery | undefined): UpdateCoverage {
+  return {
+    from: query?.dateFrom ?? '',
+    to: query?.dateTo ?? '',
+    developers: [],
+    totals: { developersWithGaps: 0, missingDays: 0, leaveDays: 0 },
+  }
+}
+
 /** Omits developerIds key when unrestricted; explicit undefined would look like an empty filter. */
 function withDeveloperIds(
   developerIds: readonly string[] | undefined,
 ): { developerIds?: readonly string[] } {
   return developerIds === undefined ? {} : { developerIds }
+}
+
+/**
+ * The developer filter to put on the wire, which is not always the one used to
+ * narrow the answer.
+ *
+ * Only what the caller actually named, reduced to what they may see. A caller
+ * who named nobody sends nothing at all: every service derives the same
+ * visible set from the token, so spelling out each id would hand back a list
+ * the server already holds — and for a mentor with a large team that list is
+ * most of the query string.
+ */
+function sentDeveloperIds(
+  scope: AccessScope,
+  requested: readonly string[] | undefined,
+): { developerIds?: readonly string[] } {
+  return requested === undefined ? {} : withDeveloperIds(restrictDeveloperIds(scope, requested))
 }
 
 /** Re-filters by developer in memory even when the provider accepts developerIds. */

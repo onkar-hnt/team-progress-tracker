@@ -4,10 +4,12 @@ import type {
   AssignedTask,
   DailyWorkEntry,
   Developer,
+  LeaveDay,
   Mentor,
   MentorAssignment,
   MentorComment,
   Project,
+  UpdateCoverage,
 } from '@models/index'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import { PROJECT_STATUSES } from '@models/project.model'
@@ -116,6 +118,7 @@ export const projectRowSchema = z.object({
   startDate: optionalNullableString,
   endDate: optionalNullableString,
   mentorId: optionalNullableString,
+  mentorIds: z.array(z.string()).default([]),
   assignedDeveloperIds: z.array(z.string()).default([]),
   deletedAt: optionalNullableString,
 })
@@ -131,6 +134,8 @@ export function toProject(row: ProjectRow): Project {
     assignedDeveloperIds: [...row.assignedDeveloperIds].sort((left, right) =>
       left.localeCompare(right),
     ),
+    // Left in the order the server sent, because the primary mentor leads it.
+    mentorIds: [...row.mentorIds],
     ...optionalField('code', row.code),
     ...optionalField('client', row.client),
     ...optionalField('description', row.description),
@@ -231,6 +236,87 @@ export function toDailyWorkEntry(row: DailyWorkRow): DailyWorkEntry {
     ...optionalField('estimatedHours', row.estimatedHours),
     ...optionalField('blockerDescription', row.blockerDescription),
     ...optionalField('remarks', row.remarks),
+  }
+}
+
+export const leaveDayRowSchema = z.object({
+  id: z.string().min(1),
+  developerId: z.string().min(1),
+  date: z.string().min(1),
+  note: optionalNullableString,
+  recordedBy: optionalNullableString,
+  createdAt: z.string().min(1),
+})
+
+export type LeaveDayRow = z.infer<typeof leaveDayRowSchema>
+
+export function toLeaveDay(row: LeaveDayRow): LeaveDay {
+  return {
+    id: row.id,
+    developerId: row.developerId,
+    date: row.date,
+    createdAt: toIsoTimestamp(row.createdAt),
+    ...optionalField('note', row.note),
+    ...optionalField('recordedBy', row.recordedBy),
+  }
+}
+
+const updateDayStates = ['leave', 'missing', 'submitted'] as const
+
+const updateDaySchema = z.object({
+  date: z.string().min(1),
+  state: z.enum(updateDayStates),
+  note: optionalNullableString,
+})
+
+const developerCoverageSchema = z.object({
+  developerId: z.string().min(1),
+  developerName: z.string().min(1),
+  days: z.array(updateDaySchema).default([]),
+  missingDates: z.array(z.string()).default([]),
+  leaveDates: z.array(z.string()).default([]),
+  submittedCount: z.number(),
+  missingCount: z.number(),
+  leaveCount: z.number(),
+  lastSubmittedDate: optionalNullableString,
+})
+
+export const updateCoverageRowSchema = z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  developers: z.array(developerCoverageSchema).default([]),
+  totals: z
+    .object({
+      developersWithGaps: z.number(),
+      missingDays: z.number(),
+      leaveDays: z.number(),
+    })
+    .default({ developersWithGaps: 0, missingDays: 0, leaveDays: 0 }),
+})
+
+export type UpdateCoverageRow = z.infer<typeof updateCoverageRowSchema>
+
+export function toUpdateCoverage(row: UpdateCoverageRow): UpdateCoverage {
+  return {
+    from: row.from,
+    to: row.to,
+    totals: row.totals,
+    developers: row.developers.map((developer) => ({
+      developerId: developer.developerId,
+      developerName: developer.developerName,
+      // Left in the order the server sent: newest day first.
+      days: developer.days.map((day) => ({
+        date: day.date,
+        state: day.state,
+        ...optionalField('note', day.note),
+      })),
+      missingDates: developer.missingDates,
+      leaveDates: developer.leaveDates,
+      submittedCount: developer.submittedCount,
+      missingCount: developer.missingCount,
+      leaveCount: developer.leaveCount,
+      ...optionalField('lastSubmittedDate', developer.lastSubmittedDate),
+    })),
   }
 }
 

@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IAccessScopeProvider, WorkAccessScopeProvider>();
         services.AddScoped<ITeamDirectory, SqlTeamDirectory>();
         services.AddScoped<INotificationPublisher, SqlNotificationPublisher>();
+        services.AddScoped<IActorNameReader, ActorNameReader>();
         services.AddScoped<IWorkStore, WorkStore>();
         services.AddScoped<IRecycleBinGateway, SqlRecycleBinGateway>();
         services.AddScoped<WorkBusinessCodeAllocator>();
@@ -59,6 +60,7 @@ public static class DependencyInjection
 
         services.AddScoped<TaskService>();
         services.AddScoped<DailyWorkEntryService>();
+        services.AddScoped<DailyUpdateReminderService>();
         services.AddScoped<CommentService>();
         services.AddScoped<ChangeLogService>();
         services.AddScoped<RecycleBinService>();

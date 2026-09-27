@@ -28,6 +28,10 @@ public sealed class ReportAccessScopeFactory(ICurrentUser currentUser, ITeamDire
                 currentUser.MentorId.Value,
                 cancellationToken)).ToHashSet();
 
+            var projects = (await teamDirectory.GetResponsibleProjectIdsAsync(
+                currentUser.MentorId.Value,
+                cancellationToken)).ToHashSet();
+
             if (currentUser.DeveloperId is Guid ownDeveloperId)
             {
                 visible.Add(ownDeveloperId);
@@ -37,7 +41,8 @@ public sealed class ReportAccessScopeFactory(ICurrentUser currentUser, ITeamDire
                 currentUser.Role,
                 currentUser.DeveloperId,
                 currentUser.MentorId,
-                visible);
+                visible,
+                projects);
         }
 
         if (currentUser.DeveloperId is null)

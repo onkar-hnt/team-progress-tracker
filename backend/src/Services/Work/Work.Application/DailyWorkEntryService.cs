@@ -42,7 +42,7 @@ public sealed class DailyWorkEntryService(
         var entry = await store.FindDailyUpdateAsync(id, cancellationToken)
             ?? throw new NotFoundException("That daily update is no longer available.");
 
-        scope.RequireDeveloperVisible(entry.DeveloperId);
+        scope.RequireDeveloperProjectVisible(entry.DeveloperId, entry.ProjectId);
 
         return WorkMapping.ToDto(entry);
     }

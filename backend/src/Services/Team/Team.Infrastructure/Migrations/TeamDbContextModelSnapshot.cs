@@ -112,6 +112,40 @@ namespace Team.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Team.Domain.LeaveDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("DeveloperId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("LeaveDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("RecordedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeveloperId", "LeaveDate")
+                        .IsUnique()
+                        .HasDatabaseName("UX_LeaveDays_DeveloperId_LeaveDate");
+
+                    b.ToTable("LeaveDays", "team");
+                });
+
             modelBuilder.Entity("Team.Domain.Mentor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -297,6 +331,24 @@ namespace Team.Infrastructure.Migrations
                     b.ToTable("ProjectDevelopers", "team");
                 });
 
+            modelBuilder.Entity("Team.Domain.ProjectMentor", b =>
+                {
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MentorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("ProjectId", "MentorId");
+
+                    b.HasIndex("MentorId");
+
+                    b.ToTable("ProjectMentors", "team");
+                });
+
             modelBuilder.Entity("Team.Domain.Developer", b =>
                 {
                     b.HasOne("Team.Domain.Project", "PrimaryProject")
@@ -305,6 +357,17 @@ namespace Team.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("PrimaryProject");
+                });
+
+            modelBuilder.Entity("Team.Domain.LeaveDay", b =>
+                {
+                    b.HasOne("Team.Domain.Developer", "Developer")
+                        .WithMany()
+                        .HasForeignKey("DeveloperId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Developer");
                 });
 
             modelBuilder.Entity("Team.Domain.MentorAssignment", b =>
@@ -355,9 +418,30 @@ namespace Team.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("Team.Domain.ProjectMentor", b =>
+                {
+                    b.HasOne("Team.Domain.Mentor", "Mentor")
+                        .WithMany()
+                        .HasForeignKey("MentorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Team.Domain.Project", "Project")
+                        .WithMany("ResponsibleMentors")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Mentor");
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("Team.Domain.Project", b =>
                 {
                     b.Navigation("Members");
+
+                    b.Navigation("ResponsibleMentors");
                 });
 #pragma warning restore 612, 618
         }

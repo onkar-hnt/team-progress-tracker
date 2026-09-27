@@ -69,6 +69,30 @@ public sealed class RosterPersistence(
                 group => (IReadOnlyList<Guid>)[.. group.Select(item => item.DeveloperId)]);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetProjectMentorIdsAsync(
+        Guid projectId,
+        CancellationToken cancellationToken) =>
+        await context.ProjectMentors
+            .AsNoTracking()
+            .Where(row => row.ProjectId == projectId)
+            .Select(row => row.MentorId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetAllProjectMentorsAsync(
+        CancellationToken cancellationToken)
+    {
+        var rows = await context.ProjectMentors
+            .AsNoTracking()
+            .Select(row => new { row.ProjectId, row.MentorId })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(row => row.ProjectId)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<Guid>)[.. group.Select(item => item.MentorId)]);
+    }
+
     public async Task<IReadOnlyList<MentorAssignment>> ListMentorAssignmentsAsync(
         CancellationToken cancellationToken) =>
         await context.MentorAssignments.AsNoTracking().ToListAsync(cancellationToken);
@@ -105,6 +129,22 @@ public sealed class RosterPersistence(
         return found == ids.Count;
     }
 
+    public async Task<bool> AllMentorsExistAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken)
+    {
+        if (ids.Count == 0)
+        {
+            return true;
+        }
+
+        var found = await context.Mentors
+            .Where(row => ids.Contains(row.Id) && row.DeletedAt == null)
+            .CountAsync(cancellationToken);
+
+        return found == ids.Distinct().Count();
+    }
+
     public async Task<IReadOnlyList<Guid>> ListDeveloperProjectIdsAsync(
         Guid developerId,
         CancellationToken cancellationToken) =>
@@ -122,6 +162,49 @@ public sealed class RosterPersistence(
             .Where(row => row.DeveloperId == developerId && row.Active)
             .Select(row => row.MentorId)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<LeaveDay>> ListLeaveDaysAsync(
+        DateOnly? from,
+        DateOnly? to,
+        IReadOnlyCollection<Guid>? developerIds,
+        CancellationToken cancellationToken)
+    {
+        var query = context.LeaveDays.AsNoTracking();
+
+        if (from is DateOnly start)
+        {
+            query = query.Where(row => row.LeaveDate >= start);
+        }
+
+        if (to is DateOnly end)
+        {
+            query = query.Where(row => row.LeaveDate <= end);
+        }
+
+        if (developerIds is not null)
+        {
+            query = query.Where(row => developerIds.Contains(row.DeveloperId));
+        }
+
+        return await query
+            .OrderByDescending(row => row.LeaveDate)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<LeaveDay?> FindLeaveDayAsync(Guid id, CancellationToken cancellationToken) =>
+        context.LeaveDays.FirstOrDefaultAsync(row => row.Id == id, cancellationToken);
+
+    public Task<bool> LeaveDayExistsAsync(
+        Guid developerId,
+        DateOnly date,
+        CancellationToken cancellationToken) =>
+        context.LeaveDays.AnyAsync(
+            row => row.DeveloperId == developerId && row.LeaveDate == date,
+            cancellationToken);
+
+    public void AddLeaveDay(LeaveDay leaveDay) => context.LeaveDays.Add(leaveDay);
+
+    public void RemoveLeaveDay(LeaveDay leaveDay) => context.LeaveDays.Remove(leaveDay);
 
     public void AddDeveloper(Developer developer) => context.Developers.Add(developer);
 
@@ -161,6 +244,34 @@ public sealed class RosterPersistence(
             {
                 ProjectId = projectId,
                 DeveloperId = developerId,
+                CreatedAt = createdAt,
+            });
+        }
+    }
+
+    public async Task ReplaceProjectMentorsAsync(
+        Guid projectId,
+        IReadOnlyList<Guid> mentorIds,
+        DateTimeOffset createdAt,
+        CancellationToken cancellationToken)
+    {
+        if (!await ProjectExistsAsync(projectId, cancellationToken))
+        {
+            throw new NotFoundException("That project is no longer on the roster.");
+        }
+
+        var existing = await context.ProjectMentors
+            .Where(row => row.ProjectId == projectId)
+            .ToListAsync(cancellationToken);
+
+        context.ProjectMentors.RemoveRange(existing);
+
+        foreach (var mentorId in mentorIds.Distinct())
+        {
+            context.ProjectMentors.Add(new ProjectMentor
+            {
+                ProjectId = projectId,
+                MentorId = mentorId,
                 CreatedAt = createdAt,
             });
         }

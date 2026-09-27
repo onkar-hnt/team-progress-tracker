@@ -2,9 +2,11 @@ import type {
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
+  CreateLeaveDayRequest,
   CreateMentorCommentRequest,
   CreateMentorRequest,
   CreateProjectRequest,
+  DailyUpdateReminderRequest,
   UpdateAssignedTaskRequest,
   UpdateDailyWorkEntryRequest,
   UpdateDeveloperRequest,
@@ -78,6 +80,7 @@ export function projectCreateBody(request: CreateProjectRequest): Record<string,
     startDate: blankToNull(request.startDate),
     endDate: blankToNull(request.endDate),
     mentorId: request.mentorId ?? null,
+    mentorIds: [...request.mentorIds],
     assignedDeveloperIds: [...request.assignedDeveloperIds],
   }
 }
@@ -93,6 +96,9 @@ export function projectUpdateBody(request: UpdateProjectRequest): Record<string,
   if ('startDate' in request) payload.startDate = blankToNull(request.startDate)
   if ('endDate' in request) payload.endDate = blankToNull(request.endDate)
   if ('mentorId' in request) payload.mentorId = request.mentorId ?? null
+  if ('mentorIds' in request && request.mentorIds !== undefined) {
+    payload.mentorIds = [...request.mentorIds]
+  }
   if ('assignedDeveloperIds' in request && request.assignedDeveloperIds !== undefined) {
     payload.assignedDeveloperIds = [...request.assignedDeveloperIds]
   }
@@ -184,6 +190,22 @@ export function dailyWorkUpdateBody(request: UpdateDailyWorkEntryRequest): Recor
   if ('remarks' in request) payload.remarks = blankToNull(request.remarks)
 
   return payload
+}
+
+export function leaveDayCreateBody(request: CreateLeaveDayRequest): Record<string, unknown> {
+  return {
+    developerId: request.developerId,
+    date: request.date,
+    note: blankToNull(request.note),
+  }
+}
+
+/** Nothing about the sender is sent: the service names them from their profile. */
+export function reminderBody(request: DailyUpdateReminderRequest): Record<string, unknown> {
+  return {
+    developerId: request.developerId,
+    message: blankToNull(request.message),
+  }
 }
 
 export function commentCreateBody(request: CreateMentorCommentRequest): Record<string, unknown> {

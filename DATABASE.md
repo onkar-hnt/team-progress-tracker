@@ -60,7 +60,7 @@ Timestamps are **`datetimeoffset`**. Business dates use **`date`**. Identifiers 
 | Status | nvarchar(20) | NO | CHECK `planned`, `active`, `on-hold`, `completed`; `IX_Projects_Status` |
 | Active | bit | NO | |
 | StartDate, EndDate | date | YES | CHECK EndDate >= StartDate when both set |
-| MentorId | uniqueidentifier | YES | FK → Mentors, ON DELETE SET NULL |
+| MentorId | uniqueidentifier | YES | primary mentor; FK → Mentors, ON DELETE SET NULL. See `ProjectMentors` for the rest |
 | DeletedAt, DeletedBy | | | soft delete; `IX_Projects_DeletedAt` |
 | CreatedAt, UpdatedAt | datetimeoffset | NO | |
 
@@ -103,6 +103,46 @@ Unique active pair: `IX_MentorAssignments_MentorId_DeveloperId_Active` where `Ac
 | ProjectId | uniqueidentifier | NO | PK (composite) |
 | DeveloperId | uniqueidentifier | NO | PK; FKs CASCADE/RESTRICT |
 | CreatedAt | datetimeoffset | NO | |
+
+### `team.ProjectMentors`
+
+| Column | Type | Null | Notes |
+| --- | --- | --- | --- |
+| ProjectId | uniqueidentifier | NO | PK (composite); FK → Projects CASCADE |
+| MentorId | uniqueidentifier | NO | PK; FK → Mentors CASCADE |
+| CreatedAt | datetimeoffset | NO | `IX_ProjectMentors_MentorId` |
+
+Every mentor responsible for a project. `Projects.MentorId` still names the one who owns it and is
+always inside this set — **`ProjectMentorSynchronizer`** puts it there on every write, and the
+mentor creating a project is added so they can read back what they wrote.
+
+Responsibility is what fills **`AccessScope.VisibleProjectIds`**. A mentor reads another person's
+work only when they are assigned to that employee *and* responsible for the project it sits on.
+
+### `team.LeaveDays`
+
+| Column | Type | Null | Notes |
+| --- | --- | --- | --- |
+| Id | uniqueidentifier | NO | PK |
+| DeveloperId | uniqueidentifier | NO | FK → Developers CASCADE |
+| LeaveDate | date | NO | |
+| Note | nvarchar(500) | YES | expected to be empty; the reason belongs to whoever took the leave |
+| RecordedBy | uniqueidentifier | YES | profile that said so, which may be an administrator |
+| CreatedAt, UpdatedAt | datetimeoffset | NO | |
+
+One row per developer per date: `UX_LeaveDays_DeveloperId_LeaveDate`. That index is the whole of
+what stops a day being marked twice, so the browser marks without reading first and a second
+attempt comes back 409 rather than as a duplicate row. It also matches how the overview reads —
+one developer over a range of dates — so no second index is needed for that.
+
+The row answers a working day that has no daily update. Deliberately **not** a daily update with a
+special title: an entry in `work.DailyUpdates` is work on a task, and `DailyUpdateTaskEnsurer`,
+`EntryStatusToTaskSynchronizer` and `WorkNotificationComposer` all run on one.
+
+Not soft-deletable either. The row is a statement that a day was leave, and the only undo is
+removing it — there is nothing else to keep. Writing is narrower than reading: only that employee
+or an administrator, per **`LeaveDayRules`**. A mentor who believes a day was leave asks for an
+update instead.
 
 ---
 
@@ -251,6 +291,8 @@ Clients and PUT bodies must not expect to control:
 ```
 team.MentorAssignments  links Mentors ↔ Developers
 team.ProjectDevelopers    links Projects ↔ Developers
+team.ProjectMentors       links Projects ↔ Mentors
+team.LeaveDays            → team.Developers (answers a day with no update)
 work.Tasks                → team Project/Developer/Mentor ids (by Guid)
 work.DailyUpdates         → work.Tasks (optional FK)
 work.Feedback             → work.Tasks (optional FK)

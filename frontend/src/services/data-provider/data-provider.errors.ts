@@ -3,10 +3,12 @@ export type DataSourceTable =
   | 'Comments'
   | 'DailyWork'
   | 'Developers'
+  | 'LeaveDays'
   | 'MentorMapping'
   | 'Mentors'
   | 'Projects'
   | 'Tasks'
+  | 'UpdateCoverage'
 
 /** A single row that failed validation, kept so the UI can report specifics. */
 export interface RowValidationIssue {

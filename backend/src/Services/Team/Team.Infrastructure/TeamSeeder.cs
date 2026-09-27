@@ -153,6 +153,20 @@ public sealed class TeamSeeder(TeamDbContext context, IClock clock, ILogger<Team
         AddMembers(project2Id, [developers[3].Id, developers[4].Id], now);
         AddMembers(project3Id, [developers[2].Id, developers[5].Id], now);
 
+        AddResponsibleMentors(project1Id, [mentor1Id], now);
+        AddResponsibleMentors(project2Id, [mentor2Id], now);
+
+        // Two mentors share the third project. Each still reads only the
+        // employees they are assigned to on it, which is the point of letting a
+        // project have more than one mentor.
+        AddResponsibleMentors(project3Id, [mentor1Id, mentor2Id], now);
+
+        // Two developers answered a recent working day with leave rather than an
+        // update, so the Missing updates screen shows all three day states on a
+        // fresh database instead of only submitted and missing.
+        AddLeaveDay(developers[1].Id, LastWorkingDayBefore(today), "Annual leave.", now);
+        AddLeaveDay(developers[4].Id, LastWorkingDayBefore(today), null, now);
+
         await context.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
@@ -160,6 +174,50 @@ public sealed class TeamSeeder(TeamDbContext context, IClock clock, ILogger<Team
             developers.Length,
             2,
             3);
+    }
+
+    /// <summary>
+    /// The most recent working day strictly before <paramref name="date"/>, so
+    /// the seeded leave lands on a day an update would have been expected.
+    /// </summary>
+    private static DateOnly LastWorkingDayBefore(DateOnly date)
+    {
+        var candidate = date.AddDays(-1);
+
+        while (!DomainRules.IsWorkingDay(candidate))
+        {
+            candidate = candidate.AddDays(-1);
+        }
+
+        return candidate;
+    }
+
+    private void AddLeaveDay(Guid developerId, DateOnly date, string? note, DateTimeOffset createdAt)
+    {
+        context.LeaveDays.Add(new LeaveDay
+        {
+            DeveloperId = developerId,
+            LeaveDate = date,
+            Note = note,
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt,
+        });
+    }
+
+    private void AddResponsibleMentors(
+        Guid projectId,
+        IReadOnlyList<Guid> mentorIds,
+        DateTimeOffset createdAt)
+    {
+        foreach (var mentorId in mentorIds)
+        {
+            context.ProjectMentors.Add(new ProjectMentor
+            {
+                ProjectId = projectId,
+                MentorId = mentorId,
+                CreatedAt = createdAt,
+            });
+        }
     }
 
     private void AddMembers(Guid projectId, IReadOnlyList<Guid> developerIds, DateTimeOffset createdAt)

@@ -13,6 +13,8 @@ public sealed class TeamDbContext(DbContextOptions<TeamDbContext> options) : DbC
     public DbSet<MentorAssignment> MentorAssignments => Set<MentorAssignment>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectDeveloper> ProjectDevelopers => Set<ProjectDeveloper>();
+    public DbSet<ProjectMentor> ProjectMentors => Set<ProjectMentor>();
+    public DbSet<LeaveDay> LeaveDays => Set<LeaveDay>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -141,6 +143,46 @@ public sealed class TeamDbContext(DbContextOptions<TeamDbContext> options) : DbC
                 .WithMany()
                 .HasForeignKey(row => row.DeveloperId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProjectMentor>(responsibility =>
+        {
+            responsibility.ToTable(Db.ProjectMentors);
+            responsibility.HasKey(row => new { row.ProjectId, row.MentorId });
+
+            responsibility.HasIndex(row => row.MentorId);
+
+            responsibility.HasOne(row => row.Project)
+                .WithMany(project => project.ResponsibleMentors)
+                .HasForeignKey(row => row.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            responsibility.HasOne(row => row.Mentor)
+                .WithMany()
+                .HasForeignKey(row => row.MentorId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LeaveDay>(leaveDay =>
+        {
+            leaveDay.ToTable(Db.LeaveDays);
+            leaveDay.HasKey(row => row.Id);
+
+            leaveDay.Property(row => row.Note).HasMaxLength(500);
+
+            // One statement per calendar day. This index is the whole of what
+            // stops a day being marked twice, so the browser can mark without
+            // reading first and treat the conflict as "already said". It also
+            // matches how the overview reads — one developer over a range of
+            // dates — so no second index is needed for that.
+            leaveDay.HasIndex(row => new { row.DeveloperId, row.LeaveDate })
+                .IsUnique()
+                .HasDatabaseName("UX_LeaveDays_DeveloperId_LeaveDate");
+
+            leaveDay.HasOne(row => row.Developer)
+                .WithMany()
+                .HasForeignKey(row => row.DeveloperId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

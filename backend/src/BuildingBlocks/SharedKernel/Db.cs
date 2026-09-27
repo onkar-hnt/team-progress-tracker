@@ -19,6 +19,8 @@ public static class Db
     public const string MentorAssignments = "MentorAssignments";
     public const string Projects = "Projects";
     public const string ProjectDevelopers = "ProjectDevelopers";
+    public const string ProjectMentors = "ProjectMentors";
+    public const string LeaveDays = "LeaveDays";
     public const string Tasks = "Tasks";
     public const string DailyUpdates = "DailyUpdates";
     public const string Feedback = "Feedback";

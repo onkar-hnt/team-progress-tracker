@@ -35,6 +35,7 @@ export const NOTIFICATION_DISPLAY: Readonly<Record<NotificationType, Notificatio
   task_comment_added: { icon: 'comments', path: '/my-tasks', tone: 'attention' },
   feedback_added: { icon: 'comments', path: '/feedback', tone: 'informational' },
   daily_update_submitted: { icon: 'calendar', path: '/team-activity', tone: 'informational' },
+  daily_update_reminder: { icon: 'calendar', path: '/daily-update', tone: 'attention' },
   work_blocked: { icon: 'alert', path: '/team-activity', tone: 'attention' },
 }
 

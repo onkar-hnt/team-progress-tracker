@@ -45,10 +45,20 @@ export const apiEndpoints = {
     list: 'api/mentor-assignments',
   },
 
+  /** Days accounted for as leave, which is why no update exists for them. */
+  leaveDays: {
+    list: 'api/leave-days',
+    create: 'api/leave-days',
+    byId: (id: string) => `api/leave-days/${segment(id)}`,
+  },
+
   projects: {
     list: 'api/projects',
     create: 'api/projects',
     byId: (id: string) => `api/projects/${segment(id)}`,
+
+    /** The projects a mentor is responsible for, which narrows what they read. */
+    responsible: 'api/projects/responsible',
   },
 
   /** Work service. */
@@ -62,6 +72,9 @@ export const apiEndpoints = {
     list: 'api/daily-updates',
     create: 'api/daily-updates',
     byId: (id: string) => `api/daily-updates/${segment(id)}`,
+
+    /** Asks one developer for their update. The wording is built server-side. */
+    reminders: 'api/daily-updates/reminders',
   },
 
   /** Mentor comments and developer replies on a task. */
@@ -97,5 +110,8 @@ export const apiEndpoints = {
   /** Reporting service. */
   reports: {
     usage: 'api/usage',
+
+    /** Which working days each visible employee has accounted for, and how. */
+    updateCoverage: 'api/reports/update-coverage',
   },
 } as const

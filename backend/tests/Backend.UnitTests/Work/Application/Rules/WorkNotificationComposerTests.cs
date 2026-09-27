@@ -138,4 +138,40 @@ public sealed class WorkNotificationComposerTests
 
         requests[0].Message.Should().Be("API work: Not started to In progress.");
     }
+
+    [Fact]
+    public void ReminderNamesTheSenderAndPointsAtNoRecord()
+    {
+        var recipient = Guid.CreateVersion7();
+
+        var requests = new WorkNotificationComposer(new FakeCurrentUser(), new FakeTeamDirectory())
+            .ForDailyUpdateReminder(recipient, "Alex Rivera", null);
+
+        requests.Should().ContainSingle();
+        requests[0].Type.Should().Be(DomainRules.NotificationDailyUpdateReminder);
+        requests[0].RecipientProfileId.Should().Be(recipient);
+        requests[0].Title.Should().Be("Your daily update is waiting");
+        requests[0].Message.Should().Be("Alex Rivera asked you to submit your daily update.");
+        requests[0].EntityType.Should().BeNull();
+        requests[0].EntityId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ReminderQuotesTheSendersOwnWordsWhenTheyLeaveSome()
+    {
+        var requests = new WorkNotificationComposer(new FakeCurrentUser(), new FakeTeamDirectory())
+            .ForDailyUpdateReminder(Guid.CreateVersion7(), "Alex Rivera", "  Before you log off.  ");
+
+        requests[0].Message.Should()
+            .Be("Alex Rivera asked you to submit your daily update. \"Before you log off.\"");
+    }
+
+    [Fact]
+    public void ABlankMessageIsNoMessage()
+    {
+        var requests = new WorkNotificationComposer(new FakeCurrentUser(), new FakeTeamDirectory())
+            .ForDailyUpdateReminder(Guid.CreateVersion7(), "Alex Rivera", "   ");
+
+        requests[0].Message.Should().Be("Alex Rivera asked you to submit your daily update.");
+    }
 }

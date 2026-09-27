@@ -20,8 +20,10 @@ public sealed class ProjectsController(ProjectService projects) : ControllerBase
 {
     /// <summary>Lists projects the caller may see, with their member ids.</summary>
     /// <remarks>
-    /// An administrator or mentor gets all of them; a developer gets the
-    /// projects they are a member of, or that their mentor is accountable for.
+    /// An administrator gets all of them. A mentor gets the projects they are
+    /// responsible for, plus any project nobody is responsible for yet. A
+    /// developer gets the projects they are a member of, or that one of their
+    /// mentors is responsible for.
     /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ProjectDto>>), StatusCodes.Status200OK)]
@@ -31,6 +33,24 @@ public sealed class ProjectsController(ProjectService projects) : ControllerBase
         var result = await projects.ListAsync(cancellationToken);
 
         return Ok(ApiResponse<IReadOnlyList<ProjectDto>>.Ok(result));
+    }
+
+    /// <summary>
+    /// The projects the caller is responsible for as a mentor, which is what
+    /// narrows the work of other people they may read.
+    /// </summary>
+    /// <remarks>
+    /// Empty for anyone who is not a mentor. An administrator is not narrowed
+    /// by project, so an empty list from here does not mean they see nothing.
+    /// </remarks>
+    [HttpGet("responsible")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Guid>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<Guid>>>> Responsible(
+        CancellationToken cancellationToken)
+    {
+        var result = await projects.ListResponsibleProjectIdsAsync(cancellationToken);
+
+        return Ok(ApiResponse<IReadOnlyList<Guid>>.Ok(result));
     }
 
     /// <summary>Adds a project, assigns its PRJ code and sets its members.</summary>

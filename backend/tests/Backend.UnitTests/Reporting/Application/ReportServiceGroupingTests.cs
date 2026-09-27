@@ -30,6 +30,7 @@ public sealed class ReportServiceGroupingTests
 
         var service = new ReportService(
             reader,
+            new FakeLeaveDayReader(),
             team,
             new ReportAccessScopeFactory(
                 new FakeCurrentUser { Role = DomainRules.RoleAdmin },
@@ -60,6 +61,7 @@ public sealed class ReportServiceGroupingTests
 
         var service = new ReportService(
             reader,
+            new FakeLeaveDayReader(),
             team,
             new ReportAccessScopeFactory(
                 new FakeCurrentUser { Role = DomainRules.RoleAdmin },
@@ -89,24 +91,4 @@ public sealed class ReportServiceGroupingTests
             hours,
             null,
             false);
-
-    private sealed class FakeWorkEntryReader(IReadOnlyList<WorkEntryRow> rows) : IWorkEntryReader
-    {
-        public Task<IReadOnlyList<WorkEntryRow>> ListAsync(
-            DateOnly from,
-            DateOnly to,
-            Guid? projectId,
-            IReadOnlyList<Guid>? developerIds,
-            CancellationToken cancellationToken = default)
-        {
-            var filtered = rows.Where(entry =>
-                entry.EntryDate >= from
-                && entry.EntryDate <= to
-                && (projectId is null || entry.ProjectId == projectId)
-                && (developerIds is null || developerIds.Contains(entry.DeveloperId)));
-
-            return Task.FromResult<IReadOnlyList<WorkEntryRow>>([.. filtered]);
-        }
-    }
-
 }

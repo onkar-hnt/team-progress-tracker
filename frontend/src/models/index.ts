@@ -27,6 +27,18 @@ export type {
   UpdateMentorRequest,
 } from './mentor.model'
 export type {
+  CreateLeaveDayRequest,
+  DailyUpdateReminderRequest,
+  DeveloperUpdateCoverage,
+  LeaveDay,
+  LeaveDayQuery,
+  UpdateCoverage,
+  UpdateCoverageQuery,
+  UpdateCoverageTotals,
+  UpdateDay,
+  UpdateDayState,
+} from './leave.model'
+export type {
   AssignedTask,
   AssignedTaskQuery,
   CreateAssignedTaskRequest,
@@ -44,6 +56,7 @@ export {
   type AppNotification,
   type NotificationEntityType,
   type NotificationType,
+  type ReminderTarget,
 } from './notification.model'
 export {
   USER_ROLES,

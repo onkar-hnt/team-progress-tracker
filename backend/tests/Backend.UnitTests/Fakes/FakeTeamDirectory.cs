@@ -8,9 +8,13 @@ internal sealed class FakeTeamDirectory : ITeamDirectory
     private readonly Dictionary<Guid, List<MentorContact>> _mentorsByDeveloper = [];
     private readonly Dictionary<Guid, Guid?> _primaryMentor = [];
     private readonly Dictionary<Guid, List<Guid>> _assignedByMentor = [];
+    private readonly Dictionary<Guid, List<Guid>> _projectsByMentor = [];
 
     public void SeedDeveloper(Guid id, string name, Guid? profileId = null) =>
         _developers[id] = new RosterDeveloper(id, name, profileId, true, null);
+
+    public Task<IReadOnlyList<RosterDeveloper>> ListDevelopersAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<RosterDeveloper>>([.. _developers.Values]);
 
     public void SeedMentorsForDeveloper(Guid developerId, params MentorContact[] mentors) =>
         _mentorsByDeveloper[developerId] = [.. mentors];
@@ -20,6 +24,9 @@ internal sealed class FakeTeamDirectory : ITeamDirectory
 
     public void SeedAssignedDevelopers(Guid mentorId, params Guid[] developerIds) =>
         _assignedByMentor[mentorId] = [.. developerIds];
+
+    public void SeedResponsibleProjects(Guid mentorId, params Guid[] projectIds) =>
+        _projectsByMentor[mentorId] = [.. projectIds];
 
     public Task<RosterDeveloper?> FindDeveloperAsync(Guid developerId, CancellationToken cancellationToken) =>
         Task.FromResult(_developers.TryGetValue(developerId, out var developer) ? developer : null);
@@ -38,6 +45,18 @@ internal sealed class FakeTeamDirectory : ITeamDirectory
         CancellationToken cancellationToken)
     {
         if (_assignedByMentor.TryGetValue(mentorId, out var ids))
+        {
+            return Task.FromResult<IReadOnlyList<Guid>>(ids);
+        }
+
+        return Task.FromResult<IReadOnlyList<Guid>>([]);
+    }
+
+    public Task<IReadOnlyList<Guid>> GetResponsibleProjectIdsAsync(
+        Guid mentorId,
+        CancellationToken cancellationToken)
+    {
+        if (_projectsByMentor.TryGetValue(mentorId, out var ids))
         {
             return Task.FromResult<IReadOnlyList<Guid>>(ids);
         }

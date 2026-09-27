@@ -27,4 +27,8 @@
     color: $color-text-muted;
     font-size: $font-size-sm;
   }
+
+  &__back {
+    margin-top: $space-3;
+  }
 }

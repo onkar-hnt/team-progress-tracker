@@ -5,7 +5,8 @@ public sealed record RosterDeveloper(
     string Name,
     Guid? ProfileId,
     bool Active,
-    Guid? PrimaryProjectId);
+    Guid? PrimaryProjectId,
+    string? AccessRole = null);
 
 public sealed record MentorContact(Guid MentorId, string Name, Guid? ProfileId);
 
@@ -31,6 +32,15 @@ public interface ITeamDirectory
         Guid mentorId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Projects a mentor is responsible for, which is what narrows the work of
+    /// other people they may read. Owning a project counts as well as being
+    /// listed on it, so a project that only names the mentor still appears.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetResponsibleProjectIdsAsync(
+        Guid mentorId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Mentors actively assigned to a developer, for notifying them.</summary>
     Task<IReadOnlyList<MentorContact>> GetActiveMentorsForDeveloperAsync(
         Guid developerId,
@@ -43,6 +53,13 @@ public interface ITeamDirectory
     Task<Guid?> GetPrimaryMentorIdAsync(Guid developerId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<Guid, string>> GetDeveloperNamesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Everybody on the roster who has not been deleted. Coverage needs the
+    /// whole list rather than the people who have entries, because the question
+    /// it asks is who has no entry.
+    /// </summary>
+    Task<IReadOnlyList<RosterDeveloper>> ListDevelopersAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<Guid, string>> GetProjectNamesAsync(CancellationToken cancellationToken = default);
 }

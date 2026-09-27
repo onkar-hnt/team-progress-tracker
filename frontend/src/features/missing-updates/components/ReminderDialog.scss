@@ -1,0 +1,20 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.reminder-dialog {
+  @include grid($gap: $space-4);
+
+  &__lead {
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    line-height: $line-height-loose;
+  }
+
+  &__days {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    line-height: $line-height-loose;
+  }
+}

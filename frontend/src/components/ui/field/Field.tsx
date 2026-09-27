@@ -168,9 +168,12 @@ interface ChecklistFieldProps {
   selected: readonly string[]
   onToggle: (id: string) => void
   hint?: string
+  /** Ticked and fixed, for a choice the person is not allowed to undo. */
+  disabledIds?: readonly string[]
 }
 
 export function ChecklistField({
+  disabledIds = [],
   hint,
   label,
   onToggle,
@@ -184,6 +187,7 @@ export function ChecklistField({
           <label className="form__checkbox" key={option.id}>
             <input
               checked={selected.includes(option.id)}
+              disabled={disabledIds.includes(option.id)}
               onChange={() => onToggle(option.id)}
               type="checkbox"
             />

@@ -21,6 +21,23 @@ export function useMentorAssignments(): UseQueryResult<MentorAssignment[]> {
   })
 }
 
+/**
+ * The projects a mentor is responsible for. Read straight from the server
+ * rather than derived from the project list, because the project list is
+ * itself narrowed by this answer.
+ */
+export function useResponsibleProjectIds(): UseQueryResult<string[]> {
+  const { isRestoring, user } = useAuth()
+  const service = getWorkTrackerService()
+
+  return useQuery({
+    queryKey: [...queryKeys.responsibleProjects(), user?.email ?? 'none'],
+    queryFn: () => service.getResponsibleProjectIds(user),
+    enabled: !isRestoring && user?.role === 'mentor',
+    staleTime: 5 * 60_000,
+  })
+}
+
 export interface AccessScopeState {
   scope: AccessScope | null
 
@@ -33,6 +50,7 @@ export interface AccessScopeState {
 export function useAccessScope(): AccessScopeState {
   const { isRestoring, user } = useAuth()
   const assignmentsQuery = useMentorAssignments()
+  const projectsQuery = useResponsibleProjectIds()
 
   const needsAssignments = user?.role === 'mentor'
 
@@ -40,13 +58,15 @@ export function useAccessScope(): AccessScopeState {
     return { scope: null, isResolving: isRestoring, error: null }
   }
 
-  if (needsAssignments && assignmentsQuery.isPending) {
+  // Both reads have to land before a mentor's scope means anything: an empty
+  // project list would otherwise read as responsible for nothing.
+  if (needsAssignments && (assignmentsQuery.isPending || projectsQuery.isPending)) {
     return { scope: null, isResolving: true, error: null }
   }
 
   return {
-    scope: buildAccessScope(user, assignmentsQuery.data ?? []),
+    scope: buildAccessScope(user, assignmentsQuery.data ?? [], projectsQuery.data ?? []),
     isResolving: false,
-    error: needsAssignments ? assignmentsQuery.error : null,
+    error: needsAssignments ? (assignmentsQuery.error ?? projectsQuery.error) : null,
   }
 }

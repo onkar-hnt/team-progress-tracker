@@ -47,7 +47,7 @@ public sealed class TaskService(
 
     public async Task<AssignedTaskDto> CreateAsync(SaveTaskRequest request, CancellationToken cancellationToken)
     {
-        await RequireTaskWriteAsync(request.DeveloperId, cancellationToken);
+        await RequireTaskWriteAsync(request.DeveloperId, request.ProjectId, cancellationToken);
         await ValidateReferencesAsync(request, JsonFieldSet.All, cancellationToken);
 
         var task = new WorkTask();
@@ -79,13 +79,17 @@ public sealed class TaskService(
         var task = await store.FindTaskAsync(id, cancellationToken)
             ?? throw new NotFoundException("That task is no longer available.");
 
-        await RequireTaskWriteAsync(task.DeveloperId, cancellationToken);
+        await RequireTaskWriteAsync(task.DeveloperId, task.ProjectId, cancellationToken);
         await ValidateReferencesAsync(payload.Request, payload.Fields, cancellationToken);
 
         var previousDeveloperId = task.DeveloperId;
         var previousStatus = task.Status;
 
         WorkMapping.ApplyTaskRequest(payload.Request, payload.Fields, task);
+
+        // The policy this replaces checked the row before and after the change,
+        // so a task cannot be moved onto a project or a person out of reach.
+        await RequireTaskWriteAsync(task.DeveloperId, task.ProjectId, cancellationToken);
 
         await taskToEntriesSync.SyncAsync(task, previousStatus, cancellationToken);
         await store.SaveChangesAsync(cancellationToken);
@@ -143,12 +147,15 @@ public sealed class TaskService(
         var task = await store.FindTaskAsync(id, cancellationToken)
             ?? throw new NotFoundException("That task is no longer available.");
 
-        await RequireTaskWriteAsync(task.DeveloperId, cancellationToken);
+        await RequireTaskWriteAsync(task.DeveloperId, task.ProjectId, cancellationToken);
         store.RemoveTask(task);
         await store.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task RequireTaskWriteAsync(Guid developerId, CancellationToken cancellationToken)
+    private async Task RequireTaskWriteAsync(
+        Guid developerId,
+        Guid projectId,
+        CancellationToken cancellationToken)
     {
         var scope = await scopeProvider.GetAsync(cancellationToken);
 
@@ -157,7 +164,7 @@ public sealed class TaskService(
             return;
         }
 
-        if (scope.IsMentor && scope.CanViewDeveloper(developerId))
+        if (scope.IsMentor && scope.CanViewDeveloperProject(developerId, projectId))
         {
             return;
         }
@@ -165,9 +172,11 @@ public sealed class TaskService(
         throw new ForbiddenException("Developers cannot edit tasks directly. Update them through daily work.");
     }
 
+    // Being named as the task's own mentor does not widen this: a mentor reads a
+    // task when they are assigned to its developer and responsible for its
+    // project.
     private static bool CanViewTask(AccessScope scope, WorkTask task) =>
-        scope.CanViewDeveloper(task.DeveloperId)
-        || (scope.MentorId is Guid mentorId && task.MentorId == mentorId);
+        scope.CanViewDeveloperProject(task.DeveloperId, task.ProjectId);
 
     private static bool CanChangeStatus(AccessScope scope, WorkTask task)
     {
@@ -176,7 +185,7 @@ public sealed class TaskService(
             return true;
         }
 
-        if (scope.IsMentor && scope.CanViewDeveloper(task.DeveloperId))
+        if (scope.IsMentor && scope.CanViewDeveloperProject(task.DeveloperId, task.ProjectId))
         {
             return true;
         }

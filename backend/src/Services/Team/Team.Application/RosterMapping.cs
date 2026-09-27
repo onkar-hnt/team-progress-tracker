@@ -42,7 +42,20 @@ internal static class RosterMapping
         Active = row.Active,
     };
 
-    public static ProjectDto ToDto(Project row, IReadOnlyList<Guid> memberIds) => new()
+    public static LeaveDayDto ToDto(LeaveDay row) => new()
+    {
+        Id = row.Id,
+        DeveloperId = row.DeveloperId,
+        Date = DateStrings.From(row.LeaveDate),
+        Note = row.Note,
+        RecordedBy = row.RecordedBy,
+        CreatedAt = DateStrings.From(row.CreatedAt),
+    };
+
+    public static ProjectDto ToDto(
+        Project row,
+        IReadOnlyList<Guid> memberIds,
+        IReadOnlyList<Guid> mentorIds) => new()
     {
         Id = row.Id,
         Name = row.Name,
@@ -54,7 +67,22 @@ internal static class RosterMapping
         StartDate = DateStrings.From(row.StartDate),
         EndDate = DateStrings.From(row.EndDate),
         MentorId = row.MentorId,
+        MentorIds = ResponsibleMentorIds(row, mentorIds),
         AssignedDeveloperIds = memberIds,
         DeletedAt = DateStrings.From(row.DeletedAt),
     };
+
+    /// <summary>
+    /// The primary mentor leads the list and is included even without a
+    /// responsibility row, so a project written by an older client still reads
+    /// back with an owner.
+    /// </summary>
+    public static IReadOnlyList<Guid> ResponsibleMentorIds(
+        Project row,
+        IReadOnlyList<Guid> mentorIds)
+    {
+        Guid[] leading = row.MentorId is Guid primary ? [primary] : [];
+
+        return [.. leading.Concat(mentorIds).Distinct()];
+    }
 }

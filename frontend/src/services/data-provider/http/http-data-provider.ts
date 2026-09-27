@@ -4,18 +4,24 @@ import type {
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
+  CreateLeaveDayRequest,
   CreateMentorCommentRequest,
   CreateMentorRequest,
   CreateProjectRequest,
+  DailyUpdateReminderRequest,
   DailyWorkEntry,
   DailyWorkQuery,
   Developer,
+  LeaveDay,
+  LeaveDayQuery,
   Mentor,
   MentorAssignment,
   MentorComment,
   MentorCommentQuery,
   Project,
   UpdateAssignedTaskRequest,
+  UpdateCoverage,
+  UpdateCoverageQuery,
   UpdateDailyWorkEntryRequest,
   UpdateDeveloperRequest,
   UpdateMentorCommentRequest,
@@ -28,7 +34,13 @@ import { ApiNotFoundError } from '@services/api/api.errors'
 import { todayIsoDate } from '@utils/date.utils'
 
 import type { DataProvider, DataProviderCapabilities } from '../data-provider.interface'
-import { commentListQuery, dailyWorkListQuery, taskListQuery } from './query-params'
+import {
+  commentListQuery,
+  dailyWorkListQuery,
+  leaveDayListQuery,
+  taskListQuery,
+  updateCoverageQuery,
+} from './query-params'
 import { parseOne, parseRows } from './parse-rows'
 import {
   commentCreateBody,
@@ -37,10 +49,12 @@ import {
   dailyWorkUpdateBody,
   developerCreateBody,
   developerUpdateBody,
+  leaveDayCreateBody,
   mentorCreateBody,
   mentorUpdateBody,
   projectCreateBody,
   projectUpdateBody,
+  reminderBody,
   taskCreateBody,
   taskUpdateBody,
 } from './request-bodies'
@@ -48,6 +62,7 @@ import {
   commentRowSchema,
   dailyWorkRowSchema,
   developerRowSchema,
+  leaveDayRowSchema,
   mentorAssignmentRecordId,
   mentorAssignmentRowSchema,
   mentorRowSchema,
@@ -56,10 +71,13 @@ import {
   toAssignedTask,
   toDailyWorkEntry,
   toDeveloper,
+  toLeaveDay,
   toMentor,
   toMentorAssignment,
   toMentorComment,
   toProject,
+  toUpdateCoverage,
+  updateCoverageRowSchema,
 } from './row-schemas'
 
 export class HttpDataProvider implements DataProvider {
@@ -143,6 +161,11 @@ export class HttpDataProvider implements DataProvider {
   async getProjects(): Promise<Project[]> {
     const data = await apiGet<unknown[]>(apiEndpoints.projects.list)
     return parseRows('Projects', projectRowSchema, data, toProject)
+  }
+
+  async getResponsibleProjectIds(): Promise<string[]> {
+    const data = await apiGet<unknown[]>(apiEndpoints.projects.responsible)
+    return data.filter((id): id is string => typeof id === 'string')
   }
 
   async createProject(request: CreateProjectRequest): Promise<Project> {
@@ -239,5 +262,32 @@ export class HttpDataProvider implements DataProvider {
 
   async deleteDailyWorkEntry(id: string): Promise<void> {
     await apiDelete(apiEndpoints.dailyUpdates.byId(id))
+  }
+
+  async getLeaveDays(query?: LeaveDayQuery): Promise<LeaveDay[]> {
+    const data = await apiGet<unknown[]>(apiEndpoints.leaveDays.list, {
+      query: leaveDayListQuery(query),
+    })
+    return parseRows('LeaveDays', leaveDayRowSchema, data, toLeaveDay)
+  }
+
+  async createLeaveDay(request: CreateLeaveDayRequest): Promise<LeaveDay> {
+    const data = await apiPost<unknown>(apiEndpoints.leaveDays.create, leaveDayCreateBody(request))
+    return parseOne('LeaveDays', leaveDayRowSchema, data, toLeaveDay)
+  }
+
+  async deleteLeaveDay(id: string): Promise<void> {
+    await apiDelete(apiEndpoints.leaveDays.byId(id))
+  }
+
+  async getUpdateCoverage(query?: UpdateCoverageQuery): Promise<UpdateCoverage> {
+    const data = await apiGet<unknown>(apiEndpoints.reports.updateCoverage, {
+      query: updateCoverageQuery(query),
+    })
+    return parseOne('UpdateCoverage', updateCoverageRowSchema, data, toUpdateCoverage)
+  }
+
+  async sendDailyUpdateReminder(request: DailyUpdateReminderRequest): Promise<void> {
+    await apiPost<unknown>(apiEndpoints.dailyUpdates.reminders, reminderBody(request))
   }
 }

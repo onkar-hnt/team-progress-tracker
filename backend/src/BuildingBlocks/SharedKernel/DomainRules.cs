@@ -30,6 +30,7 @@ public static class DomainRules
 
     public static readonly string[] ProjectStatuses = ["planned", "active", "on-hold", "completed"];
 
+    public const string NotificationDailyUpdateReminder = "daily_update_reminder";
     public const string NotificationDailyUpdateSubmitted = "daily_update_submitted";
     public const string NotificationFeedbackAdded = "feedback_added";
     public const string NotificationTaskAssigned = "task_assigned";
@@ -40,6 +41,7 @@ public static class DomainRules
 
     public static readonly string[] NotificationTypes =
     [
+        NotificationDailyUpdateReminder,
         NotificationDailyUpdateSubmitted,
         NotificationFeedbackAdded,
         NotificationTaskAssigned,
@@ -61,6 +63,50 @@ public static class DomainRules
 
     /// <summary>Days a change log line, or a deleted record, is kept.</summary>
     public const int RetentionDays = 15;
+
+    /// <summary>
+    /// Days an update is expected on. Public holidays are not modelled, the
+    /// same as WORKING_WEEKDAYS in src/constants/team.constants.ts.
+    /// </summary>
+    public static readonly DayOfWeek[] WorkingWeekdays =
+    [
+        DayOfWeek.Monday,
+        DayOfWeek.Tuesday,
+        DayOfWeek.Wednesday,
+        DayOfWeek.Thursday,
+        DayOfWeek.Friday,
+    ];
+
+    /// <summary>
+    /// How far back a missing update is still asked about. Two working weeks:
+    /// long enough to cover a week away and the week it is noticed in, short
+    /// enough that the list stays something a person can finish.
+    /// </summary>
+    public const int MissingUpdateLookbackDays = 14;
+
+    public static bool IsWorkingDay(DateOnly date) =>
+        WorkingWeekdays.Contains(date.DayOfWeek);
+
+    /// <summary>Working days in an inclusive range, oldest first.</summary>
+    public static IReadOnlyList<DateOnly> ListWorkingDates(DateOnly from, DateOnly to)
+    {
+        if (to < from)
+        {
+            return [];
+        }
+
+        var dates = new List<DateOnly>();
+
+        for (var date = from; date <= to; date = date.AddDays(1))
+        {
+            if (IsWorkingDay(date))
+            {
+                dates.Add(date);
+            }
+        }
+
+        return dates;
+    }
 
     /// <summary>Progress a status implies, or null where any value is legitimate.</summary>
     public static int? ProgressForStatus(string status) => status switch

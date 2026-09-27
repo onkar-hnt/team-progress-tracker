@@ -15,25 +15,44 @@ public sealed class SqlTeamDirectory(WorkConnectionFactory connections) : ITeamD
         CancellationToken cancellationToken = default)
     {
         const string sql = $"""
-            SELECT Id, Name, ProfileId, Active, PrimaryProjectId
+            SELECT Id, Name, ProfileId, Active, PrimaryProjectId, AccessRole
               FROM [{Db.Team}].[{Db.Developers}]
              WHERE Id = @id AND DeletedAt IS NULL
             """;
 
         await using var reader = await QueryAsync(sql, cancellationToken, ("@id", developerId));
 
-        if (!await reader.ReadAsync(cancellationToken))
+        return await reader.ReadAsync(cancellationToken) ? ReadDeveloper(reader) : null;
+    }
+
+    public async Task<IReadOnlyList<RosterDeveloper>> ListDevelopersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = $"""
+            SELECT Id, Name, ProfileId, Active, PrimaryProjectId, AccessRole
+              FROM [{Db.Team}].[{Db.Developers}]
+             WHERE DeletedAt IS NULL
+             ORDER BY Name
+            """;
+
+        await using var reader = await QueryAsync(sql, cancellationToken);
+        var developers = new List<RosterDeveloper>();
+
+        while (await reader.ReadAsync(cancellationToken))
         {
-            return null;
+            developers.Add(ReadDeveloper(reader));
         }
 
-        return new RosterDeveloper(
-            reader.GetGuid(0),
-            reader.GetString(1),
-            reader.IsDBNull(2) ? null : reader.GetGuid(2),
-            reader.GetBoolean(3),
-            reader.IsDBNull(4) ? null : reader.GetGuid(4));
+        return developers;
     }
+
+    private static RosterDeveloper ReadDeveloper(SqlDataReader reader) => new(
+        reader.GetGuid(0),
+        reader.GetString(1),
+        reader.IsDBNull(2) ? null : reader.GetGuid(2),
+        reader.GetBoolean(3),
+        reader.IsDBNull(4) ? null : reader.GetGuid(4),
+        reader.IsDBNull(5) ? null : reader.GetString(5));
 
     public async Task<bool> DeveloperExistsAsync(
         Guid developerId,
@@ -85,6 +104,31 @@ public sealed class SqlTeamDirectory(WorkConnectionFactory connections) : ITeamD
             SELECT DeveloperId
               FROM [{Db.Team}].[{Db.MentorAssignments}]
              WHERE MentorId = @mentorId AND Active = 1
+            """;
+
+        await using var reader = await QueryAsync(sql, cancellationToken, ("@mentorId", mentorId));
+        var ids = new List<Guid>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            ids.Add(reader.GetGuid(0));
+        }
+
+        return ids;
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetResponsibleProjectIdsAsync(
+        Guid mentorId,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = $"""
+            SELECT p.Id
+              FROM [{Db.Team}].[{Db.Projects}] p
+             WHERE p.DeletedAt IS NULL
+               AND (p.MentorId = @mentorId
+                    OR EXISTS (SELECT 1
+                                 FROM [{Db.Team}].[{Db.ProjectMentors}] pm
+                                WHERE pm.ProjectId = p.Id AND pm.MentorId = @mentorId))
             """;
 
         await using var reader = await QueryAsync(sql, cancellationToken, ("@mentorId", mentorId));

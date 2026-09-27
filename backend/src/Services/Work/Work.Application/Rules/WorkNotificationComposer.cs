@@ -147,6 +147,39 @@ public sealed class WorkNotificationComposer(ICurrentUser currentUser, ITeamDire
             cancellationToken);
     }
 
+    /// <summary>
+    /// Asks one developer for their daily update. The only notification here
+    /// that somebody sends by hand, so the sender is named from their profile
+    /// and anything they typed is appended as their own words.
+    /// </summary>
+    /// <remarks>
+    /// Carries no entity: a reminder points at no record, only at a day that
+    /// has none.
+    /// </remarks>
+    public IReadOnlyList<NotificationRequest> ForDailyUpdateReminder(
+        Guid recipientProfileId,
+        string senderName,
+        string? message)
+    {
+        var note = string.IsNullOrWhiteSpace(message) ? null : message.Trim();
+
+        var body = note is null
+            ? $"{senderName} asked you to submit your daily update."
+            : $"{senderName} asked you to submit your daily update. \"{note}\"";
+
+        return
+        [
+            new NotificationRequest
+            {
+                RecipientProfileId = recipientProfileId,
+                Type = DomainRules.NotificationDailyUpdateReminder,
+                Title = "Your daily update is waiting",
+                Message = body,
+                ActorProfileId = currentUser.IsAuthenticated ? currentUser.ProfileId : null,
+            },
+        ];
+    }
+
     private async Task<IReadOnlyList<NotificationRequest>> NotifyMentorsAsync(
         Guid developerId,
         string type,

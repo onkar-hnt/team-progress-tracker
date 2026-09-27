@@ -141,9 +141,9 @@ public sealed class NotificationsWorkflowTests(IntegrationTestEnvironment enviro
         public static async Task<NotificationScenario> CreateAsync(IntegrationTestEnvironment environment)
         {
             var roster = await TestRosterBuilder.CreateAdminAsync(environment);
-            var project = await roster.CreateProjectAsync();
-            var developer = await roster.CreateDeveloperAsync(project.Id);
             var mentor = await roster.CreateMentorAsync();
+            var project = await roster.CreateProjectAsync(mentorIds: mentor.Id);
+            var developer = await roster.CreateDeveloperAsync(project.Id);
             await roster.AssignMentorAsync(mentor.Id, developer.Id);
 
             var (devProvisioned, _, devIdentity) = await roster.ProvisionDeveloperLoginAsync(developer);

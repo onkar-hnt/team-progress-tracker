@@ -70,6 +70,35 @@ public sealed class ReportsController(ReportService reports) : ControllerBase
         return Ok(ApiResponse<DeveloperTotalsDto>.Ok(report));
     }
 
+    /// <summary>Which working days each visible employee has accounted for.</summary>
+    /// <remarks>
+    /// A day is answered by a daily update or by a leave day; anything else is
+    /// a gap. Only working days are asked about, and only of people who owe an
+    /// update, so administrators and mentors do not appear.
+    /// <para>
+    /// Not restricted to privileged callers: a developer asks this for their
+    /// own days behind on the daily update screen. Defaults to the last
+    /// fortnight rather than the calendar month, because month-to-date would
+    /// ask about nothing on the first.
+    /// </para>
+    /// </remarks>
+    /// <param name="developerIds">Comma-separated employee ids.</param>
+    [HttpGet("update-coverage")]
+    [ProducesResponseType(typeof(ApiResponse<UpdateCoverageDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<UpdateCoverageDto>>> UpdateCoverage(
+        [FromQuery] ReportDateRangeQuery query,
+        [FromQuery] string? developerIds,
+        CancellationToken cancellationToken)
+    {
+        var report = await reports.GetUpdateCoverageAsync(
+            query.From,
+            query.To,
+            QueryBinding.Guids(developerIds),
+            cancellationToken);
+
+        return Ok(ApiResponse<UpdateCoverageDto>.Ok(report));
+    }
+
     /// <summary>Totals per project over a period.</summary>
     [HttpGet("projects")]
     [Authorize(Policy = AppPolicies.Privileged)]

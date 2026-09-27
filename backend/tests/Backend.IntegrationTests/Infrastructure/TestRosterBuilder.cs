@@ -52,7 +52,15 @@ public sealed class TestRosterBuilder(
     /// </summary>
     private string NextTag() => $"{UniqueTag}-{Interlocked.Increment(ref sequence)}";
 
-    public async Task<ProjectDto> CreateProjectAsync(string? name = null, string? client = null)
+    /// <summary>
+    /// Creates a project, optionally naming the mentors responsible for it. A
+    /// mentor who is not named cannot read the work logged against it, so a
+    /// scenario that signs a mentor in has to say so.
+    /// </summary>
+    public async Task<ProjectDto> CreateProjectAsync(
+        string? name = null,
+        string? client = null,
+        params Guid[] mentorIds)
     {
         var response = await adminTeam.PostAsJsonAsync(
             "/api/projects",
@@ -62,6 +70,7 @@ public sealed class TestRosterBuilder(
                 Client = client ?? "Integration Client",
                 Status = "active",
                 Active = true,
+                MentorIds = mentorIds,
             },
             Json);
 

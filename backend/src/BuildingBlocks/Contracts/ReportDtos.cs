@@ -54,3 +54,55 @@ public sealed record TeamReportDto
     public IReadOnlyList<DeveloperTotalsDto> Developers { get; init; } = [];
     public IReadOnlyList<ProjectTotalsDto> Projects { get; init; } = [];
 }
+
+/// <summary>How one working day was accounted for.</summary>
+public sealed record UpdateDayDto
+{
+    public required string Date { get; init; }
+
+    /// <summary>One of leave, missing or submitted.</summary>
+    public required string State { get; init; }
+
+    /// <summary>The note left with a leave day, when there is one.</summary>
+    public string? Note { get; init; }
+}
+
+public sealed record DeveloperUpdateCoverageDto
+{
+    public required Guid DeveloperId { get; init; }
+    public required string DeveloperName { get; init; }
+
+    /// <summary>Every working day in the range, newest first.</summary>
+    public IReadOnlyList<UpdateDayDto> Days { get; init; } = [];
+
+    public IReadOnlyList<string> MissingDates { get; init; } = [];
+    public IReadOnlyList<string> LeaveDates { get; init; } = [];
+
+    public int SubmittedCount { get; init; }
+    public int MissingCount { get; init; }
+    public int LeaveCount { get; init; }
+
+    /// <summary>The most recent day in range that has an update, if any has.</summary>
+    public string? LastSubmittedDate { get; init; }
+}
+
+public sealed record UpdateCoverageTotalsDto
+{
+    public int DevelopersWithGaps { get; init; }
+    public int MissingDays { get; init; }
+    public int LeaveDays { get; init; }
+}
+
+/// <summary>
+/// Which working days each visible developer has accounted for, and how. A
+/// calculation over rows that already exist rather than state written when a
+/// day passes, so a day filled in later stops being missing the moment the
+/// entry lands.
+/// </summary>
+public sealed record UpdateCoverageDto
+{
+    public required string From { get; init; }
+    public required string To { get; init; }
+    public IReadOnlyList<DeveloperUpdateCoverageDto> Developers { get; init; } = [];
+    public UpdateCoverageTotalsDto Totals { get; init; } = new();
+}

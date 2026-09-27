@@ -10,12 +10,30 @@ public sealed class ProjectService(
         var scope = await scopeProvider.GetAsync(cancellationToken);
         var rows = await store.ListProjectsAsync(cancellationToken);
         var members = await store.GetAllProjectMembersAsync(cancellationToken);
+        var mentors = await store.GetAllProjectMentorsAsync(cancellationToken);
 
-        if (scope.IsPrivileged)
+        if (scope.IsAdmin)
         {
-            return [.. rows
-                .OrderBy(row => row.Code)
-                .Select(row => RosterMapping.ToDto(row, MemberIds(members, row.Id)))];
+            return Dtos(rows, members, mentors);
+        }
+
+        var memberProjectIds = scope.DeveloperId is Guid ownDeveloperId
+            ? (await store.ListDeveloperProjectIdsAsync(ownDeveloperId, cancellationToken)).ToHashSet()
+            : [];
+
+        if (scope.IsMentor)
+        {
+            // Being privileged no longer opens every project. A mentor reads the
+            // projects they are responsible for, a project nobody is responsible
+            // for yet so it can be given an owner, and anything they belong to as
+            // an employee in their own right.
+            return Dtos(
+                rows.Where(row =>
+                    scope.CanRequestProject(row.Id)
+                    || memberProjectIds.Contains(row.Id)
+                    || ResponsibleMentorIds(row, mentors).Count == 0),
+                members,
+                mentors);
         }
 
         if (scope.DeveloperId is not Guid developerId)
@@ -23,17 +41,26 @@ public sealed class ProjectService(
             return [];
         }
 
-        var memberProjectIds = (await store.ListDeveloperProjectIdsAsync(developerId, cancellationToken))
+        var ownMentorIds = (await store.ListActiveMentorIdsForDeveloperAsync(developerId, cancellationToken))
             .ToHashSet();
 
-        var mentorIds = (await store.ListActiveMentorIdsForDeveloperAsync(developerId, cancellationToken))
-            .ToHashSet();
+        return Dtos(
+            rows.Where(row => memberProjectIds.Contains(row.Id)
+                || ResponsibleMentorIds(row, mentors).Any(ownMentorIds.Contains)),
+            members,
+            mentors);
+    }
 
-        return [.. rows
-            .Where(row => memberProjectIds.Contains(row.Id)
-                || (row.MentorId is Guid mentorId && mentorIds.Contains(mentorId)))
-            .OrderBy(row => row.Code)
-            .Select(row => RosterMapping.ToDto(row, MemberIds(members, row.Id)))];
+    /// <summary>
+    /// The projects the caller is responsible for as a mentor. Empty for
+    /// anyone else, including an administrator, who is not narrowed by project.
+    /// </summary>
+    public async Task<IReadOnlyList<Guid>> ListResponsibleProjectIdsAsync(
+        CancellationToken cancellationToken)
+    {
+        var scope = await scopeProvider.GetAsync(cancellationToken);
+
+        return scope.VisibleProjectIds is null ? [] : [.. scope.VisibleProjectIds];
     }
 
     public async Task<ProjectDto> CreateAsync(
@@ -41,7 +68,11 @@ public sealed class ProjectService(
         CancellationToken cancellationToken)
     {
         await DeveloperService.RequirePrivilegedAsync(scopeProvider, cancellationToken);
-        await ValidateReferencesAsync(request.MentorId, request.AssignedDeveloperIds, cancellationToken);
+        await ValidateReferencesAsync(
+            request.MentorId,
+            request.MentorIds,
+            request.AssignedDeveloperIds,
+            cancellationToken);
 
         var autoCode = string.IsNullOrWhiteSpace(request.Code);
         Domain.Project? saved = null;
@@ -87,7 +118,19 @@ public sealed class ProjectService(
             await store.SaveChangesAsync(cancellationToken);
         }
 
-        return RosterMapping.ToDto(saved, [.. memberIds]);
+        var scope = await scopeProvider.GetAsync(cancellationToken);
+        var mentorIds = ProjectMentorSynchronizer.ForCreate(
+            request.MentorIds,
+            saved.MentorId,
+            scope.MentorId);
+
+        if (mentorIds.Count > 0)
+        {
+            await store.ReplaceProjectMentorsAsync(saved.Id, mentorIds, clock.Now, cancellationToken);
+            await store.SaveChangesAsync(cancellationToken);
+        }
+
+        return RosterMapping.ToDto(saved, [.. memberIds], mentorIds);
     }
 
     public async Task<ProjectDto> UpdateAsync(
@@ -102,12 +145,19 @@ public sealed class ProjectService(
 
         if (payload.Fields.Has("mentorId"))
         {
-            await ValidateReferencesAsync(payload.Request.MentorId, null, cancellationToken);
+            await ValidateReferencesAsync(payload.Request.MentorId, null, null, cancellationToken);
+        }
+
+        var sendsMentors = payload.Fields.Has("mentorIds") && payload.Request.MentorIds is not null;
+
+        if (sendsMentors)
+        {
+            await ValidateReferencesAsync(null, payload.Request.MentorIds, null, cancellationToken);
         }
 
         if (payload.Fields.Has("assignedDeveloperIds") && payload.Request.AssignedDeveloperIds is not null)
         {
-            await ValidateReferencesAsync(null, payload.Request.AssignedDeveloperIds, cancellationToken);
+            await ValidateReferencesAsync(null, null, payload.Request.AssignedDeveloperIds, cancellationToken);
         }
 
         RequestApply.UpdateProject(payload.Request, payload.Fields, row);
@@ -123,9 +173,26 @@ public sealed class ProjectService(
             await store.SaveChangesAsync(cancellationToken);
         }
 
-        var memberIds = await store.GetProjectMemberIdsAsync(id, cancellationToken);
+        // A changed primary mentor has to join the set even when the caller said
+        // nothing about mentorIds, so the stored set is rebuilt either way.
+        if (sendsMentors || payload.Fields.Has("mentorId"))
+        {
+            var basis = sendsMentors
+                ? payload.Request.MentorIds!
+                : await store.GetProjectMentorIdsAsync(id, cancellationToken);
 
-        return RosterMapping.ToDto(row, memberIds);
+            await store.ReplaceProjectMentorsAsync(
+                id,
+                ProjectMentorSynchronizer.ForUpdate(basis, row.MentorId),
+                clock.Now,
+                cancellationToken);
+            await store.SaveChangesAsync(cancellationToken);
+        }
+
+        var memberIds = await store.GetProjectMemberIdsAsync(id, cancellationToken);
+        var mentorIds = await store.GetProjectMentorIdsAsync(id, cancellationToken);
+
+        return RosterMapping.ToDto(row, memberIds, mentorIds);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
@@ -142,12 +209,20 @@ public sealed class ProjectService(
 
     private async Task ValidateReferencesAsync(
         Guid? mentorId,
+        IReadOnlyList<Guid>? mentorIds,
         IReadOnlyList<Guid>? developerIds,
         CancellationToken cancellationToken)
     {
         if (mentorId is Guid id && !await store.MentorExistsAsync(id, cancellationToken))
         {
             throw new ValidationFailedException("Choose a mentor that exists.");
+        }
+
+        if (mentorIds is not null
+            && mentorIds.Count > 0
+            && !await store.AllMentorsExistAsync(mentorIds, cancellationToken))
+        {
+            throw new ValidationFailedException("One or more chosen mentors do not exist.");
         }
 
         if (developerIds is not null
@@ -162,4 +237,17 @@ public sealed class ProjectService(
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> members,
         Guid projectId) =>
         members.TryGetValue(projectId, out var ids) ? ids : [];
+
+    private static IReadOnlyList<Guid> ResponsibleMentorIds(
+        Domain.Project row,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> mentors) =>
+        RosterMapping.ResponsibleMentorIds(row, MemberIds(mentors, row.Id));
+
+    private static IReadOnlyList<ProjectDto> Dtos(
+        IEnumerable<Domain.Project> rows,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> members,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> mentors) =>
+        [.. rows
+            .OrderBy(row => row.Code)
+            .Select(row => RosterMapping.ToDto(row, MemberIds(members, row.Id), MemberIds(mentors, row.Id)))];
 }

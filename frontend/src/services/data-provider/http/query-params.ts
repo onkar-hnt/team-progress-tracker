@@ -1,7 +1,9 @@
 import type {
   AssignedTaskQuery,
   DailyWorkQuery,
+  LeaveDayQuery,
   MentorCommentQuery,
+  UpdateCoverageQuery,
 } from '@models/index'
 import type { ApiQueryValue } from '@services/api/api-client'
 
@@ -43,6 +45,33 @@ export function dailyWorkListQuery(query?: DailyWorkQuery): Record<string, ApiQu
   copyArrayParam(params, 'priorities', query.priorities)
   if (query.isBlocked !== undefined) params.isBlocked = query.isBlocked
   if (query.limit !== undefined) params.limit = query.limit
+
+  return params
+}
+
+export function leaveDayListQuery(query?: LeaveDayQuery): Record<string, ApiQueryValue> | undefined {
+  if (query === undefined) return undefined
+
+  const params: Record<string, ApiQueryValue> = {}
+
+  if (query.dateFrom !== undefined) params.dateFrom = query.dateFrom
+  if (query.dateTo !== undefined) params.dateTo = query.dateTo
+  copyArrayParam(params, 'developerIds', query.developerIds)
+
+  return params
+}
+
+/** The coverage endpoint names its bounds `from` and `to`, like the reports. */
+export function updateCoverageQuery(
+  query?: UpdateCoverageQuery,
+): Record<string, ApiQueryValue> | undefined {
+  if (query === undefined) return undefined
+
+  const params: Record<string, ApiQueryValue> = {}
+
+  if (query.dateFrom !== undefined) params.from = query.dateFrom
+  if (query.dateTo !== undefined) params.to = query.dateTo
+  copyArrayParam(params, 'developerIds', query.developerIds)
 
   return params
 }

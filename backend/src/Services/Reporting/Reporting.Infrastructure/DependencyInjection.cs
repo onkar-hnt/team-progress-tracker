@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddSingleton<ReportingConnectionFactory>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<IWorkEntryReader, SqlWorkEntryReader>();
+        services.AddScoped<ILeaveDayReader, SqlLeaveDayReader>();
         services.AddScoped<IUsageReader, SqlUsageReader>();
         services.AddScoped<ITeamDirectory, SqlTeamDirectory>();
         services.AddScoped<ReportAccessScopeFactory>();
