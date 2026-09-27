@@ -1,11 +1,21 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import { fileURLToPath, URL } from 'node:url'
 
 // https://vite.dev/config/
 export default defineConfig({
   base: '/team-progress-tracker/',
   plugins: [react()],
+
+  /**
+   * One environment for every test, rather than jsdom only where a component
+   * needs it. The pure-logic tests do not care that a document exists, and a
+   * single setting is one less thing to get wrong in a new test file.
+   */
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+  },
 
   /** Pre-bundle ApexCharts so lazy routes do not trigger mid-session re-optimisation and 504s. */
   optimizeDeps: {
