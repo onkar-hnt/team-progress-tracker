@@ -189,6 +189,31 @@ public static class ServiceDefaults
         options.OperationFilter<StandardResponsesOperationFilter>();
     }
 
+    /// <summary>
+    /// Controllers as every host wants them: validation before the action,
+    /// camelCase on the wire, partial-update payload support, and list query
+    /// parameters that may arrive comma-separated.
+    /// </summary>
+    public static IMvcBuilder AddAppControllers(this IServiceCollection services)
+    {
+        return services
+            .AddControllers(options =>
+            {
+                options.Filters.Add<ValidationFilter>();
+
+                // Ahead of MVC's own collection binder, which reads repeated
+                // parameters only.
+                options.ModelBinderProviders.Insert(
+                    0,
+                    new CommaSeparatedListModelBinderProvider());
+            })
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                options.JsonSerializerOptions.AddUpdatePayloadSupport();
+            });
+    }
+
     public static WebApplication UseAppDefaults(this WebApplication app)
     {
         // Request logging sits outside the exception handler so the line it

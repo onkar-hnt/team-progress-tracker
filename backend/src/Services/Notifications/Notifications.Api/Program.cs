@@ -15,14 +15,7 @@ builder.AddAppDefaults(
     """);
 builder.Services.AddNotificationServices(builder.Configuration);
 
-builder.Services
-    .AddControllers(options => options.Filters.Add<ValidationFilter>())
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy =
-            System.Text.Json.JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.AddUpdatePayloadSupport();
-    });
+builder.Services.AddAppControllers();
 
 var app = builder.Build();
 
