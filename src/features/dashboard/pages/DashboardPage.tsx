@@ -1,29 +1,17 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import {
-  DeveloperProgressChart,
-  HoursByDayChart,
-  ProjectDistributionChart,
-  StatusDistributionChart,
-  WeeklyTrendChart,
-} from '@components/charts/WorkCharts'
-import { DeveloperSummaryTable } from '@components/summaries/SummaryTables'
 import { Button } from '@components/ui/button/Button'
-import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { FilterField } from '@components/ui/field/Field'
-import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
+import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { EntryList } from '@components/ui/entry-list/EntryList'
-import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
-import { StatCard } from '@components/ui/stat-card/StatCard'
 import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
-import { DailyUpdateForm } from '@features/daily-update/components/DailyUpdateForm'
 import { AssignedMentorNames } from '@features/profile/components/AssignedMentors'
 import type { ActivitySlice } from '@features/team-activity/activity-filters'
-import { activityLink, activityRangeLink } from '@features/team-activity/activity-filters'
-import { TASK_STATUS_LABELS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
+import { activityRangeLink } from '@features/team-activity/activity-filters'
+import { TASK_STATUS_LABELS } from '@constants/task.constants'
 import {
   useDayOverview,
   useDevelopers,
@@ -31,20 +19,23 @@ import {
   useRangeOverview,
   useUpdateDailyWorkEntry,
 } from '@hooks/use-work-tracker'
-import type { TaskStatus } from '@models/index'
 import { canEditEntry, canViewTeamData } from '@services/auth/index'
-import type { DailyWorkEntryView } from '@services/work-tracker.service'
+import type { DailyWorkEntryView } from '@services/work-tracker.views'
 import { progressForStatus } from '@utils/task.utils'
 import {
   formatLongDate,
   getWeekRange,
-  isWorkingDay,
   toNearestWorkingDay,
   todayIsoDate,
 } from '@utils/date.utils'
 import { buildDeveloperSummaries, buildProjectSummaries } from '@utils/work-summary.utils'
 
 import { AssignedWorkPanel } from '../components/AssignedWorkPanel'
+import { DashboardCharts } from '../components/DashboardCharts'
+import { DashboardStatCards } from '../components/DashboardStatCards'
+import { EditUpdateModal } from '../components/EditUpdateModal'
+import { EntryStatusSelect } from '../components/EntryStatusSelect'
+import { MissingUpdatesPanel } from '../components/MissingUpdatesPanel'
 
 import './DashboardPage.scss'
 
@@ -171,84 +162,16 @@ export function DashboardPage() {
           <>
             {isTeamView || user?.developerId === undefined ? null : (
               <p className="dashboard__mentors">
-                Mentors:{' '}
-                <AssignedMentorNames title={`Mentors assigned to ${user.name}`} />
+                Mentors: <AssignedMentorNames title={`Mentors assigned to ${user.name}`} />
               </p>
             )}
-            <div className="stat-card-grid">
-            <StatCard
-              icon="calendar"
-              label="Updates today"
-              to={isTeamView ? activityLink(selectedDate) : '/daily-update'}
-              tone="progress"
-              value={day.statuses.total}
-            />
-            <StatCard
-              detail={`${String(day.completionRate)}% of today's updates`}
-              icon="check"
-              label="Completed"
-              progress={day.completionRate}
-              to={isTeamView ? activityLink(selectedDate, { status: 'completed' }) : undefined}
-              tone="positive"
-              value={day.statuses.completed}
-            />
-            <StatCard
-              icon="activity"
-              label="In progress"
-              to={isTeamView ? activityLink(selectedDate, { status: 'in-progress' }) : undefined}
-              value={day.statuses.inProgress}
-            />
-            <StatCard
-              icon="tasks"
-              label="Not started"
-              to={isTeamView ? activityLink(selectedDate, { status: 'not-started' }) : undefined}
-              value={day.statuses.notStarted}
-            />
-            <StatCard
-              detail="Blocked by status or flag"
-              icon="alert"
-              label="Needs attention"
-              to={isTeamView ? activityLink(selectedDate, { blockedOnly: true }) : undefined}
-              tone={day.statuses.needsAttention > 0 ? 'attention' : 'neutral'}
-              value={day.statuses.needsAttention}
-            />
-            <StatCard icon="chart" label="Hours logged" value={day.hoursLogged} />
 
-            {isTeamView ? (
-              <>
-                <StatCard
-                  detail={`of ${String(activeDeveloperCount)} active`}
-                  icon="users"
-                  label="Updated today"
-                  progress={
-                    activeDeveloperCount === 0
-                      ? 0
-                      : (day.developersUpdated.length / activeDeveloperCount) * 100
-                  }
-                  to={activityLink(selectedDate)}
-                  tone="positive"
-                  value={day.developersUpdated.length}
-                />
-                <StatCard
-                  detail={isWorkingDay(selectedDate) ? undefined : 'Not a working day'}
-                  icon="alert"
-                  label="Missing updates"
-                  to="/missing-updates"
-                  tone={day.developersMissingUpdate.length > 0 ? 'attention' : 'positive'}
-                  value={day.developersMissingUpdate.length}
-                />
-              </>
-            ) : (
-              <StatCard
-                detail={isWorkingDay(selectedDate) ? undefined : 'Not a working day'}
-                icon="calendar"
-                label="Your update"
-                to="/daily-update"
-                tone={day.developersMissingUpdate.length === 0 ? 'positive' : 'attention'}
-                value={day.developersMissingUpdate.length === 0 ? 'Submitted' : 'Not submitted'}
-              />
-            )}
-          </div>
+            <DashboardStatCards
+              activeDeveloperCount={activeDeveloperCount}
+              day={day}
+              isTeamView={isTeamView}
+              selectedDate={selectedDate}
+            />
           </>
         )}
       </Panel>
@@ -292,46 +215,7 @@ export function DashboardPage() {
         </Panel>
 
         {isTeamView ? (
-          <Panel
-            action={<Link to="/missing-updates">See the days behind</Link>}
-            description={
-              isWorkingDay(selectedDate)
-                ? 'Active developers with no entry for the selected day, leave aside.'
-                : 'The selected day is not a working day, so no updates are expected.'
-            }
-            title="Missing daily updates"
-          >
-            <div className="dashboard__panel-scroll">
-              {isLoading || day === undefined ? (
-                <Skeleton rows={2} />
-              ) : day.developersMissingUpdate.length === 0 ? (
-                <EmptyState
-                  icon="check"
-                  message="Everyone active has logged their work for this day."
-                  title="Nothing outstanding"
-                />
-              ) : (
-                <ul className="dashboard__missing">
-                  {day.developersMissingUpdate.map((developer) => (
-                    <li key={developer.id}>
-                      <Link to={`/developers/${developer.id}`}>{developer.name}</Link>
-                      {developer.role === undefined ? null : (
-                        <span className="dashboard__missing-role">{developer.role}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {day === undefined || day.developersOnLeave.length === 0 ? null : (
-                <p className="dashboard__missing-note">
-                  {day.developersOnLeave.length === 1
-                    ? `${day.developersOnLeave[0]?.name ?? ''} is on leave.`
-                    : `${String(day.developersOnLeave.length)} people are on leave.`}
-                </p>
-              )}
-            </div>
-          </Panel>
+          <MissingUpdatesPanel day={day} isLoading={isLoading} selectedDate={selectedDate} />
         ) : null}
       </div>
 
@@ -355,120 +239,21 @@ export function DashboardPage() {
         )}
       </Panel>
 
-      <div className="dashboard__row">
-        <Panel description="Updates, completions and blockers this week." title="Weekly task trend">
-          {isLoading || week === undefined ? (
-            <Skeleton rows={4} />
-          ) : (
-            <WeeklyTrendChart trend={week.trend} />
-          )}
-        </Panel>
-
-        <Panel description="Status split across this week's entries." title="Task status">
-          {isLoading || week === undefined ? (
-            <Skeleton rows={4} />
-          ) : (
-            <StatusDistributionChart
-              onSelectStatus={
-                openActivity === undefined
-                  ? undefined
-                  : (status) => {
-                      openActivity({ status })
-                    }
-              }
-              statuses={week.statuses}
-            />
-          )}
-        </Panel>
-      </div>
-
-      <div className="dashboard__row">
-        {isTeamView ? (
-          <Panel description="Stacked task status per developer." title="Developer-wise progress">
-            {isLoading ? (
-              <Skeleton rows={4} />
-            ) : (
-              <DeveloperProgressChart
-                onSelectDeveloper={
-                  openActivity === undefined
-                    ? undefined
-                    : (developerId) => {
-                        openActivity({ developerId })
-                      }
-                }
-                summaries={developerSummaries}
-              />
-            )}
-          </Panel>
-        ) : null}
-
-        <Panel description="Where this week's work is concentrated." title="Project distribution">
-          {isLoading ? (
-            <Skeleton rows={4} />
-          ) : (
-            <ProjectDistributionChart
-              onSelectProject={
-                openActivity === undefined
-                  ? undefined
-                  : (projectId) => {
-                      openActivity({ projectId })
-                    }
-              }
-              summaries={projectSummaries}
-            />
-          )}
-        </Panel>
-      </div>
-
-      <Panel description="Hours logged each day this week." title="Weekly hours">
-        {isLoading || week === undefined ? <Skeleton rows={3} /> : <HoursByDayChart trend={week.trend} />}
-      </Panel>
-
-      {isTeamView ? (
-        <Panel
-          description={`Week of ${formatLongDate(weekRange.from)} to ${formatLongDate(weekRange.to)}.`}
-          title="Developer summary"
-        >
-          {isLoading ? <Skeleton rows={4} /> : <DeveloperSummaryTable summaries={developerSummaries} />}
-        </Panel>
-      ) : null}
-
-      <Modal isOpen={editing !== null} onClose={() => setEditing(null)} title="Edit update">
-        {editing === null ? null : (
-          <DailyUpdateForm date={editing.date} entry={editing} onSaved={() => setEditing(null)} />
-        )}
-      </Modal>
-    </div>
-  )
-}
-
-function EntryStatusSelect({
-  entry,
-  isSaving,
-  onChange,
-}: {
-  entry: DailyWorkEntryView
-  isSaving: boolean
-  onChange: (status: TaskStatus) => void
-}) {
-  return (
-    <div className="dashboard__entry-status">
-      <Dropdown
-        ariaLabel={`Status for ${entry.taskTitle}`}
-        disabled={isSaving}
-        isCompact
-        onChange={(next) => {
-          if (next !== entry.status) onChange(next as TaskStatus)
-        }}
-        options={TASK_STATUS_OPTIONS}
-        value={entry.status}
+      <DashboardCharts
+        developerSummaries={developerSummaries}
+        isLoading={isLoading}
+        isTeamView={isTeamView}
+        onSelectSlice={openActivity}
+        projectSummaries={projectSummaries}
+        week={week}
+        weekRange={weekRange}
       />
 
-      {isSaving ? (
-        <span className="dashboard__entry-saving" role="status">
-          Saving…
-        </span>
-      ) : null}
+      <EditUpdateModal
+        entry={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => setEditing(null)}
+      />
     </div>
   )
 }

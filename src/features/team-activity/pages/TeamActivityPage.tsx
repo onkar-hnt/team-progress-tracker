@@ -12,7 +12,7 @@ import { DailyUpdateForm } from '@features/daily-update/components/DailyUpdateFo
 import { useAccessScope } from '@hooks/use-access-scope'
 import { useDailyWorkEntries, useDeleteDailyWorkEntry, useDevelopers, useProjects } from '@hooks/use-work-tracker'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
-import type { DailyWorkEntryView } from '@services/work-tracker.service'
+import type { DailyWorkEntryView } from '@services/work-tracker.views'
 import { formatLongDate } from '@utils/date.utils'
 import { richTextToPlainText } from '@utils/rich-text.utils'
 import { matchesSearch } from '@utils/table.utils'

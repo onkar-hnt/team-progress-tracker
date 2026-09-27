@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
@@ -8,20 +8,14 @@ import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { Field, TextField } from '@components/ui/field/Field'
 import { RichTextField } from '@components/ui/rich-text/RichTextField'
-import type { DropdownOption } from '@models/ui.model'
 import { PROGRESS_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import type { DailyWorkEntry, TaskStatus } from '@models/index'
 import { isAdmin } from '@services/auth/index'
-import {
-  useActiveDevelopers,
-  useActiveProjects,
-  useCreateDailyWorkEntry,
-  useTasks,
-  useUpdateDailyWorkEntry,
-} from '@hooks/use-work-tracker'
+import { useCreateDailyWorkEntry, useUpdateDailyWorkEntry } from '@hooks/use-work-tracker'
 import { todayIsoDate } from '@utils/date.utils'
-import { describeTask, groupTasksByCompletion, progressForStatus } from '@utils/task.utils'
+import { progressForStatus } from '@utils/task.utils'
 
+import { useDailyUpdateOptions } from '../hooks/use-daily-update-options'
 import {
   createEmptyFormValues,
   dailyUpdateFormSchema,
@@ -41,8 +35,6 @@ interface DailyUpdateFormProps {
 export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) {
   const { user } = useAuth()
   const snackbar = useSnackbar()
-  const developersQuery = useActiveDevelopers()
-  const projectsQuery = useActiveProjects()
   const createEntry = useCreateDailyWorkEntry()
   const updateEntry = useUpdateDailyWorkEntry()
 
@@ -55,16 +47,18 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
     entry?.developerId ?? ownDeveloperId,
   )
 
-  // Empty developerIds skips the tasks query until a developer is chosen.
-  const taskFilter = useMemo(
-    () => ({ developerIds: selectedDeveloperId === '' ? [] : [selectedDeveloperId] }),
-    [selectedDeveloperId],
-  )
-  const tasksQuery = useTasks(taskFilter)
-  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
-  const { completed, open } = useMemo(() => groupTasksByCompletion(tasks), [tasks])
-
-  const showTaskPicker = tasks.length > 0 || tasksQuery.isPending
+  const {
+    developerOptions,
+    developers,
+    isLoadingOptions,
+    isLoadingTasks,
+    optionsError,
+    projectOptions,
+    showTaskPicker,
+    taskOptions,
+    tasks,
+    tasksError,
+  } = useDailyUpdateOptions(selectedDeveloperId)
 
   const {
     control,
@@ -81,44 +75,6 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
         ? createEmptyFormValues({ date, developerId: ownDeveloperId })
         : toFormValues(entry),
   })
-
-  const developerOptions = useMemo<DropdownOption[]>(
-    () => [
-      { value: '', label: 'Select a developer' },
-      ...(developersQuery.data ?? []).map((developer) => ({
-        value: developer.id,
-        label: developer.name,
-      })),
-    ],
-    [developersQuery.data],
-  )
-
-  const projectOptions = useMemo<DropdownOption[]>(
-    () => [
-      { value: '', label: 'Select a project' },
-      ...(projectsQuery.data ?? []).map((project) => ({
-        value: project.id,
-        label: project.client === undefined ? project.name : `${project.name} — ${project.client}`,
-      })),
-    ],
-    [projectsQuery.data],
-  )
-
-  const taskOptions = useMemo<DropdownOption[]>(
-    () => [
-      {
-        value: '',
-        label: tasksQuery.isPending ? 'Loading your tasks…' : 'New task from the title above',
-      },
-      ...open.map((task) => ({ value: task.id, label: describeTask(task), group: 'Open' })),
-      ...completed.map((task) => ({
-        value: task.id,
-        label: describeTask(task),
-        group: 'Completed',
-      })),
-    ],
-    [completed, open, tasksQuery.isPending],
-  )
 
   const selectedTaskId = useWatch({ control, name: 'taskId' })
   const selectedTask = tasks.find((candidate) => candidate.id === selectedTaskId)
@@ -145,15 +101,11 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
     }
   })
 
-  const isLoadingOptions = developersQuery.isPending || projectsQuery.isPending
-  const optionsError = developersQuery.error ?? projectsQuery.error
-
   const lockedDeveloperId = entry?.developerId ?? ownDeveloperId
   const lockedDeveloperName =
     (entry === undefined
       ? user?.name
-      : developersQuery.data?.find((developer) => developer.id === lockedDeveloperId)?.name) ??
-    'Unknown'
+      : developers.find((developer) => developer.id === lockedDeveloperId)?.name) ?? 'Unknown'
 
   const showsDeveloper = canChooseDeveloper || lockedDeveloperId !== ownDeveloperId
 
@@ -270,7 +222,7 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
                   name="taskId"
                   render={({ field }) => (
                     <Dropdown
-                      disabled={tasksQuery.isPending}
+                      disabled={isLoadingTasks}
                       id="update-task"
                       isInvalid={errors.taskId !== undefined}
                       onBlur={field.onBlur}
@@ -331,10 +283,10 @@ export function DailyUpdateForm({ date, entry, onSaved }: DailyUpdateFormProps) 
               )}
             </Field>
 
-            {showTaskPicker || tasksQuery.error === null ? null : (
+            {showTaskPicker || tasksError === null ? null : (
               <p className="form__hint form__field--wide">
-                Your tasks could not be loaded ({tasksQuery.error.message}), so this update cannot
-                be linked to one.
+                Your tasks could not be loaded ({tasksError.message}), so this update cannot be
+                linked to one.
               </p>
             )}
 

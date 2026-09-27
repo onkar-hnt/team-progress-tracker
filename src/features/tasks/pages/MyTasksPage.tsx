@@ -12,7 +12,7 @@ import { useComments, useTasks, useUpdateTask } from '@hooks/use-work-tracker'
 import { useAccessScope } from '@hooks/use-access-scope'
 import type { TaskStatus } from '@models/index'
 import { canUpdateTaskStatus, canViewTeamData } from '@services/auth/index'
-import type { AssignedTaskView } from '@services/work-tracker.service'
+import type { AssignedTaskView } from '@services/work-tracker.views'
 import { countCommentsByTask } from '@utils/task.utils'
 
 import { TaskTable } from '../components/TaskTable'

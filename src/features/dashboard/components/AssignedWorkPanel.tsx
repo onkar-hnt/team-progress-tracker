@@ -5,7 +5,7 @@ import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import { TaskTable } from '@features/tasks/components/TaskTable'
 import { useTasks } from '@hooks/use-work-tracker'
-import type { AssignedTaskView } from '@services/work-tracker.service'
+import type { AssignedTaskView } from '@services/work-tracker.views'
 import { comparePriority } from '@utils/task.utils'
 
 const VISIBLE_LIMIT = 5

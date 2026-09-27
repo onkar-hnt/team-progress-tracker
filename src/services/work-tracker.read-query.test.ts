@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { AppUser, MentorAssignment } from '@models/index'
 import { buildAccessScope } from '@services/auth/access-scope'
 
-import { buildDailyWorkReadQuery } from './work-tracker.service'
+import { buildDailyWorkReadQuery } from './work-tracker.read-query'
 
 const shubham = 'shubham'
 const generalFlow = 'general-flow'

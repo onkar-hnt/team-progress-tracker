@@ -7,7 +7,7 @@ import { EmptyState } from '@components/ui/feedback/Feedback'
 import { RichText } from '@components/ui/rich-text/RichText'
 import { ShowMore } from '@components/ui/show-more/ShowMore'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
-import type { DailyWorkEntryView } from '@services/work-tracker.service'
+import type { DailyWorkEntryView } from '@services/work-tracker.views'
 import { formatShortDate } from '@utils/date.utils'
 
 import './EntryList.scss'

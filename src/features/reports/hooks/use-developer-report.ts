@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
 import { useDailyWorkEntries } from '@hooks/use-work-tracker'
-import type { DailyWorkEntryView } from '@services/work-tracker.service'
+import type { DailyWorkEntryView } from '@services/work-tracker.views'
 import { getStatusLabel, getPriorityLabel } from '@utils/task.utils'
 import { toFilenameSlug } from '@utils/csv.utils'
 import { formatLongDate } from '@utils/date.utils'

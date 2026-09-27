@@ -2,7 +2,6 @@ import type {
   AssignedTask,
   AssignedTaskQuery,
   AppUser,
-  CommentAuthorRole,
   CreateAssignedTaskRequest,
   CreateDailyWorkEntryRequest,
   CreateDeveloperRequest,
@@ -37,12 +36,27 @@ import {
   describeScope,
   filterByScope,
   restrictDeveloperIds,
-  restrictProjectIds,
 } from './auth/access-scope'
 import { isAdmin } from './auth/permissions'
+import { ShortLivedRead, ShortLivedReadByKey } from './short-lived-read'
+import {
+  buildDailyWorkReadQuery,
+  idsForRead,
+  narrowToDevelopers,
+  projectIdsForRead,
+  withDeveloperIds,
+  withProjectIds,
+} from './work-tracker.read-query'
+import { onTheRoster, resolveAuthorName, resolveName } from './work-tracker.names'
+import type {
+  AssignedTaskView,
+  DailyWorkEntryView,
+  DayOverview,
+  MentorCommentView,
+  RangeOverview,
+} from './work-tracker.views'
 import type { DateRange } from '@utils/date.utils'
 import { getWeekRange, todayIsoDate, toNearestWorkingDay } from '@utils/date.utils'
-import type { DailyTrendPoint, StatusBreakdown } from '@utils/work-summary.utils'
 import {
   buildDailyTrend,
   calculateCompletionRate,
@@ -56,61 +70,15 @@ import { sortByMostRecent } from '@utils/task.utils'
 import type { UpdateCoverage } from '@utils/update-coverage.utils'
 import { buildUpdateCoverage } from '@utils/update-coverage.utils'
 
-export interface DailyWorkEntryView extends DailyWorkEntry {
-  developerName: string
-  projectName: string
-  client?: string
-}
-
-export interface AssignedTaskView extends AssignedTask {
-  developerName: string
-  projectName: string
-  mentorName?: string
-
-  isOverdue: boolean
-}
-
-export interface MentorCommentView extends MentorComment {
-  developerName: string
-
-  /** Who wrote the entry, and in what capacity the trail should label them. */
-  authorName: string
-  authorRole: CommentAuthorRole
-
-  /** Absent on a developer's own reply, which is attributed to nobody. */
-  mentorName?: string
-
-  projectName?: string
-
-  /** Absent when feedback predates task link or the task was deleted. */
-  taskName?: string
-}
-
-export interface DayOverview {
-  date: string
-  entries: DailyWorkEntryView[]
-  statuses: StatusBreakdown
-  completionRate: number
-  hoursLogged: number
-  developersUpdated: Developer[]
-
-  /** Excludes anybody whose day is accounted for as leave. */
-  developersMissingUpdate: Developer[]
-
-  developersOnLeave: Developer[]
-
-  blockedEntries: DailyWorkEntryView[]
-}
-
-export interface RangeOverview {
-  range: DateRange
-  entries: DailyWorkEntryView[]
-  statuses: StatusBreakdown
-  completionRate: number
-  hoursLogged: number
-  trend: DailyTrendPoint[]
-  blockedEntries: DailyWorkEntryView[]
-}
+/**
+ * Matches the roster staleTime the query hooks use.
+ *
+ * Every write that changes these tables calls `forgetLookups`, so the age of
+ * the memo only delays a change somebody else made, which the refresh control
+ * clears. At two seconds it expired between one filter change and the next, and
+ * a list of work could not be named without reading the roster again first.
+ */
+const LOOKUP_TTL_MS = 5 * 60_000
 
 /** Applies access scope to person-specific reads; screens call this, not the provider. */
 export class WorkTrackerService {
@@ -121,14 +89,14 @@ export class WorkTrackerService {
   private readonly projectLookup: ShortLivedRead<Project>
   private readonly mentorLookup: ShortLivedRead<Mentor>
 
-  private readonly scopedProjectLookup = new ShortLivedReadByKey<Project>()
+  private readonly scopedProjectLookup = new ShortLivedReadByKey<Project>(LOOKUP_TTL_MS)
 
   constructor(provider: DataProvider) {
     this.provider = provider
 
-    this.developerLookup = new ShortLivedRead(() => provider.getDevelopers())
-    this.projectLookup = new ShortLivedRead(() => provider.getProjects())
-    this.mentorLookup = new ShortLivedRead(() => provider.getMentors())
+    this.developerLookup = new ShortLivedRead(() => provider.getDevelopers(), LOOKUP_TTL_MS)
+    this.projectLookup = new ShortLivedRead(() => provider.getProjects(), LOOKUP_TTL_MS)
+    this.mentorLookup = new ShortLivedRead(() => provider.getMentors(), LOOKUP_TTL_MS)
   }
 
   forgetLookups(): void {
@@ -633,185 +601,6 @@ export class WorkTrackerService {
         ...(project?.client === undefined ? {} : { client: project.client }),
       }
     })
-  }
-}
-
-/** Omits developerIds key when unrestricted; explicit undefined would look like an empty filter. */
-function withDeveloperIds(
-  developerIds: readonly string[] | undefined,
-): { developerIds?: readonly string[] } {
-  return developerIds === undefined ? {} : { developerIds }
-}
-
-function withProjectIds(
-  projectIds: readonly string[] | undefined,
-): { projectIds?: readonly string[] } {
-  return projectIds === undefined ? {} : { projectIds }
-}
-
-/**
- * A pure mentor is asked only for the projects they are responsible for.
- * Someone who also has an employee row keeps an open project list so their own
- * work on other projects is not dropped before the in-memory filter.
- *
- * An explicit selection is sent as selected. Replacing it with an empty
- * intersection made `list_daily_updates` never run and the screen show no rows.
- */
-function projectIdsForRead(
-  scope: AccessScope,
-  requested: readonly string[] | undefined,
-): readonly string[] | undefined {
-  if (requested !== undefined && requested.length > 0) return requested
-  if (scope.visibleProjectIds === null) return requested
-  if (scope.developerId !== undefined) return requested
-  return restrictProjectIds(scope, requested)
-}
-
-/**
- * Builds the daily-work read passed to the provider.
- *
- * A chosen developer or project id is always included, so the request is made
- * and row visibility stays with RLS. Scope lists apply only when that dimension
- * was left open.
- */
-export function buildDailyWorkReadQuery(
-  scope: AccessScope,
-  query?: DailyWorkQuery,
-): DailyWorkQuery {
-  const developerIds = idsForRead(
-    query?.developerIds,
-    restrictDeveloperIds(scope, query?.developerIds),
-  )
-  const projectIds = idsForRead(query?.projectIds, projectIdsForRead(scope, query?.projectIds))
-
-  return {
-    ...query,
-    ...withDeveloperIds(developerIds),
-    ...withProjectIds(projectIds),
-  }
-}
-
-/**
- * Repeats the requested developer filter in memory.
- *
- * The provider is asked for these ids as well. This is the second half of the
- * same pair as `filterByScope`: what a policy allows and what was asked for are
- * different questions, and neither is left to the other side alone.
- */
-function narrowToDevelopers<TRecord extends { developerId: string }>(
-  ids: readonly string[] | undefined,
-  records: readonly TRecord[],
-): readonly TRecord[] {
-  if (ids === undefined) return records
-  return records.filter((record) => ids.includes(record.developerId))
-}
-
-function idsForRead(
-  requested: readonly string[] | undefined,
-  restricted: readonly string[] | undefined,
-): readonly string[] | undefined {
-  if (requested !== undefined && requested.length > 0) return [...requested]
-  return restricted
-}
-
-/** Soft-deleted roster rows stay in lookups for resolveName but are filtered from lists. */
-function onTheRoster(record: { deletedAt?: string }): boolean {
-  return record.deletedAt === undefined
-}
-
-/**
- * Names the author of a comment.
- *
- * Resolved through the login behind the entry first, so somebody who holds both
- * a mentor and an employee record is named once, whichever capacity they wrote
- * in. Older entries carry no author, and fall back to the mentor they name.
- */
-function resolveAuthorName(
-  comment: MentorComment,
-  role: CommentAuthorRole,
-  developers: readonly Developer[],
-  mentors: readonly Mentor[],
-): string {
-  if (comment.authorProfileId !== undefined) {
-    const author =
-      mentors.find((candidate) => candidate.profileId === comment.authorProfileId) ??
-      developers.find((candidate) => candidate.profileId === comment.authorProfileId)
-
-    if (author !== undefined) return author.name
-  }
-
-  if (role === 'developer') return resolveName(developers, comment.developerId, 'developer')
-  if (comment.mentorId !== undefined) return resolveName(mentors, comment.mentorId, 'mentor')
-
-  return role === 'admin' ? 'Administrator' : 'Unknown mentor'
-}
-
-/** Uses unfiltered lookups so deleted roster members still show names on historical work. */
-function resolveName(
-  records: readonly { id: string; name: string }[],
-  id: string | undefined,
-  label: string,
-): string {
-  if (id === undefined) return `Unknown ${label}`
-  return records.find((record) => record.id === id)?.name ?? `Unknown (${id})`
-}
-
-/**
- * Matches the roster staleTime the query hooks use.
- *
- * Every write that changes these tables calls `forgetLookups`, so the age of
- * the memo only delays a change somebody else made, which the refresh control
- * clears. At two seconds it expired between one filter change and the next, and
- * a list of work could not be named without reading the roster again first.
- */
-const LOOKUP_TTL_MS = 5 * 60_000
-
-/** Shares one in-flight read per table; callers get a copied array. */
-class ShortLivedRead<TRow> {
-  private entry: { readAt: number; rows: Promise<readonly TRow[]> } | null = null
-
-  private readonly read: () => Promise<TRow[]>
-
-  constructor(read: () => Promise<TRow[]>) {
-    this.read = read
-  }
-
-  get(): Promise<TRow[]> {
-    const now = Date.now()
-
-    if (this.entry === null || now - this.entry.readAt >= LOOKUP_TTL_MS) {
-      const rows = this.read()
-      const entry = { readAt: now, rows }
-      this.entry = entry
-
-      void rows.catch(() => {
-        if (this.entry === entry) this.entry = null
-      })
-    }
-
-    return this.entry.rows.then((rows) => [...rows])
-  }
-
-  forget(): void {
-    this.entry = null
-  }
-}
-
-/** Per-scope memo for reads whose answer depends on access scope. */
-class ShortLivedReadByKey<TRow> {
-  private readonly reads = new Map<string, ShortLivedRead<TRow>>()
-
-  get(key: string, read: () => Promise<TRow[]>): Promise<TRow[]> {
-    const existing = this.reads.get(key)
-    if (existing !== undefined) return existing.get()
-
-    const created = new ShortLivedRead(read)
-    this.reads.set(key, created)
-    return created.get()
-  }
-
-  forget(): void {
-    this.reads.clear()
   }
 }
 
