@@ -42,15 +42,3 @@ export const PROGRESS_OPTIONS: readonly SelectOption<string>[] = Array.from(
     return { label: `${value}%`, value: String(value) }
   },
 )
-
-export const HOURS_SPENT_STEP = 0.5
-
-export const HOURS_SPENT_MAX = 12
-
-export const HOURS_SPENT_OPTIONS: readonly SelectOption<string>[] = Array.from(
-  { length: HOURS_SPENT_MAX / HOURS_SPENT_STEP },
-  (_unused, index) => {
-    const value = (index + 1) * HOURS_SPENT_STEP
-    return { label: value === 1 ? '1 hour' : `${value} hours`, value: String(value) }
-  },
-)

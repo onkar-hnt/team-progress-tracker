@@ -12,15 +12,7 @@ export function isMentor(user: AppUser | null): boolean {
   return user?.role === 'mentor'
 }
 
-export function isDeveloper(user: AppUser | null): boolean {
-  return user?.role === 'developer'
-}
-
 export function canManageTeam(user: AppUser | null): boolean {
-  return isAdmin(user) || isMentor(user)
-}
-
-export function canAssignTasks(user: AppUser | null): boolean {
   return isAdmin(user) || isMentor(user)
 }
 

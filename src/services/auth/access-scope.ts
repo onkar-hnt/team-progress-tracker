@@ -79,10 +79,6 @@ export function assignedMentorIds(
   ]
 }
 
-export function isUnrestricted(scope: AccessScope): boolean {
-  return scope.visibleDeveloperIds === null
-}
-
 export function describeScope(scope: AccessScope): string {
   const visible =
     scope.visibleDeveloperIds === null ? 'all' : [...scope.visibleDeveloperIds].sort().join(',')
