@@ -67,7 +67,7 @@ export function toProjectRequest(values: ProjectFormValues) {
 }
 
 function initialMentorIds(project: Project | undefined, lockedMentorId: string | undefined) {
-  /// The primary mentor leads, so saving the form keeps `mentorId` as the first of `mentorIds`.
+  // The primary mentor leads, so saving the form keeps `mentorId` as the first of `mentorIds`.
   return [
     ...new Set([
       ...(project?.mentorId === undefined ? [] : [project.mentorId]),

@@ -13,38 +13,31 @@ import './NotificationPreferences.scss'
 /**
  * Which notifications somebody wants.
  *
- * Lives with the notifications feature rather than with the Profile page that
- * renders it, because the wording of each line has to stay next to the triggers
- * that produce the notification — "somebody else changes the status of your task"
- * is a claim about `notify_task_status_change`, not about the page it appears on. The
- * page composes it the same way the header composes the bell.
+ * Lives with the notifications feature rather than the Profile page that renders
+ * it, because each line's wording is a claim about a trigger: "somebody else
+ * changes the status of your task" describes `notify_task_status_change`.
  *
  * Stored as the types that are *off* and shown as the ones that are *on*, so the
  * empty row a new account has means everything is delivered. Enforcement is in
- * the database, in `enqueue_notification`: a muted notification is never written,
- * so it cannot arrive in the badge count or over the websocket.
+ * `enqueue_notification`: a muted notification is never written at all.
  */
 
 /**
- * One line on the screen, and the types it covers.
- *
- * Grouped rather than one line per type because `task_assigned` and
- * `task_reassigned` are the same concern to the person receiving them — a task
- * became theirs — and differ only in whether it had an owner before. Two
- * tickboxes would invite a combination that means nothing.
+ * One line on the screen, and the types it covers. Grouped because
+ * `task_assigned` and `task_reassigned` are the same concern to the person
+ * receiving them — a task became theirs — so two tickboxes would invite a
+ * combination that means nothing.
  */
 interface PreferenceGroup {
   id: string
 
   /**
    * Whether the notification reaches somebody as the person doing the work or as
-   * somebody responsible for it. Decides who is shown the line at all: every
-   * type is addressed through a `developers` or `mentors` row, so a line for a
-   * capacity somebody does not hold would offer to switch off something they
-   * could never receive.
+   * somebody responsible for it. Every type is addressed through a `developers`
+   * or `mentors` row, so a line for a capacity somebody does not hold would
+   * offer to switch off something they could never receive.
    *
-   * `either` is for the task conversation, which travels in both directions and
-   * so reaches anybody holding one of the two records.
+   * `either` is the task conversation, which travels in both directions.
    */
   capacity: 'developer' | 'either' | 'mentor'
 

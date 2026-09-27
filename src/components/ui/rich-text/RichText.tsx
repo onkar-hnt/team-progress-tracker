@@ -43,8 +43,8 @@ const ALLOWED: Readonly<Record<string, string>> = {
 
 const VOID_ELEMENTS: readonly string[] = ['br']
 
-/// Dropped whole rather than unwrapped: the text inside these is instruction,
-/// not writing, and reading it out would put a script's source on the screen.
+// Dropped whole rather than unwrapped: the text inside these is instruction,
+// not writing, and reading it out would put a script's source on the screen.
 const DROPPED: readonly string[] = [
   'EMBED',
   'HEAD',

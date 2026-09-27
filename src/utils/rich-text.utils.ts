@@ -7,12 +7,12 @@
  * hold in the form, in a test and in the CSV export.
  */
 
-/// Only the tags this subset is written with. Anything else in an entry is
-/// somebody describing a tag rather than using one, and reads as the text it is.
+// Only the tags this subset is written with. Anything else in an entry is
+// somebody describing a tag rather than using one, and reads as the text it is.
 const MARKUP = /<\/?(?:p|br|strong|b|em|i|u|s|del|strike|h[1-6]|ul|ol|li)\b[^>]*>/iu
 
-/// Either edge of a block, or a break, is where a line ends in the plain
-/// reading. Both edges, so a list nested inside an item starts its own line.
+// Either edge of a block, or a break, is where a line ends in the plain
+// reading. Both edges, so a list nested inside an item starts its own line.
 const LINE_BREAK = /<\/?(?:p|h[1-6]|li|ul|ol|div|blockquote)\b[^>]*>|<br\s*\/?>/giu
 
 const ANY_TAG = /<[^>]*>/gu
@@ -122,7 +122,7 @@ const WORD_MARKER = /<!--\[if !supportLists\]-->([\s\S]*?)<!\[endif\]-->/giu
 
 const WORD_IGNORED_SPAN = /<span[^>]*mso-list:\s*ignore[^>]*>([\s\S]*?)<\/span>/giu
 
-/// The same two without /g, for reading one marker rather than clearing them all.
+// The same two without /g, for reading one marker rather than clearing them all.
 const ONE_WORD_MARKER = /<!--\[if !supportLists\]-->([\s\S]*?)<!\[endif\]-->/iu
 
 const ONE_IGNORED_SPAN = /<span[^>]*mso-list:\s*ignore[^>]*>([\s\S]*?)<\/span>/iu
@@ -135,7 +135,7 @@ const COMMENTS = /<!--[\s\S]*?-->/gu
 
 const OFFICE_TAGS = /<\/?[a-z]+:[a-z]+[^>]*>/giu
 
-/// A Word list item is a paragraph that only says it is one, in its style.
+// A Word list item is a paragraph that only says it is one, in its style.
 const WORD_LIST_PARAGRAPH = /<p\b[^>]*mso-list:\s*l\d+\s+level(\d+)[^>]*>([\s\S]*?)<\/p>/giu
 
 const ORDERED_MARKER = /^\s*(?:[0-9]+|[a-z]+|[ivxlcdm]+)\s*[.)]/iu

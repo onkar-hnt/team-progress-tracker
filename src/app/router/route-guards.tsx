@@ -11,11 +11,9 @@ import { canManageTeam, canReadFeedback, canViewTeamData, isAdmin } from '@servi
 /**
  * Redirects unauthenticated users; waits during session restore.
  *
- * The attempted route is deliberately not carried to the sign-in screen. Signing
- * out flips this guard to unauthenticated while the old screen is still mounted,
- * so it recorded that screen and the next sign-in went back to it — a profile
- * page somebody had just left. A session starts at the dashboard instead, which
- * leaves nothing to restore and no ordering to get right.
+ * The attempted route is deliberately not carried to the sign-in screen: signing
+ * out flips this guard while the old screen is still mounted, so recording it
+ * sent the next sign-in back to a page somebody had just left.
  */
 export function RequireAuth() {
   const { isAuthenticated, isRestoring } = useAuth()

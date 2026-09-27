@@ -4,10 +4,9 @@ import type { AppNotification, NotificationType } from '@models/index'
 /**
  * How each kind of notification is drawn and where it leads.
  *
- * A table rather than a chain of conditions in the panel, so that adding
- * another notification type is one entry here — and so the compiler names this
- * file if somebody adds one to `NOTIFICATION_TYPES` and forgets. `Record` over
- * the union is what makes that exhaustiveness check happen.
+ * A table rather than a chain of conditions in the panel, and `Record` over the
+ * union, so adding a type to `NOTIFICATION_TYPES` without an entry here is a
+ * compile error rather than a notification nobody can act on.
  */
 
 /** Whether the notification is asking for something or reporting something. */
@@ -17,11 +16,9 @@ interface NotificationDisplay {
   icon: IconName
 
   /**
-   * Where following the notification goes when it names no record.
-   *
-   * A screen, and the recipient is implied by the type, so no role check is
-   * needed to choose: only the assigned developer is told about a task, and
-   * only a mentor about somebody's daily update.
+   * Where following the notification goes when it names no record. The type
+   * implies the recipient — only the assigned developer is told about a task,
+   * only a mentor about somebody's daily update — so no role check is needed.
    */
   path: string
 
@@ -40,12 +37,10 @@ export const NOTIFICATION_DISPLAY: Readonly<Record<NotificationType, Notificatio
 }
 
 /**
- * Where following a notification goes.
- *
- * A notification naming a task opens that task, which is where both the work
- * and the conversation about it are. Anything else falls back to the screen for
- * its type, either because the record has no page of its own or because the
- * task it named has since been deleted, in which case the task screen says so.
+ * A notification naming a task opens that task, where both the work and the
+ * conversation about it are. Anything else falls back to the screen for its
+ * type: the record may have no page of its own, or the task it named may since
+ * have been deleted, in which case the task screen says so.
  */
 export function notificationPath(notification: AppNotification): string {
   if (notification.entityType === 'task' && notification.entityId !== undefined) {
@@ -56,11 +51,9 @@ export function notificationPath(notification: AppNotification): string {
 }
 
 /**
- * What the badge shows.
- *
  * Capped so a long-neglected inbox cannot widen the bubble enough to push the
- * header controls around. The exact figure is still announced — see the bell's
- * accessible name — so the cap is presentational only.
+ * header controls around. The bell's accessible name still announces the exact
+ * figure, so the cap is presentational only.
  */
 export const UNREAD_BADGE_CAP = 9
 

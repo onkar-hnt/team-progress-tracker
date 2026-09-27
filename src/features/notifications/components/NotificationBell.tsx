@@ -17,14 +17,11 @@ import './NotificationBell.scss'
 /**
  * The bell in the header, and the popover it opens.
  *
- * Holds both queries because the badge needs the unread count whether the panel
- * is open or shut, and the panel is handed the rows rather than fetching its own
- * — one request each, and no chance of the badge and the list disagreeing.
- *
- * The first page is fetched up front rather than on first open. It is thirty rows
- * behind one index, the socket subscription is already live for the badge, and
- * the alternative is a spinner every time somebody looks. Further pages are only
- * fetched when asked for, from inside the panel.
+ * Holds both queries: the badge needs the unread count whether the panel is open
+ * or shut, and the panel is handed the rows rather than fetching its own, so the
+ * two cannot disagree. The first page is fetched up front — thirty rows behind
+ * one index, against a spinner every time somebody looks — and further pages
+ * from inside the panel, when asked for.
  */
 export function NotificationBell() {
   const inbox = useNotifications()
