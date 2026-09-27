@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 
 import { useAuth } from '@app/providers/auth-context'
@@ -28,22 +28,24 @@ const loginFormSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginFormSchema>
 
-interface LocationState {
-  from?: string
-}
+/**
+ * Where a session begins, whatever the last one was looking at.
+ *
+ * Fixed rather than restored: the screen somebody was on when they signed out is
+ * not where they want to resume, and treating it as one sent people back to a
+ * page they had just closed.
+ */
+const AFTER_SIGN_IN = '/dashboard'
 
 export function LoginPage() {
   const { isAuthenticated, isOffline, isRestoring, signIn, usesCredentials } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const snackbar = useSnackbar()
   const [signInError, setSignInError] = useState<string | null>(null)
   const [isSigningIn, setIsSigningIn] = useState(false)
 
-  const redirectTo = (location.state as LocationState | null)?.from ?? '/dashboard'
-
   if (isRestoring) return <FullPageLoader label="Checking your session…" />
-  if (isAuthenticated) return <Navigate replace to={redirectTo} />
+  if (isAuthenticated) return <Navigate replace to={AFTER_SIGN_IN} />
 
   const reportError = (error: unknown) => {
     logFailure('sign in', error)
@@ -60,7 +62,7 @@ export function LoginPage() {
 
     try {
       await signIn()
-      void navigate(redirectTo, { replace: true })
+      void navigate(AFTER_SIGN_IN, { replace: true })
     } catch (error) {
       reportError(error)
     } finally {
@@ -82,7 +84,10 @@ export function LoginPage() {
         </header>
 
         {usesCredentials ? (
-          <PasswordForm onError={reportError} onSignedIn={() => void navigate(redirectTo, { replace: true })} />
+          <PasswordForm
+            onError={reportError}
+            onSignedIn={() => void navigate(AFTER_SIGN_IN, { replace: true })}
+          />
         ) : (
           <div className="login__form">
             <Button

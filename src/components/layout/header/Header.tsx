@@ -42,7 +42,10 @@ export function Header({ onToggleDrawer }: HeaderProps) {
       return
     }
 
-    void navigate('/login', { replace: true })
+    // `state: null` rather than nothing: the router keeps location state in
+    // `window.history.state`, which outlives a reload, so signing out says so
+    // explicitly instead of leaving whatever the last screen put there.
+    void navigate('/login', { replace: true, state: null })
     snackbar.info('You have been signed out.')
   }
 

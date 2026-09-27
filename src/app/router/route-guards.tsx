@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 
 import { useAuth } from '@app/providers/auth-context'
 import { Button } from '@components/ui/button/Button'
@@ -8,18 +8,21 @@ import { useAccessScope, useMentorAssignments } from '@hooks/use-access-scope'
 import type { AppUser } from '@models/index'
 import { canManageTeam, canReadFeedback, canViewTeamData, isAdmin } from '@services/auth/index'
 
-/** Redirects unauthenticated users; waits during session restore. */
+/**
+ * Redirects unauthenticated users; waits during session restore.
+ *
+ * The attempted route is deliberately not carried to the sign-in screen. Signing
+ * out flips this guard to unauthenticated while the old screen is still mounted,
+ * so it recorded that screen and the next sign-in went back to it — a profile
+ * page somebody had just left. A session starts at the dashboard instead, which
+ * leaves nothing to restore and no ordering to get right.
+ */
 export function RequireAuth() {
   const { isAuthenticated, isRestoring } = useAuth()
-  const location = useLocation()
 
   if (isRestoring) return <FullPageLoader label="Restoring your session…" />
 
-  if (!isAuthenticated) {
-    return (
-      <Navigate replace state={{ from: `${location.pathname}${location.search}` }} to="/login" />
-    )
-  }
+  if (!isAuthenticated) return <Navigate replace to="/login" />
 
   return <Outlet />
 }
