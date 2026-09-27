@@ -6,7 +6,7 @@ import {
   getSupabaseConfig,
   isSupabaseConfigured,
 } from '@services/supabase/index'
-import { GIGABYTE, MEGABYTE } from '@utils/bytes.utils'
+import { GIGABYTE, MEGABYTE } from '@utils/bytes/bytes.utils'
 
 export function isUsageAvailable(): boolean {
   return isSupabaseConfigured()

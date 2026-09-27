@@ -2,7 +2,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query'
 
 import type { CreateLeaveDayRequest, LeaveDay } from '@models/index'
 import { getWorkTrackerService } from '@services/work-tracker.service'
-import type { DateRange } from '@utils/date.utils'
+import type { DateRange } from '@utils/date/date.utils'
 
 import { queryKeys } from '../query-keys'
 import { useScopedQuery, useWorkTrackerMutation } from './scoped-query'

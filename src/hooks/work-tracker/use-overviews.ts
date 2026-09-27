@@ -3,8 +3,8 @@ import type { UseQueryResult } from '@tanstack/react-query'
 
 import { getWorkTrackerService } from '@services/work-tracker.service'
 import type { DayOverview, RangeOverview } from '@services/work-tracker.views'
-import type { DateRange } from '@utils/date.utils'
-import type { UpdateCoverage } from '@utils/update-coverage.utils'
+import type { DateRange } from '@utils/date/date.utils'
+import type { UpdateCoverage } from '@utils/update-coverage/update-coverage.utils'
 
 import { queryKeys } from '../query-keys'
 import { useAccessScope } from '../use-access-scope'

@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
 import type { CreateMentorCommentRequest, MentorComment } from '@models/index'
-import { todayIsoDate } from '@utils/date.utils'
-import { richTextSchema } from '@utils/rich-text.schema'
-import { normaliseRichText } from '@utils/rich-text.utils'
+import { todayIsoDate } from '@utils/date/date.utils'
+import { richTextSchema } from '@utils/rich-text/rich-text.schema'
+import { normaliseRichText } from '@utils/rich-text/rich-text.utils'
 
 export const COMMENT_MAX_LENGTH = 2000
 

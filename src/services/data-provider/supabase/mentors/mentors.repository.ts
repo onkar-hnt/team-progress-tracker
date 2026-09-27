@@ -1,6 +1,6 @@
 import type { CreateMentorRequest, Mentor, UpdateMentorRequest } from '@models/index'
 import type { AppSupabaseClient } from '@services/supabase/index'
-import { todayIsoDate } from '@utils/date.utils'
+import { todayIsoDate } from '@utils/date/date.utils'
 
 import { RecordNotFoundError } from '../../data-provider.errors'
 import {

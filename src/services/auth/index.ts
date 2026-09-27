@@ -2,16 +2,16 @@ import { appConfig } from '@config/app.config'
 import { getDataProvider } from '@services/data-provider/index'
 import { isSupabaseConfigured } from '@services/supabase/index'
 
-import type { AuthProvider } from './auth-provider.interface'
-import { EntraAuthProvider } from './entra-auth-provider'
-import { isEntraConfigured } from './entra/entra-config'
-import { LocalAuthProvider } from './local-auth-provider'
-import { SupabaseAuthProvider } from './supabase-auth-provider'
+import type { AuthProvider } from './providers/auth-provider.interface'
+import { EntraAuthProvider } from './providers/entra-auth-provider'
+import { isEntraConfigured } from './providers/entra/entra-config'
+import { LocalAuthProvider } from './providers/local-auth-provider'
+import { SupabaseAuthProvider } from './providers/supabase-auth-provider'
 
-export type { AuthProvider } from './auth-provider.interface'
+export type { AuthProvider } from './providers/auth-provider.interface'
 export * from './auth.errors'
-export * from './permissions'
-export * from './access-scope'
+export * from './access/permissions'
+export * from './access/access-scope'
 
 /** The identity sources the application can be configured to use. */
 const AUTH_MODES = ['entra', 'local', 'supabase'] as const

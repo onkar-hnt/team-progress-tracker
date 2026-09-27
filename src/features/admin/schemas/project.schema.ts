@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 import { PROJECT_STATUSES } from '@models/project.model'
 import type { Project } from '@models/index'
-import { richTextSchema } from '@utils/rich-text.schema'
-import { normaliseRichText } from '@utils/rich-text.utils'
+import { richTextSchema } from '@utils/rich-text/rich-text.schema'
+import { normaliseRichText } from '@utils/rich-text/rich-text.utils'
 
 const DESCRIPTION_MAX = 500
 

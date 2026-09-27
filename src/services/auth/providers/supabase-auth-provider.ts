@@ -9,9 +9,9 @@ import {
   AuthConfigurationError,
   InvalidCredentialsError,
   SignInFailedError,
-} from './auth.errors'
-import { resolveSupabaseIdentity } from './supabase-identity'
-import type { SupabaseAuthUser } from './supabase-identity'
+} from '../auth.errors'
+import { resolveSupabaseIdentity } from '../identity/supabase-identity'
+import type { SupabaseAuthUser } from '../identity/supabase-identity'
 
 export class SupabaseAuthProvider implements AuthProvider {
   readonly name = 'supabase'

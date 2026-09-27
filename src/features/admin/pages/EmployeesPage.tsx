@@ -18,7 +18,7 @@ import { useTableSort } from '@hooks/use-table-sort'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer } from '@models/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
-import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
+import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 import { EmployeeFormModal } from '../components/EmployeeFormModal'

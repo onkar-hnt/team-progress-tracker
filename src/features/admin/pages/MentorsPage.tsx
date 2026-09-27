@@ -22,7 +22,7 @@ import { useTableSort } from '@hooks/use-table-sort'
 import type { Mentor } from '@models/index'
 import { canManageMentorAssignments } from '@services/auth/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
-import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
+import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 import { MentorAssignmentsModal } from '../components/MentorAssignmentsModal'

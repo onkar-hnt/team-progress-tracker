@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import type { TableSort } from '@utils/table.utils'
+import type { TableSort } from '@utils/table/table.utils'
 
 export interface TableSorting<TKey extends string> {
   sort: TableSort<TKey>

@@ -5,7 +5,7 @@ import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedba
 import { Icon } from '@components/ui/icons/Icon'
 import { useMarkAllNotificationsRead, useMarkNotificationRead } from '@features/notifications/hooks/use-notifications'
 import type { AppNotification } from '@models/index'
-import { formatRelativeTime, formatTimestamp } from '@utils/date.utils'
+import { formatRelativeTime, formatTimestamp } from '@utils/date/date.utils'
 
 import { NOTIFICATION_DISPLAY, notificationPath } from '../utils/notification-display'
 

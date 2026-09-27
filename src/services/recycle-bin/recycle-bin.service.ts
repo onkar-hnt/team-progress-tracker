@@ -4,7 +4,7 @@ import type { AccessScope } from '@services/auth/index'
 import { canViewDeveloperProject } from '@services/auth/index'
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
-import { richTextToPlainText } from '@utils/rich-text.utils'
+import { richTextToPlainText } from '@utils/rich-text/rich-text.utils'
 
 /** Supabase-only soft-delete bin; auth is enforced by RLS, not this module. */
 

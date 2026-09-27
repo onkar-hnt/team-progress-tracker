@@ -1,7 +1,7 @@
 import { Fragment, createElement, useMemo } from 'react'
 import type { ReactNode } from 'react'
 
-import { isMarkup } from '@utils/rich-text.utils'
+import { isMarkup } from '@utils/rich-text/rich-text.utils'
 
 import './RichText.scss'
 

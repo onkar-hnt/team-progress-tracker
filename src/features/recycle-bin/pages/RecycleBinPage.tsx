@@ -18,8 +18,8 @@ import {
   mayActOnDeletedRecord,
 } from '@services/recycle-bin/recycle-bin.service'
 import type { DeletedRecord } from '@services/recycle-bin/recycle-bin.service'
-import { formatRelativeTime, formatShortDate, formatTimestamp } from '@utils/date.utils'
-import { compareText, matchesSearch, sortRows } from '@utils/table.utils'
+import { formatRelativeTime, formatShortDate, formatTimestamp } from '@utils/date/date.utils'
+import { compareText, matchesSearch, sortRows } from '@utils/table/table.utils'
 
 import './RecycleBinPage.scss'
 

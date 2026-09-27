@@ -1,6 +1,6 @@
 import type { ProjectStatus } from '@models/index'
-import type { DateRange } from '@utils/date.utils'
-import type { DeveloperSummary, ProjectSummary } from '@utils/work-summary.utils'
+import type { DateRange } from '@utils/date/date.utils'
+import type { DeveloperSummary, ProjectSummary } from '@utils/work-summary/work-summary.utils'
 
 const PROJECT_STATUS_EXPORT_LABELS: Readonly<Record<ProjectStatus, string>> = {
   planned: 'Planned',

@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { App } from '@app/App'
-import { captureInviteLink } from '@services/auth/invite-link'
+import { captureInviteLink } from '@services/auth/session/invite-link'
 import '@styles/global.scss'
 
 /** Rewrite stray pathnames to BASE_URL before mount; hash routing is unchanged. */

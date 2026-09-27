@@ -6,7 +6,7 @@ import { Button } from '@components/ui/button/Button'
 import { Modal } from '@components/ui/modal/Modal'
 import { useDailyWorkEntries, useLeaveDays } from '@hooks/use-work-tracker'
 import { canSubmitDailyUpdate } from '@services/auth/index'
-import { formatLongDate, toIsoDate } from '@utils/date.utils'
+import { formatLongDate, toIsoDate } from '@utils/date/date.utils'
 
 import {
   dueReminder,

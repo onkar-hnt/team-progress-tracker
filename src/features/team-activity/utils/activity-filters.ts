@@ -2,14 +2,14 @@ import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from '@constants/task.consta
 import type { DailyWorkQuery, TaskPriority, TaskStatus } from '@models/index'
 import type { AccessScope } from '@services/auth/index'
 import { canRequestProject, canViewDeveloper } from '@services/auth/index'
-import type { DateRange } from '@utils/date.utils'
+import type { DateRange } from '@utils/date/date.utils'
 import {
   getMonthRange,
   getSingleDayRange,
   getTrailingRange,
   getWeekRange,
   todayIsoDate,
-} from '@utils/date.utils'
+} from '@utils/date/date.utils'
 
 export const PERIOD_PRESETS = ['today', 'this-week', 'last-7-days', 'this-month', 'custom'] as const
 

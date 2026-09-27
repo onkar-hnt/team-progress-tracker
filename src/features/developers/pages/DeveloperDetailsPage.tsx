@@ -33,7 +33,7 @@ import {
   getWeekRange,
   listWorkingDatesInRange,
   todayIsoDate,
-} from '@utils/date.utils'
+} from '@utils/date/date.utils'
 import {
   buildDailyTrend,
   buildProjectSummaries,
@@ -41,7 +41,7 @@ import {
   findBlockedEntries,
   sumHoursLogged,
   summariseStatuses,
-} from '@utils/work-summary.utils'
+} from '@utils/work-summary/work-summary.utils'
 
 import './DeveloperDetailsPage.scss'
 

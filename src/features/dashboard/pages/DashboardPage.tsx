@@ -21,14 +21,14 @@ import {
 } from '@hooks/use-work-tracker'
 import { canEditEntry, canViewTeamData } from '@services/auth/index'
 import type { DailyWorkEntryView } from '@services/work-tracker.views'
-import { progressForStatus } from '@utils/task.utils'
+import { progressForStatus } from '@utils/task/task.utils'
 import {
   formatLongDate,
   getWeekRange,
   toNearestWorkingDay,
   todayIsoDate,
-} from '@utils/date.utils'
-import { buildDeveloperSummaries, buildProjectSummaries } from '@utils/work-summary.utils'
+} from '@utils/date/date.utils'
+import { buildDeveloperSummaries, buildProjectSummaries } from '@utils/work-summary/work-summary.utils'
 
 import { AssignedWorkPanel } from '../components/AssignedWorkPanel'
 import { DashboardCharts } from '../components/DashboardCharts'

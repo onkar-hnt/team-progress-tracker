@@ -2,13 +2,13 @@ import type { ApexOptions } from 'apexcharts'
 
 import { TASK_STATUS_LABELS } from '@constants/task.constants'
 import type { TaskStatus } from '@models/index'
-import { formatShortDate, formatWeekday } from '@utils/date.utils'
+import { formatShortDate, formatWeekday } from '@utils/date/date.utils'
 import type {
   DailyTrendPoint,
   DeveloperSummary,
   ProjectSummary,
   StatusBreakdown,
-} from '@utils/work-summary.utils'
+} from '@utils/work-summary/work-summary.utils'
 
 import { ApexChart } from './ApexChart'
 import { CHART_COLORS, STATUS_CHART_COLORS, labelInkOn, seriesColor } from './chart-colors'

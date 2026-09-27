@@ -6,7 +6,7 @@ import type {
   UpdateDailyWorkEntryRequest,
 } from '@models/index'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
-import { isIsoDateString } from '@utils/date.utils'
+import { isIsoDateString } from '@utils/date/date.utils'
 
 export const DAILY_UPDATE_COLUMNS =
   'id, developer_id, project_id, task_id, entry_date, task_title, description, work_done, planned_work, status, priority, progress, hours_spent, estimated_hours, is_blocked, blocker_description, remarks, created_at, updated_at' as const

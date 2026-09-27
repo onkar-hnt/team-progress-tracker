@@ -4,7 +4,7 @@ import {
   forgetSignedInEmail,
   readSignedInEmail,
   rememberSignedInEmail,
-} from '@services/auth/session-store'
+} from '@services/auth/session/session-store'
 
 afterEach(() => {
   sessionStorage.clear()

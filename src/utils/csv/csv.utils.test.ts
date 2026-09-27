@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toCsv, toFilenameSlug } from '@utils/csv.utils'
+import { toCsv, toFilenameSlug } from '@utils/csv/csv.utils'
 
 describe('toCsv', () => {
   it('writes each row on its own line, comma separated', () => {

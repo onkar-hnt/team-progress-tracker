@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { EmptyState } from '@components/ui/feedback/Feedback'
-import type { DeveloperSummary, ProjectSummary } from '@utils/work-summary.utils'
+import type { DeveloperSummary, ProjectSummary } from '@utils/work-summary/work-summary.utils'
 
 interface DeveloperSummaryTableProps {
   summaries: readonly DeveloperSummary[]

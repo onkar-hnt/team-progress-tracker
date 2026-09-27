@@ -1,5 +1,5 @@
 import type { TaskPriority, TaskStatus } from '@models/index'
-import { getPriorityLabel, getStatusLabel } from '@utils/task.utils'
+import { getPriorityLabel, getStatusLabel } from '@utils/task/task.utils'
 
 import './StatusBadge.scss'
 

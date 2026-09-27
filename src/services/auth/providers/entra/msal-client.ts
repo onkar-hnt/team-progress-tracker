@@ -3,7 +3,7 @@ import type { AccountInfo, Configuration } from '@azure/msal-browser'
 
 import { appConfig } from '@config/app.config'
 
-import { SignInFailedError } from '../auth.errors'
+import { SignInFailedError } from '../../auth.errors'
 import { SIGN_IN_SCOPES } from './entra-config'
 
 function buildConfiguration(): Configuration {

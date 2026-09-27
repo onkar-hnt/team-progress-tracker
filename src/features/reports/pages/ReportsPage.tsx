@@ -20,8 +20,8 @@ import { DeveloperReportPanel } from '@features/reports/components/DeveloperRepo
 import type { ActivitySlice } from '@features/team-activity/utils/activity-filters'
 import { activityRangeLink } from '@features/team-activity/utils/activity-filters'
 import { useDevelopers, useProjects, useRangeOverview } from '@hooks/use-work-tracker'
-import { downloadCsv, toCsv } from '@utils/csv.utils'
-import type { DateRange } from '@utils/date.utils'
+import { downloadCsv, toCsv } from '@utils/csv/csv.utils'
+import type { DateRange } from '@utils/date/date.utils'
 import {
   formatLongDate,
   getMonthRange,
@@ -30,8 +30,8 @@ import {
   getWeekRange,
   listWorkingDatesInRange,
   todayIsoDate,
-} from '@utils/date.utils'
-import { buildDeveloperSummaries, buildProjectSummaries } from '@utils/work-summary.utils'
+} from '@utils/date/date.utils'
+import { buildDeveloperSummaries, buildProjectSummaries } from '@utils/work-summary/work-summary.utils'
 
 import { buildEntriesCsv } from '../hooks/use-developer-report'
 import {

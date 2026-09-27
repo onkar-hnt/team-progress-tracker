@@ -1,5 +1,5 @@
 import type { AssignedTaskQuery, DailyWorkQuery, MentorCommentQuery } from '@models/index'
-import type { DateRange } from '@utils/date.utils'
+import type { DateRange } from '@utils/date/date.utils'
 
 /** Scoped keys include scope identity so shared browser profiles do not cross-cache. */
 const ROOT = 'work-tracker' as const

@@ -4,8 +4,8 @@ import type { DropdownOption } from '@models/ui.model'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import { useDevelopers, useProjects } from '@hooks/use-work-tracker'
-import { downloadCsv, toCsv } from '@utils/csv.utils'
-import { getMonthRange, todayIsoDate } from '@utils/date.utils'
+import { downloadCsv, toCsv } from '@utils/csv/csv.utils'
+import { getMonthRange, todayIsoDate } from '@utils/date/date.utils'
 
 import {
   buildDeveloperReportFilename,

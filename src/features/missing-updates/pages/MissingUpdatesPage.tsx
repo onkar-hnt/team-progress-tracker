@@ -9,7 +9,7 @@ import { useUpdateCoverage } from '@hooks/use-work-tracker'
 import type { ReminderTarget } from '@models/notification.model'
 import type { DropdownOption } from '@models/ui.model'
 import { toUserMessage } from '@services/errors/error-message'
-import type { DateRange } from '@utils/date.utils'
+import type { DateRange } from '@utils/date/date.utils'
 import {
   formatLongDate,
   getMonthRange,
@@ -17,8 +17,8 @@ import {
   getWeekRange,
   shiftIsoDate,
   todayIsoDate,
-} from '@utils/date.utils'
-import type { DeveloperUpdateCoverage } from '@utils/update-coverage.utils'
+} from '@utils/date/date.utils'
+import type { DeveloperUpdateCoverage } from '@utils/update-coverage/update-coverage.utils'
 
 import { MissingUpdatesTable } from '../components/MissingUpdatesTable'
 import { ReminderDialog } from '../components/ReminderDialog'

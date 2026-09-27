@@ -2,9 +2,9 @@ import type { AppUser } from '@models/user.model'
 import type { DataProvider } from '@services/data-provider/data-provider.interface'
 
 import type { AuthProvider } from './auth-provider.interface'
-import { UnknownAccountError } from './auth.errors'
-import { forgetSignedInEmail, rememberSignedInEmail } from './session-store'
-import { resolveRosterIdentity } from './roster-identity'
+import { UnknownAccountError } from '../auth.errors'
+import { forgetSignedInEmail, rememberSignedInEmail } from '../session/session-store'
+import { resolveRosterIdentity } from '../identity/roster-identity'
 
 const loadMsal = () => import('./entra/msal-client')
 

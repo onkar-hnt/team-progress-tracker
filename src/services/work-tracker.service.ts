@@ -29,15 +29,15 @@ import type {
 
 import { DataSourceUnavailableError, getDataProvider } from './data-provider/index'
 import type { DataProvider, DataProviderCapabilities } from './data-provider/index'
-import type { AccessScope } from './auth/access-scope'
+import type { AccessScope } from './auth/access/access-scope'
 import {
   canViewDeveloper,
   canViewDeveloperProject,
   describeScope,
   filterByScope,
   restrictDeveloperIds,
-} from './auth/access-scope'
-import { isAdmin } from './auth/permissions'
+} from './auth/access/access-scope'
+import { isAdmin } from './auth/access/permissions'
 import { ShortLivedRead, ShortLivedReadByKey } from './short-lived-read'
 import {
   buildDailyWorkReadQuery,
@@ -55,8 +55,8 @@ import type {
   MentorCommentView,
   RangeOverview,
 } from './work-tracker.views'
-import type { DateRange } from '@utils/date.utils'
-import { getWeekRange, todayIsoDate, toNearestWorkingDay } from '@utils/date.utils'
+import type { DateRange } from '@utils/date/date.utils'
+import { getWeekRange, todayIsoDate, toNearestWorkingDay } from '@utils/date/date.utils'
 import {
   buildDailyTrend,
   calculateCompletionRate,
@@ -65,10 +65,10 @@ import {
   findDevelopersWithUpdate,
   sumHoursLogged,
   summariseStatuses,
-} from '@utils/work-summary.utils'
-import { sortByMostRecent } from '@utils/task.utils'
-import type { UpdateCoverage } from '@utils/update-coverage.utils'
-import { buildUpdateCoverage } from '@utils/update-coverage.utils'
+} from '@utils/work-summary/work-summary.utils'
+import { sortByMostRecent } from '@utils/task/task.utils'
+import type { UpdateCoverage } from '@utils/update-coverage/update-coverage.utils'
+import { buildUpdateCoverage } from '@utils/update-coverage/update-coverage.utils'
 
 /**
  * Matches the roster staleTime the query hooks use.

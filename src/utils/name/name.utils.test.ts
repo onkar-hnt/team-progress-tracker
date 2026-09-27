@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { initialsOf } from '@utils/name.utils'
+import { initialsOf } from '@utils/name/name.utils'
 
 describe('initialsOf', () => {
   it('takes the first letter of the first and last name', () => {

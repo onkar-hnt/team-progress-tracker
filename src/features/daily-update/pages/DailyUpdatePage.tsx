@@ -8,7 +8,7 @@ import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder
 import { Panel } from '@components/ui/panel/Panel'
 import { useDailyWorkEntries } from '@hooks/use-work-tracker'
 import { canSubmitDailyUpdate, canViewTeamData } from '@services/auth/index'
-import { formatLongDate, todayIsoDate } from '@utils/date.utils'
+import { formatLongDate, todayIsoDate } from '@utils/date/date.utils'
 
 import { DailyUpdateForm } from '../components/DailyUpdateForm'
 import { PendingUpdates } from '../components/PendingUpdates'

@@ -20,7 +20,7 @@ import {
 import type { MentorComment } from '@models/index'
 import { canEditComment, canWriteFeedback } from '@services/auth/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
-import { formatLongDate } from '@utils/date.utils'
+import { formatLongDate } from '@utils/date/date.utils'
 
 import { CommentTimeline } from '../components/CommentTimeline'
 import { FeedbackForm } from '../components/FeedbackForm'

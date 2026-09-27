@@ -9,10 +9,10 @@ import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBa
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { useTableSort } from '@hooks/use-table-sort'
 import type { AssignedTaskView } from '@services/work-tracker.views'
-import { formatShortDate } from '@utils/date.utils'
-import { richTextToPlainText } from '@utils/rich-text.utils'
-import { compareEffort, comparePriority, compareStatus, describeEffort } from '@utils/task.utils'
-import { compareText, sortRows } from '@utils/table.utils'
+import { formatShortDate } from '@utils/date/date.utils'
+import { richTextToPlainText } from '@utils/rich-text/rich-text.utils'
+import { compareEffort, comparePriority, compareStatus, describeEffort } from '@utils/task/task.utils'
+import { compareText, sortRows } from '@utils/table/table.utils'
 
 import './TaskTable.scss'
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { initialPasswordFor } from '@services/auth/initial-password'
+import { initialPasswordFor } from '@services/auth/passwords/initial-password'
 
 describe('initialPasswordFor', () => {
   it('builds the password from the first name', () => {

@@ -6,7 +6,7 @@ import { TextAreaField } from '@components/ui/field/Field'
 import { Modal } from '@components/ui/modal/Modal'
 import { useSendUpdateReminder } from '@features/notifications/hooks/use-notifications'
 import type { ReminderTarget } from '@models/notification.model'
-import { formatLongDate } from '@utils/date.utils'
+import { formatLongDate } from '@utils/date/date.utils'
 
 import './ReminderDialog.scss'
 

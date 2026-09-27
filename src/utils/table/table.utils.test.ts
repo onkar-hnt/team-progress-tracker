@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
+import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table/table.utils'
 
 describe('matchesSearch', () => {
   it('matches part of a field, whatever the case', () => {

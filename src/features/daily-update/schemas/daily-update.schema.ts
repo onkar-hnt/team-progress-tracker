@@ -3,9 +3,9 @@ import { z } from 'zod'
 import { PROGRESS_MAX, PROGRESS_MIN } from '@constants/task.constants'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { CreateDailyWorkEntryRequest, DailyWorkEntry } from '@models/index'
-import { isIsoDateString, todayIsoDate } from '@utils/date.utils'
-import { richTextSchema } from '@utils/rich-text.schema'
-import { isRichTextEmpty, normaliseRichText } from '@utils/rich-text.utils'
+import { isIsoDateString, todayIsoDate } from '@utils/date/date.utils'
+import { richTextSchema } from '@utils/rich-text/rich-text.schema'
+import { isRichTextEmpty, normaliseRichText } from '@utils/rich-text/rich-text.utils'
 
 const TASK_TITLE_MAX = 160
 const WORK_DONE_MAX = 2000

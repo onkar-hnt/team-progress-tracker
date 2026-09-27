@@ -6,8 +6,8 @@ import { Dropdown } from '@components/ui/dropdown/Dropdown'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import { useDevelopers, useRangeOverview } from '@hooks/use-work-tracker'
-import { formatLongDate, getMonthRange, getTrailingRange, getWeekRange, todayIsoDate } from '@utils/date.utils'
-import { buildDeveloperSummaries } from '@utils/work-summary.utils'
+import { formatLongDate, getMonthRange, getTrailingRange, getWeekRange, todayIsoDate } from '@utils/date/date.utils'
+import { buildDeveloperSummaries } from '@utils/work-summary/work-summary.utils'
 
 import './DevelopersPage.scss'
 

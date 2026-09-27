@@ -1,4 +1,4 @@
-import { isWorkingDay } from '@utils/date.utils'
+import { isWorkingDay } from '@utils/date/date.utils'
 
 /**
  * When somebody is reminded that their daily update is not in yet.

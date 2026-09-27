@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import type { AppUser, AssignedTask, DailyWorkEntry, MentorComment } from '@models/index'
-import { buildAccessScope } from '@services/auth/access-scope'
-import type { AccessScope } from '@services/auth/access-scope'
+import { buildAccessScope } from '@services/auth/access/access-scope'
+import type { AccessScope } from '@services/auth/access/access-scope'
 import {
   canCommentOnTask,
   canDeleteEntry,
@@ -23,7 +23,7 @@ import {
   isAdmin,
   isMentor,
   isPasswordResetCandidate,
-} from '@services/auth/permissions'
+} from '@services/auth/access/permissions'
 
 const developerA = 'developer-a'
 const developerB = 'developer-b'

@@ -20,9 +20,9 @@ import {
 } from '@hooks/use-work-tracker'
 import type { AssignedTask } from '@models/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
-import { richTextToPlainText } from '@utils/rich-text.utils'
-import { matchesSearch } from '@utils/table.utils'
-import { countCommentsByTask } from '@utils/task.utils'
+import { richTextToPlainText } from '@utils/rich-text/rich-text.utils'
+import { matchesSearch } from '@utils/table/table.utils'
+import { countCommentsByTask } from '@utils/task/task.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 import { TaskFormModal } from '../components/TaskFormModal'

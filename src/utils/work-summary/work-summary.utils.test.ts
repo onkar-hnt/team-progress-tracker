@@ -12,7 +12,7 @@ import {
   submitsDailyUpdates,
   sumHoursLogged,
   summariseStatuses,
-} from '@utils/work-summary.utils'
+} from '@utils/work-summary/work-summary.utils'
 
 /** Monday 21 September 2026 through Saturday 26 September 2026. */
 const monday = '2026-09-21'

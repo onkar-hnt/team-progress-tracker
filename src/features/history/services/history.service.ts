@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
-import { richTextToPlainText } from '@utils/rich-text.utils'
+import { richTextToPlainText } from '@utils/rich-text/rich-text.utils'
 
 export function isHistoryAvailable(): boolean {
   return isSupabaseConfigured()

@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import type { Developer, DropdownOption } from '@models/index'
 import { useActiveDevelopers, useActiveProjects, useTasks } from '@hooks/use-work-tracker'
 import type { AssignedTaskView } from '@services/work-tracker.views'
-import { describeTask, groupTasksByCompletion } from '@utils/task.utils'
+import { describeTask, groupTasksByCompletion } from '@utils/task/task.utils'
 
 interface DailyUpdateOptions {
   developerOptions: DropdownOption[]

@@ -10,9 +10,9 @@ import { Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import type { ActivitySlice } from '@features/team-activity/utils/activity-filters'
 import type { RangeOverview } from '@services/work-tracker.views'
-import type { DateRange } from '@utils/date.utils'
-import { formatLongDate } from '@utils/date.utils'
-import type { DeveloperSummary, ProjectSummary } from '@utils/work-summary.utils'
+import type { DateRange } from '@utils/date/date.utils'
+import { formatLongDate } from '@utils/date/date.utils'
+import type { DeveloperSummary, ProjectSummary } from '@utils/work-summary/work-summary.utils'
 
 /**
  * The week's charts, below the fold.

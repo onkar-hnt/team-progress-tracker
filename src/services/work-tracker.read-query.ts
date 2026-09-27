@@ -8,8 +8,8 @@
  * apply only to the dimensions the caller left open.
  */
 
-import type { AccessScope } from './auth/access-scope'
-import { restrictDeveloperIds, restrictProjectIds } from './auth/access-scope'
+import type { AccessScope } from './auth/access/access-scope'
+import { restrictDeveloperIds, restrictProjectIds } from './auth/access/access-scope'
 import type { DailyWorkQuery } from '@models/index'
 
 /** Omits the key when unrestricted; an explicit undefined would look like an empty filter. */

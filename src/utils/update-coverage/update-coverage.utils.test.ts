@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { DailyWorkEntry, Developer, LeaveDay } from '@models/index'
-import { buildUpdateCoverage, findCoverageFor, findPendingDays } from '@utils/update-coverage.utils'
+import { buildUpdateCoverage, findCoverageFor, findPendingDays } from '@utils/update-coverage/update-coverage.utils'
 
 /** Monday 21 September 2026 through Friday 25 September 2026. */
 const monday = '2026-09-21'

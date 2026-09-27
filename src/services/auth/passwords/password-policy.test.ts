@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { PASSWORD_MIN_LENGTH, buildPasswordSchema } from '@services/auth/password-policy'
+import { PASSWORD_MIN_LENGTH, buildPasswordSchema } from '@services/auth/passwords/password-policy'
 
 /** Every message raised against a field, so a test can name the one it expects. */
 function messagesFor(

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { EmptyState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import type { DayOverview } from '@services/work-tracker.views'
-import { isWorkingDay } from '@utils/date.utils'
+import { isWorkingDay } from '@utils/date/date.utils'
 
 /** Who has not accounted for the selected day. Leave is reported separately, not as a gap. */
 export function MissingUpdatesPanel({

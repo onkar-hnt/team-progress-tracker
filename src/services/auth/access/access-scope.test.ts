@@ -8,7 +8,7 @@ import {
   canViewDeveloperProject,
   filterByScope,
   restrictProjectIds,
-} from '@services/auth/access-scope'
+} from '@services/auth/access/access-scope'
 
 const developerA = 'developer-a'
 const mentor1 = 'mentor-1'

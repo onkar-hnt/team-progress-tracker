@@ -2,9 +2,9 @@ import { z } from 'zod'
 
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { AssignedTask } from '@models/index'
-import { todayIsoDate } from '@utils/date.utils'
-import { richTextSchema } from '@utils/rich-text.schema'
-import { normaliseRichText } from '@utils/rich-text.utils'
+import { todayIsoDate } from '@utils/date/date.utils'
+import { richTextSchema } from '@utils/rich-text/rich-text.schema'
+import { normaliseRichText } from '@utils/rich-text/rich-text.utils'
 
 const DESCRIPTION_MAX = 1000
 

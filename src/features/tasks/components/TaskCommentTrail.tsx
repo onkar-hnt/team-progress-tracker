@@ -8,9 +8,9 @@ import { RichTextField } from '@components/ui/rich-text/RichTextField'
 import type { CommentAuthorRole } from '@models/index'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import type { MentorCommentView } from '@services/work-tracker.views'
-import { formatRelativeTime, formatTimestamp } from '@utils/date.utils'
-import { initialsOf } from '@utils/name.utils'
-import { isRichTextEmpty, normaliseRichText, richTextToPlainText } from '@utils/rich-text.utils'
+import { formatRelativeTime, formatTimestamp } from '@utils/date/date.utils'
+import { initialsOf } from '@utils/name/name.utils'
+import { isRichTextEmpty, normaliseRichText, richTextToPlainText } from '@utils/rich-text/rich-text.utils'
 
 import { COMMENT_MAX_LENGTH, commentTextSchema } from '@features/feedback/schemas/feedback.schema'
 

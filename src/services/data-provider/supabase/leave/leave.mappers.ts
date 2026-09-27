@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { CreateLeaveDayRequest, LeaveDay } from '@models/index'
-import { isIsoDateString } from '@utils/date.utils'
+import { isIsoDateString } from '@utils/date/date.utils'
 
 export const LEAVE_DAY_COLUMNS =
   'id, developer_id, leave_date, note, recorded_by, created_at' as const

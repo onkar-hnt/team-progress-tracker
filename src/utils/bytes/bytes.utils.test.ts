@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { GIGABYTE, MEGABYTE, formatBytes } from '@utils/bytes.utils'
+import { GIGABYTE, MEGABYTE, formatBytes } from '@utils/bytes/bytes.utils'
 
 const KILOBYTE = 1024
 

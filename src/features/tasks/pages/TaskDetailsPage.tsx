@@ -12,8 +12,8 @@ import { useAccessScope } from '@hooks/use-access-scope'
 import { useCreateComment, useTask, useTaskComments } from '@hooks/use-work-tracker'
 import { canCommentOnTask } from '@services/auth/index'
 import type { AssignedTaskView } from '@services/work-tracker.views'
-import { formatLongDate, todayIsoDate } from '@utils/date.utils'
-import { compareEffort, describeEffort } from '@utils/task.utils'
+import { formatLongDate, todayIsoDate } from '@utils/date/date.utils'
+import { compareEffort, describeEffort } from '@utils/task/task.utils'
 
 import { TaskCommentTrail } from '../components/TaskCommentTrail'
 

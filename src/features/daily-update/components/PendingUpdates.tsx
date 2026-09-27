@@ -18,8 +18,8 @@ import {
   getTrailingRange,
   shiftIsoDate,
   todayIsoDate,
-} from '@utils/date.utils'
-import { findCoverageFor, findPendingDays } from '@utils/update-coverage.utils'
+} from '@utils/date/date.utils'
+import { findCoverageFor, findPendingDays } from '@utils/update-coverage/update-coverage.utils'
 
 import './PendingUpdates.scss'
 

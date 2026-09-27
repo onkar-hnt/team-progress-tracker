@@ -8,7 +8,7 @@ import { Field, TextAreaField, TextField } from '@components/ui/field/Field'
 import { RichTextField } from '@components/ui/rich-text/RichTextField'
 import { useActiveDevelopers, useTasks } from '@hooks/use-work-tracker'
 import type { MentorComment } from '@models/index'
-import { describeTask, groupTasksByCompletion } from '@utils/task.utils'
+import { describeTask, groupTasksByCompletion } from '@utils/task/task.utils'
 
 import {
   emptyFeedbackValues,

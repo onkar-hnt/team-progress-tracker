@@ -21,7 +21,7 @@ import {
 import { isHistoryAvailable } from '@features/history/services/history.service'
 import { isRecycleBinAvailable } from '@services/recycle-bin/recycle-bin.service'
 import { isUsageAvailable } from '@features/admin/services/usage.service'
-import { initialsOf } from '@utils/name.utils'
+import { initialsOf } from '@utils/name/name.utils'
 
 import './Sidebar.scss'
 

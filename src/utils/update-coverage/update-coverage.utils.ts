@@ -1,8 +1,8 @@
 import type { DailyWorkEntry, Developer, LeaveDay } from '@models/index'
 
-import type { DateRange } from './date.utils'
-import { listWorkingDatesInRange } from './date.utils'
-import { submitsDailyUpdates } from './work-summary.utils'
+import type { DateRange } from '../date/date.utils'
+import { listWorkingDatesInRange } from '../date/date.utils'
+import { submitsDailyUpdates } from '../work-summary/work-summary.utils'
 
 /**
  * Which working days a developer has accounted for, and how.

@@ -1,8 +1,8 @@
 import type { DailyWorkEntry, Developer, Project } from '@models/index'
 
-import type { DateRange } from './date.utils'
-import { isWorkingDay, listDatesInRange } from './date.utils'
-import { isEntryBlocked, isEntryCompleted, STANDARD_WORKING_HOURS } from './task.utils'
+import type { DateRange } from '../date/date.utils'
+import { isWorkingDay, listDatesInRange } from '../date/date.utils'
+import { isEntryBlocked, isEntryCompleted, STANDARD_WORKING_HOURS } from '../task/task.utils'
 
 /** Aggregations over daily work entries; callers supply the filtered set. */
 

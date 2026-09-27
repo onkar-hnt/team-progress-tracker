@@ -15,8 +15,8 @@ import {
   isHistoryAvailable,
 } from '@features/history/services/history.service'
 import type { ChangeRecord } from '@features/history/services/history.service'
-import { formatRelativeTime, formatTimestamp } from '@utils/date.utils'
-import { compareText, matchesSearch, sortRows } from '@utils/table.utils'
+import { formatRelativeTime, formatTimestamp } from '@utils/date/date.utils'
+import { compareText, matchesSearch, sortRows } from '@utils/table/table.utils'
 
 import './ChangeLogPage.scss'
 

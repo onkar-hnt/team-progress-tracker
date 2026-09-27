@@ -12,8 +12,8 @@ import { PROGRESS_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants
 import type { DailyWorkEntry, TaskStatus } from '@models/index'
 import { isAdmin } from '@services/auth/index'
 import { useCreateDailyWorkEntry, useUpdateDailyWorkEntry } from '@hooks/use-work-tracker'
-import { todayIsoDate } from '@utils/date.utils'
-import { progressForStatus } from '@utils/task.utils'
+import { todayIsoDate } from '@utils/date/date.utils'
+import { progressForStatus } from '@utils/task/task.utils'
 
 import { useDailyUpdateOptions } from '../hooks/use-daily-update-options'
 import {

@@ -16,9 +16,9 @@ import {
   usedPercent,
 } from '@features/admin/services/usage.service'
 import type { ResourceUsage, TableUsage } from '@features/admin/services/usage.service'
-import { formatBytes } from '@utils/bytes.utils'
-import { daysSince, formatRelativeTime, formatTimestamp } from '@utils/date.utils'
-import { compareText } from '@utils/table.utils'
+import { formatBytes } from '@utils/bytes/bytes.utils'
+import { daysSince, formatRelativeTime, formatTimestamp } from '@utils/date/date.utils'
+import { compareText } from '@utils/table/table.utils'
 
 import './UsagePage.scss'
 

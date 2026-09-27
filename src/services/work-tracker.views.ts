@@ -15,8 +15,8 @@ import type {
   Developer,
   MentorComment,
 } from '@models/index'
-import type { DateRange } from '@utils/date.utils'
-import type { DailyTrendPoint, StatusBreakdown } from '@utils/work-summary.utils'
+import type { DateRange } from '@utils/date/date.utils'
+import type { DailyTrendPoint, StatusBreakdown } from '@utils/work-summary/work-summary.utils'
 
 export interface DailyWorkEntryView extends DailyWorkEntry {
   developerName: string

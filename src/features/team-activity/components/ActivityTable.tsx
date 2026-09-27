@@ -11,9 +11,9 @@ import { useTableSort } from '@hooks/use-table-sort'
 import type { AppUser } from '@models/user.model'
 import { canDeleteEntry, canEditEntry } from '@services/auth/index'
 import type { DailyWorkEntryView } from '@services/work-tracker.views'
-import { formatShortDate } from '@utils/date.utils'
-import { sortRows } from '@utils/table.utils'
-import { comparePriority, compareStatus } from '@utils/task.utils'
+import { formatShortDate } from '@utils/date/date.utils'
+import { sortRows } from '@utils/table/table.utils'
+import { comparePriority, compareStatus } from '@utils/task/task.utils'
 
 import './ActivityTable.scss'
 

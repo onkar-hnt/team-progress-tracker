@@ -15,8 +15,8 @@ import { useRosterDevelopers, useRosterMentors } from '@hooks/use-work-tracker'
 import type { Account } from '@features/admin/services/account.service'
 import { areAccountsAvailable } from '@features/admin/services/account.service'
 import { USER_ROLE_LABELS } from '@models/user.model'
-import { formatLongDate } from '@utils/date.utils'
-import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
+import { formatLongDate } from '@utils/date/date.utils'
+import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table/table.utils'
 
 import './AccountsPage.scss'
 

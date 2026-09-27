@@ -15,7 +15,7 @@ import {
   isEntryCompleted,
   progressForStatus,
   sortByMostRecent,
-} from '@utils/task.utils'
+} from '@utils/task/task.utils'
 
 function entry(partial: Partial<DailyWorkEntry> = {}): DailyWorkEntry {
   return {

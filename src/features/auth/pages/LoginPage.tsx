@@ -10,7 +10,7 @@ import { Button } from '@components/ui/button/Button'
 import { PasswordField, TextField } from '@components/ui/field/Field'
 import { FullPageLoader } from '@components/ui/full-page-loader/FullPageLoader'
 import { APP_NAME } from '@constants/app.constants'
-import { bootstrapAdmin } from '@services/auth/bootstrap-admin'
+import { bootstrapAdmin } from '@services/auth/identity/bootstrap-admin'
 import { logFailure, toUserMessage } from '@services/errors/error-message'
 
 import './LoginPage.scss'

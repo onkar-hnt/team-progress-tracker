@@ -9,7 +9,7 @@ import {
   setAccountState,
 } from '@features/admin/services/account.service'
 import type { Account, SetAccountStateInput, SetAccountStateResult } from '@features/admin/services/account.service'
-import { isAdmin } from '@services/auth/permissions'
+import { isAdmin } from '@services/auth/access/permissions'
 import { logFailure, toUserMessage } from '@services/errors/error-message'
 
 import { queryKeys } from '@hooks/query-keys'

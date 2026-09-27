@@ -2,9 +2,9 @@ import type { AppUser, SignInCredentials } from '@models/user.model'
 import type { DataProvider } from '@services/data-provider/data-provider.interface'
 
 import type { AuthProvider } from './auth-provider.interface'
-import { InvalidCredentialsError } from './auth.errors'
-import { forgetSignedInEmail, readSignedInEmail, rememberSignedInEmail } from './session-store'
-import { resolveRosterIdentity } from './roster-identity'
+import { InvalidCredentialsError } from '../auth.errors'
+import { forgetSignedInEmail, readSignedInEmail, rememberSignedInEmail } from '../session/session-store'
+import { resolveRosterIdentity } from '../identity/roster-identity'
 
 export class LocalAuthProvider implements AuthProvider {
   readonly name = 'roster-password'

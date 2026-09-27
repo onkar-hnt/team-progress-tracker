@@ -4,7 +4,7 @@ import { RichText } from '@components/ui/rich-text/RichText'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import type { DailyWorkEntryView } from '@services/work-tracker.views'
-import { formatShortDate } from '@utils/date.utils'
+import { formatShortDate } from '@utils/date/date.utils'
 
 import type { DeveloperReportSummary } from '../hooks/use-developer-report'
 

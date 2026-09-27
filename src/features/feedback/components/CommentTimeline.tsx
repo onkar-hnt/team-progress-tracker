@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import type { MentorCommentView } from '@services/work-tracker.views'
-import { formatLongDate } from '@utils/date.utils'
+import { formatLongDate } from '@utils/date/date.utils'
 
 import { TaskCommentTrail } from '@features/tasks/components/TaskCommentTrail'
 

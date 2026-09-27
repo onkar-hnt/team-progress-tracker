@@ -6,7 +6,7 @@ import { Panel } from '@components/ui/panel/Panel'
 import { TaskTable } from '@features/tasks/components/TaskTable'
 import { useTasks } from '@hooks/use-work-tracker'
 import type { AssignedTaskView } from '@services/work-tracker.views'
-import { comparePriority } from '@utils/task.utils'
+import { comparePriority } from '@utils/task/task.utils'
 
 const VISIBLE_LIMIT = 5
 

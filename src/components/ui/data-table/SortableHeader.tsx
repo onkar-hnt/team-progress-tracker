@@ -1,4 +1,4 @@
-import type { TableSort } from '@utils/table.utils'
+import type { TableSort } from '@utils/table/table.utils'
 
 interface SortableHeaderProps<TKey extends string> {
   columnKey: TKey

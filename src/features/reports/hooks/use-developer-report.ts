@@ -2,12 +2,12 @@ import { useMemo } from 'react'
 
 import { useDailyWorkEntries } from '@hooks/use-work-tracker'
 import type { DailyWorkEntryView } from '@services/work-tracker.views'
-import { getStatusLabel, getPriorityLabel } from '@utils/task.utils'
-import { toFilenameSlug } from '@utils/csv.utils'
-import { formatLongDate } from '@utils/date.utils'
-import { richTextToPlainText } from '@utils/rich-text.utils'
-import type { StatusBreakdown } from '@utils/work-summary.utils'
-import { calculateCompletionRate, sumHoursLogged, summariseStatuses } from '@utils/work-summary.utils'
+import { getStatusLabel, getPriorityLabel } from '@utils/task/task.utils'
+import { toFilenameSlug } from '@utils/csv/csv.utils'
+import { formatLongDate } from '@utils/date/date.utils'
+import { richTextToPlainText } from '@utils/rich-text/rich-text.utils'
+import type { StatusBreakdown } from '@utils/work-summary/work-summary.utils'
+import { calculateCompletionRate, sumHoursLogged, summariseStatuses } from '@utils/work-summary/work-summary.utils'
 
 // Authorization is enforced by `daily_updates_select` RLS, not by this hook.
 export interface DeveloperReportFilters {

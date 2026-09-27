@@ -6,9 +6,9 @@ import { SortableHeader } from '@components/ui/data-table/SortableHeader'
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { useTableSort } from '@hooks/use-table-sort'
-import type { DeveloperUpdateCoverage } from '@utils/update-coverage.utils'
-import { formatLongDate, formatShortDate } from '@utils/date.utils'
-import { sortRows } from '@utils/table.utils'
+import type { DeveloperUpdateCoverage } from '@utils/update-coverage/update-coverage.utils'
+import { formatLongDate, formatShortDate } from '@utils/date/date.utils'
+import { sortRows } from '@utils/table/table.utils'
 
 import './MissingUpdatesTable.scss'
 

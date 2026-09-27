@@ -4,7 +4,7 @@ import type { AppUser } from '@models/user.model'
 import { USER_ROLES } from '@models/user.model'
 import type { AppSupabaseClient } from '@services/supabase/index'
 
-import { InactiveAccountError, MissingProfileError, SignInFailedError } from './auth.errors'
+import { InactiveAccountError, MissingProfileError, SignInFailedError } from '../auth.errors'
 
 const PROFILE_STATUSES = ['active', 'inactive'] as const
 
