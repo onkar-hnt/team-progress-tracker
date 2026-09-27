@@ -1,8 +1,6 @@
 import { createContext, useContext } from 'react'
 
-import type { ConfirmRequest } from '@components/ui/confirm-dialog/ConfirmDialog'
-
-export type { ConfirmRequest }
+import type { ConfirmRequest } from '@models/ui.model'
 
 /** Resolves true when confirmed and any action succeeded. */
 export type Confirm = (request: ConfirmRequest) => Promise<boolean>

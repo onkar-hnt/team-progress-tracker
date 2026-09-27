@@ -1,6 +1,6 @@
 import { Button } from '@components/ui/button/Button'
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
-import type { DropdownOption } from '@components/ui/dropdown/Dropdown'
+import type { DropdownOption } from '@models/ui.model'
 import { FilterField } from '@components/ui/field/Field'
 
 import type { DeveloperReportFilters as Filters } from '../hooks/use-developer-report'

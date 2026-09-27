@@ -29,3 +29,12 @@ export interface AppNotification {
 
   createdAt: string
 }
+
+/** Who a daily-update reminder is being sent to, and what it is asking about. */
+export interface ReminderTarget {
+  developerId: string
+  developerName: string
+
+  /** The days being asked about, newest first. Shown, not sent. */
+  missingDates: readonly string[]
+}

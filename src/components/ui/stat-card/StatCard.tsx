@@ -1,11 +1,10 @@
 import { Link, type To } from 'react-router-dom'
 
-import { Icon, type IconName } from '@components/ui/icons/Icon'
+import { Icon } from '@components/ui/icons/Icon'
 import { useCountUp } from '@hooks/use-count-up'
+import type { IconName, StatCardTone } from '@models/ui.model'
 
 import './StatCard.scss'
-
-export type StatCardTone = 'attention' | 'neutral' | 'positive' | 'progress'
 
 interface StatCardProps {
   label: string

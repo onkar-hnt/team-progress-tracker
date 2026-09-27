@@ -1,21 +1,9 @@
 import { useEffect, useRef } from 'react'
 
 import { Icon } from '@components/ui/icons/Icon'
-import type { IconName } from '@components/ui/icons/Icon'
+import type { ActiveSnackbar, IconName, SnackbarTone } from '@models/ui.model'
 
 import './Snackbar.scss'
-
-export type SnackbarTone = 'error' | 'info' | 'success' | 'warning'
-
-export interface ActiveSnackbar {
-  id: string
-  tone: SnackbarTone
-  message: string
-  title?: string
-
-  /** Milliseconds on screen. `0` stays until dismissed. */
-  duration: number
-}
 
 const TONE_ICON: Readonly<Record<SnackbarTone, IconName>> = {
   success: 'check',

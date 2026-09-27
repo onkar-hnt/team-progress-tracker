@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import type { DropdownOption } from '@components/ui/dropdown/Dropdown'
+import type { DropdownOption } from '@models/ui.model'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import { useDevelopers, useProjects } from '@hooks/use-work-tracker'

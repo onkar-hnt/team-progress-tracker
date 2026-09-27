@@ -1,8 +1,6 @@
 import { createContext, useContext } from 'react'
 
-import type { SnackbarTone } from '@components/ui/snackbar/Snackbar'
-
-export type { SnackbarTone }
+import type { SnackbarTone } from '@models/ui.model'
 
 export interface SnackbarDetails {
   title?: string

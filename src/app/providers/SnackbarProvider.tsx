@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 
 import { SnackbarViewport } from '@components/ui/snackbar/Snackbar'
-import type { ActiveSnackbar, SnackbarTone } from '@components/ui/snackbar/Snackbar'
+import type { ActiveSnackbar, SnackbarTone } from '@models/ui.model'
 
 import { SnackbarContext } from './snackbar-context'
 import type { SnackbarContextValue, SnackbarRequest } from './snackbar-context'

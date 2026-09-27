@@ -1,18 +1,9 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react'
 
 import { Icon } from '@components/ui/icons/Icon'
-import type { IconName } from '@components/ui/icons/Icon'
+import type { ButtonSize, ButtonVariant, IconName } from '@models/ui.model'
 
 import './Button.scss'
-
-export type ButtonVariant =
-  | 'danger'
-  | 'destructive'
-  | 'ghost'
-  | 'inverse'
-  | 'primary'
-  | 'secondary'
-export type ButtonSize = 'medium' | 'small'
 
 interface ButtonAppearance {
   variant?: ButtonVariant

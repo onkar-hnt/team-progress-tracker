@@ -1,20 +1,8 @@
 import { Button } from '@components/ui/button/Button'
 import { Modal } from '@components/ui/modal/Modal'
+import type { ConfirmRequest } from '@models/ui.model'
 
 import './ConfirmDialog.scss'
-
-export interface ConfirmRequest {
-  title: string
-  message: string
-  confirmLabel?: string
-  cancelLabel?: string
-
-  /** Destructive styling and initial focus on Cancel. */
-  isDestructive?: boolean
-
-  /** When given, dialog stays open until this settles; rejection closes silently. */
-  action?: () => Promise<unknown>
-}
 
 interface ConfirmDialogProps {
   /** `null` when nothing is being asked, which is what closes the dialog. */

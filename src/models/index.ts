@@ -45,7 +45,18 @@ export {
   type AppNotification,
   type NotificationEntityType,
   type NotificationType,
+  type ReminderTarget,
 } from './notification.model'
+export type {
+  ActiveSnackbar,
+  ButtonSize,
+  ButtonVariant,
+  ConfirmRequest,
+  DropdownOption,
+  IconName,
+  SnackbarTone,
+  StatCardTone,
+} from './ui.model'
 export {
   USER_ROLES,
   USER_ROLE_LABELS,

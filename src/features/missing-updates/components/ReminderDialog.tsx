@@ -5,20 +5,13 @@ import { Button } from '@components/ui/button/Button'
 import { TextAreaField } from '@components/ui/field/Field'
 import { Modal } from '@components/ui/modal/Modal'
 import { useSendUpdateReminder } from '@hooks/use-notifications'
+import type { ReminderTarget } from '@models/notification.model'
 import { formatLongDate } from '@utils/date.utils'
 
 import './ReminderDialog.scss'
 
 /** Long enough for a sentence of context; the wording around it is fixed. */
 const MESSAGE_MAX_LENGTH = 300
-
-export interface ReminderTarget {
-  developerId: string
-  developerName: string
-
-  /** The days being asked about, newest first. Shown, not sent. */
-  missingDates: readonly string[]
-}
 
 interface ReminderDialogProps {
   /** `null` when nobody is being reminded, which is what closes the dialog. */

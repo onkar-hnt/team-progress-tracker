@@ -1,4 +1,4 @@
-import type { IconName } from '@components/ui/icons/Icon'
+import type { IconName } from '@models/ui.model'
 import type { AppNotification, NotificationType } from '@models/index'
 
 /**

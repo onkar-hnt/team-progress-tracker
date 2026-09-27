@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 
 import { Button } from '@components/ui/button/Button'
-import { Icon, type IconName } from '@components/ui/icons/Icon'
+import { Icon } from '@components/ui/icons/Icon'
+import type { IconName } from '@models/ui.model'
 
 import './Feedback.scss'
 

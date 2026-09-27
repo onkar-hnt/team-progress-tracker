@@ -6,7 +6,7 @@ import { Placeholder } from '@tiptap/extensions'
 
 import { Field } from '@components/ui/field/Field'
 import { Icon } from '@components/ui/icons/Icon'
-import type { IconName } from '@components/ui/icons/Icon'
+import type { IconName } from '@models/ui.model'
 import { cleanPastedRichText, toEditorContent } from '@utils/rich-text.utils'
 
 import './RichTextField.scss'

@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 
 import { Dropdown } from '@components/ui/dropdown/Dropdown'
-import type { DropdownOption } from '@components/ui/dropdown/Dropdown'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { MISSING_UPDATE_LOOKBACK_DAYS } from '@constants/team.constants'
 import { useUpdateCoverage } from '@hooks/use-work-tracker'
+import type { ReminderTarget } from '@models/notification.model'
+import type { DropdownOption } from '@models/ui.model'
 import { toUserMessage } from '@services/errors/error-message'
 import type { DateRange } from '@utils/date.utils'
 import {
@@ -21,7 +22,6 @@ import type { DeveloperUpdateCoverage } from '@utils/update-coverage.utils'
 
 import { MissingUpdatesTable } from '../components/MissingUpdatesTable'
 import { ReminderDialog } from '../components/ReminderDialog'
-import type { ReminderTarget } from '../components/ReminderDialog'
 
 import './MissingUpdatesPage.scss'
 

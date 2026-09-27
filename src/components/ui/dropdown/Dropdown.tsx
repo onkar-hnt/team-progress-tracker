@@ -1,21 +1,12 @@
 import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { Icon } from '@components/ui/icons/Icon'
+import type { DropdownOption } from '@models/ui.model'
 
 import './Dropdown.scss'
 
 // Native select cannot style options or cap list height; this keeps keyboard and type-ahead.
 // List is position: fixed to escape modal/table overflow but stays inside the dialog subtree.
-
-export interface DropdownOption {
-  readonly value: string
-  readonly label: string
-
-  /** Heading this option sits under, mirroring `<optgroup>`. */
-  readonly group?: string
-
-  readonly disabled?: boolean
-}
 
 interface DropdownProps {
   /** Include the empty choice in options when clearing is allowed. */

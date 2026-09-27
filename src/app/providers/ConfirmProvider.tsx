@@ -5,7 +5,9 @@ import { ConfirmDialog } from '@components/ui/confirm-dialog/ConfirmDialog'
 import { logFailure } from '@services/errors/error-message'
 
 import { ConfirmContext } from './confirm-context'
-import type { Confirm, ConfirmRequest } from './confirm-context'
+import type { ConfirmRequest } from '@models/ui.model'
+
+import type { Confirm } from './confirm-context'
 
 /** Single shared confirm dialog; resolver lives in a ref to avoid extra renders. */
 export function ConfirmProvider({ children }: PropsWithChildren) {

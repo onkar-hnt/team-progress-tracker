@@ -1,18 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 
-import { useAuth } from '@app/providers/auth-context'
 import { useConfirm } from '@app/providers/confirm-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { SortableHeader } from '@components/ui/data-table/SortableHeader'
 import { TableSearch } from '@components/ui/data-table/TableSearch'
-import { Dropdown } from '@components/ui/dropdown/Dropdown'
-import { CheckboxField, Field, TextField } from '@components/ui/field/Field'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
-import { Modal } from '@components/ui/modal/Modal'
 import { Panel } from '@components/ui/panel/Panel'
 import {
   useCreateDeveloper,
@@ -22,36 +15,21 @@ import {
   useUpdateDeveloper,
 } from '@hooks/use-work-tracker'
 import { useTableSort } from '@hooks/use-table-sort'
-import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
-import type { Developer, UserRole } from '@models/index'
-import { isAdmin } from '@services/auth/index'
+import { USER_ROLE_LABELS } from '@models/user.model'
+import type { Developer } from '@models/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import { isSupabaseConfigured } from '@services/supabase/index'
 import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
+import { EmployeeFormModal } from '../components/EmployeeFormModal'
 import { ProvisioningNoticeView } from '../components/ProvisioningNotice'
 import {
   describeProvisionFailure,
   describeProvisionOutcome,
 } from '../components/provisioning-notice'
 import type { ProvisioningNotice } from '../components/provisioning-notice'
-
-const employeeFormSchema = z.object({
-  name: z.string().trim().min(2, { message: 'Enter the employee’s name' }),
-  email: z.string().trim().email({ message: 'Enter a valid work email' }),
-  role: z.string().trim(),
-  location: z.string().trim(),
-  accessRole: z.enum(USER_ROLES),
-  active: z.boolean(),
-})
-
-const ACCESS_ROLE_OPTIONS = USER_ROLES.map((role) => ({
-  value: role,
-  label: USER_ROLE_LABELS[role],
-}))
-
-type EmployeeFormValues = z.infer<typeof employeeFormSchema>
+import { toEmployeeRequest } from '../schemas/employee.schema'
 
 // Provisioning requires Supabase Auth.
 const CAN_PROVISION_LOGINS = isSupabaseConfigured()
@@ -323,160 +301,44 @@ export function EmployeesPage() {
         )}
       </Panel>
 
-      <Modal isOpen={isCreating} onClose={() => setIsCreating(false)} title="Add employee">
-        <EmployeeForm
-          onCancel={() => setIsCreating(false)}
-          onSubmit={async (values) => {
-            const created = await createDeveloper.mutateAsync(toRequest(values)).catch(() => null)
+      <EmployeeFormModal
+        isOpen={isCreating}
+        onClose={() => setIsCreating(false)}
+        onSubmit={async (values) => {
+          const created = await createDeveloper
+            .mutateAsync(toEmployeeRequest(values))
+            .catch(() => null)
 
-            if (created === null) return
+          if (created === null) return
 
-            setIsCreating(false)
-            snackbar.success(`“${values.name}” was added.`)
+          setIsCreating(false)
+          snackbar.success(`“${values.name}” was added.`)
 
-            await requestLogin(created, true)
-          }}
-        />
-      </Modal>
+          await requestLogin(created, true)
+        }}
+        title="Add employee"
+      />
 
-      <Modal isOpen={editing !== null} onClose={() => setEditing(null)} title="Edit employee">
-        {editing === null ? null : (
-          <EmployeeForm
-            developer={editing}
-            onCancel={() => setEditing(null)}
-            onSubmit={async (values) => {
-              const isSaved = await updateDeveloper
-                .mutateAsync({ id: editing.id, changes: toRequest(values) })
-                .then(() => true)
-                .catch(() => false)
+      <EmployeeFormModal
+        developer={editing ?? undefined}
+        isOpen={editing !== null}
+        onClose={() => setEditing(null)}
+        onSubmit={async (values) => {
+          if (editing === null) return
 
-              if (!isSaved) return
+          const isSaved = await updateDeveloper
+            .mutateAsync({ id: editing.id, changes: toEmployeeRequest(values) })
+            .then(() => true)
+            .catch(() => false)
 
-              setEditing(null)
-              snackbar.success(`“${values.name}” was saved.`)
-            }}
-          />
-        )}
-      </Modal>
+          if (!isSaved) return
+
+          setEditing(null)
+          snackbar.success(`“${values.name}” was saved.`)
+        }}
+        title="Edit employee"
+      />
     </AdminPageLayout>
   )
 }
 
-/** Blank optional fields are omitted so the column stays null rather than empty. */
-function toRequest(values: EmployeeFormValues) {
-  return {
-    name: values.name,
-    email: values.email,
-    active: values.active,
-    accessRole: values.accessRole,
-    ...(values.role === '' ? {} : { role: values.role }),
-    ...(values.location === '' ? {} : { location: values.location }),
-  }
-}
-
-function EmployeeForm({
-  developer,
-  onCancel,
-  onSubmit,
-}: {
-  developer?: Developer
-  onCancel: () => void
-  onSubmit: (values: EmployeeFormValues) => Promise<void>
-}) {
-  const { user } = useAuth()
-
-  // Only admins may change access role; a DB trigger syncs profiles.role.
-  const canSetAccessRole = isAdmin(user)
-
-  const {
-    control,
-    formState: { errors, isSubmitting },
-    handleSubmit,
-    register,
-  } = useForm<EmployeeFormValues>({
-    resolver: zodResolver(employeeFormSchema),
-    defaultValues: {
-      name: developer?.name ?? '',
-      email: developer?.email ?? '',
-      role: developer?.role ?? '',
-      location: developer?.location ?? '',
-      accessRole: developer?.accessRole ?? ('developer' as UserRole),
-      active: developer?.active ?? true,
-    },
-  })
-
-  return (
-    <form className="form" noValidate onSubmit={handleSubmit(onSubmit)}>
-      <div className="form__grid">
-        <TextField
-          error={errors.name?.message}
-          id="employee-name"
-          label="Name"
-          {...register('name')}
-        />
-
-        <TextField
-          error={errors.email?.message}
-          id="employee-email"
-          label="Work email"
-          type="email"
-          {...register('email')}
-        />
-
-        <TextField
-          id="employee-role"
-          label="Job title"
-          placeholder="Frontend Developer"
-          {...register('role')}
-        />
-
-        <TextField id="employee-location" label="Location" {...register('location')} />
-
-        <Field
-          hint={
-            canSetAccessRole
-              ? 'Developers see only their own records. Mentors see the developers assigned to them. Administrators see everything. Changing this changes what the person sees at their next request, not only what this table says.'
-              : 'Developers see only their own records. Mentors see the developers assigned to them. Only an administrator can change this, because it now decides what the person actually sees.'
-          }
-          htmlFor="employee-access"
-          label="Access role"
-        >
-          <Controller
-            control={control}
-            name="accessRole"
-            render={({ field }) => (
-              <Dropdown
-                disabled={!canSetAccessRole}
-                id="employee-access"
-                onBlur={field.onBlur}
-                onChange={field.onChange}
-                options={ACCESS_ROLE_OPTIONS}
-                value={field.value}
-              />
-            )}
-          />
-        </Field>
-      </div>
-
-      <CheckboxField
-        hint={
-          canSetAccessRole && CAN_PROVISION_LOGINS
-            ? 'Inactive employees keep their history, are not given logins and are not expected to post daily updates. Unticking this does not by itself revoke a login they already have — signing in is governed by the account — so disable it on the Logins screen, which lists anybody left in that state.'
-            : 'Inactive employees keep their history, are not given logins and are not expected to post daily updates. Unticking this does not revoke a login somebody already has: signing in is governed by the account itself, so an administrator has to disable it separately.'
-        }
-        id="employee-active"
-        label="Active"
-        {...register('active')}
-      />
-
-      <div className="form__actions">
-        <Button onClick={onCancel} variant="secondary">
-          Cancel
-        </Button>
-        <Button isLoading={isSubmitting} type="submit" variant="primary">
-          {isSubmitting ? 'Saving…' : 'Save employee'}
-        </Button>
-      </div>
-    </form>
-  )
-}

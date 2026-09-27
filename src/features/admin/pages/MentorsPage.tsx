@@ -1,7 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 
 import { useAuth } from '@app/providers/auth-context'
 import { useConfirm } from '@app/providers/confirm-context'
@@ -9,9 +6,7 @@ import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { SortableHeader } from '@components/ui/data-table/SortableHeader'
 import { TableSearch } from '@components/ui/data-table/TableSearch'
-import { CheckboxField, ChecklistField, TextField } from '@components/ui/field/Field'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
-import { Modal } from '@components/ui/modal/Modal'
 import { NameList } from '@components/ui/name-list/NameList'
 import { Panel } from '@components/ui/panel/Panel'
 import { useMentorAssignments } from '@hooks/use-access-scope'
@@ -21,7 +16,6 @@ import {
   useRosterDevelopers,
   useRosterMentors,
   useProvisionMentorLogin,
-  useSetMentorAssignments,
   useUpdateMentor,
 } from '@hooks/use-work-tracker'
 import { useTableSort } from '@hooks/use-table-sort'
@@ -32,20 +26,14 @@ import { isSupabaseConfigured } from '@services/supabase/index'
 import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
+import { MentorAssignmentsModal } from '../components/MentorAssignmentsModal'
+import { MentorFormModal } from '../components/MentorFormModal'
 import { ProvisioningNoticeView } from '../components/ProvisioningNotice'
 import {
   describeProvisionFailure,
   describeProvisionOutcome,
 } from '../components/provisioning-notice'
 import type { ProvisioningNotice } from '../components/provisioning-notice'
-
-const mentorFormSchema = z.object({
-  name: z.string().trim().min(2, { message: 'Enter the mentor’s name' }),
-  email: z.string().trim().email({ message: 'Enter a valid work email' }),
-  active: z.boolean(),
-})
-
-type MentorFormValues = z.infer<typeof mentorFormSchema>
 
 // Provisioning requires Supabase Auth.
 const CAN_PROVISION_LOGINS = isSupabaseConfigured()
@@ -328,195 +316,49 @@ export function MentorsPage() {
         )}
       </Panel>
 
-      <Modal isOpen={isCreating} onClose={() => setIsCreating(false)} title="Add mentor">
-        <MentorForm
-          onCancel={() => setIsCreating(false)}
-          onSubmit={async (values) => {
-            const created = await createMentor.mutateAsync(values).catch(() => null)
+      <MentorFormModal
+        isOpen={isCreating}
+        onClose={() => setIsCreating(false)}
+        onSubmit={async (values) => {
+          const created = await createMentor.mutateAsync(values).catch(() => null)
 
-            if (created === null) return
+          if (created === null) return
 
-            setIsCreating(false)
-            snackbar.success(`“${values.name}” was added.`)
+          setIsCreating(false)
+          snackbar.success(`“${values.name}” was added.`)
 
-            await requestLogin(created, true)
-          }}
-        />
-      </Modal>
+          await requestLogin(created, true)
+        }}
+        title="Add mentor"
+      />
 
-      <Modal isOpen={editing !== null} onClose={() => setEditing(null)} title="Edit mentor">
-        {editing === null ? null : (
-          <MentorForm
-            mentor={editing}
-            onCancel={() => setEditing(null)}
-            onSubmit={async (values) => {
-              const isSaved = await updateMentor
-                .mutateAsync({ id: editing.id, changes: values })
-                .then(() => true)
-                .catch(() => false)
+      <MentorFormModal
+        isOpen={editing !== null}
+        mentor={editing ?? undefined}
+        onClose={() => setEditing(null)}
+        onSubmit={async (values) => {
+          if (editing === null) return
 
-              if (!isSaved) return
+          const isSaved = await updateMentor
+            .mutateAsync({ id: editing.id, changes: values })
+            .then(() => true)
+            .catch(() => false)
 
-              setEditing(null)
-              snackbar.success(`“${values.name}” was saved.`)
-            }}
-          />
-        )}
-      </Modal>
+          if (!isSaved) return
 
-      <Modal
-        isOpen={assigning !== null}
+          setEditing(null)
+          snackbar.success(`“${values.name}” was saved.`)
+        }}
+        title="Edit mentor"
+      />
+
+      <MentorAssignmentsModal
+        assignedIds={assigning === null ? [] : (assignmentsByMentor.get(assigning.id) ?? [])}
+        developers={developersQuery.data ?? []}
+        mentor={assigning}
         onClose={() => setAssigning(null)}
-        title={assigning === null ? 'Assign developers' : `Developers for ${assigning.name}`}
-      >
-        {assigning === null ? null : (
-          <AssignmentForm
-            assignedIds={assignmentsByMentor.get(assigning.id) ?? []}
-            developers={developersQuery.data ?? []}
-            mentorId={assigning.id}
-            mentorName={assigning.name}
-            onDone={() => setAssigning(null)}
-          />
-        )}
-      </Modal>
+      />
     </AdminPageLayout>
   )
 }
 
-function MentorForm({
-  mentor,
-  onCancel,
-  onSubmit,
-}: {
-  mentor?: Mentor
-  onCancel: () => void
-  onSubmit: (values: MentorFormValues) => Promise<void>
-}) {
-  const {
-    formState: { errors, isSubmitting },
-    handleSubmit,
-    register,
-  } = useForm<MentorFormValues>({
-    resolver: zodResolver(mentorFormSchema),
-    defaultValues: {
-      name: mentor?.name ?? '',
-      email: mentor?.email ?? '',
-      active: mentor?.active ?? true,
-    },
-  })
-
-  return (
-    <form className="form" noValidate onSubmit={handleSubmit(onSubmit)}>
-      <TextField error={errors.name?.message} id="mentor-name" label="Name" {...register('name')} />
-
-      <TextField
-        error={errors.email?.message}
-        hint="This is the address they sign in with."
-        id="mentor-email"
-        label="Work email"
-        type="email"
-        {...register('email')}
-      />
-
-      <CheckboxField
-        hint="Inactive mentors keep their history and are not given logins. Unticking this does not revoke a login somebody already has: signing in is governed by the account itself, so an existing login has to be disabled separately."
-        id="mentor-active"
-        label="Active"
-        {...register('active')}
-      />
-
-      <div className="form__actions">
-        <Button onClick={onCancel} variant="secondary">
-          Cancel
-        </Button>
-        <Button isLoading={isSubmitting} type="submit" variant="primary">
-          {isSubmitting ? 'Saving…' : 'Save mentor'}
-        </Button>
-      </div>
-    </form>
-  )
-}
-
-function AssignmentForm({
-  assignedIds,
-  developers,
-  mentorId,
-  mentorName,
-  onDone,
-}: {
-  assignedIds: readonly string[]
-  developers: readonly { id: string; name: string; active: boolean }[]
-  mentorId: string
-  mentorName: string
-  onDone: () => void
-}) {
-  const confirm = useConfirm()
-  const snackbar = useSnackbar()
-  const [selected, setSelected] = useState<string[]>([...assignedIds])
-  const setAssignments = useSetMentorAssignments()
-
-  const toggle = (id: string) => {
-    setSelected((current) =>
-      current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
-    )
-  }
-
-  // Confirm when removing developers from a mentor's assignments.
-  const save = async () => {
-    const removed = developers.filter(
-      (developer) => assignedIds.includes(developer.id) && !selected.includes(developer.id),
-    )
-
-    if (removed.length > 0) {
-      const isConfirmed = await confirm({
-        title: removed.length === 1 ? 'Remove this developer?' : 'Remove these developers?',
-        message: `${mentorName} will no longer see the tasks, progress or feedback of ${removed
-          .map((developer) => developer.name)
-          .join(', ')}. Their records are not affected, and the assignment can be added back here.`,
-        confirmLabel: 'Save assignments',
-      })
-
-      if (!isConfirmed) return
-    }
-
-    setAssignments.mutate(
-      { mentorId, developerIds: selected },
-      {
-        onSuccess: () => {
-          snackbar.success('The assigned developers were saved.')
-          onDone()
-        },
-      },
-    )
-  }
-
-  return (
-    <form
-      className="form"
-      onSubmit={(event) => {
-        event.preventDefault()
-        void save()
-      }}
-    >
-      <ChecklistField
-        hint="A mentor can see the tasks, progress and feedback of everybody ticked here, and nobody else."
-        label="Developers"
-        onToggle={toggle}
-        options={developers.map((developer) => ({
-          id: developer.id,
-          name: developer.active ? developer.name : `${developer.name} (inactive)`,
-        }))}
-        selected={selected}
-      />
-
-      <div className="form__actions">
-        <Button onClick={onDone} variant="secondary">
-          Cancel
-        </Button>
-        <Button isLoading={setAssignments.isPending} type="submit" variant="primary">
-          {setAssignments.isPending ? 'Saving…' : 'Save assignments'}
-        </Button>
-      </div>
-    </form>
-  )
-}

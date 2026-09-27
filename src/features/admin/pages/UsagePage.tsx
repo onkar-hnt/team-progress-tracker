@@ -6,7 +6,7 @@ import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
-import type { StatCardTone } from '@components/ui/stat-card/StatCard'
+import type { StatCardTone } from '@models/ui.model'
 import { useResourceUsage } from '@hooks/use-resource-usage'
 import { useTableSort } from '@hooks/use-table-sort'
 import {
