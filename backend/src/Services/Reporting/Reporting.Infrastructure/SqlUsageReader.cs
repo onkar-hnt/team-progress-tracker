@@ -70,7 +70,8 @@ public sealed class SqlUsageReader(
         var sql = $"""
             SELECT
                 SCHEMA_NAME(o.schema_id) + N'.' + o.name AS TableName,
-                SUM(CASE WHEN ps.index_id IN (0, 1) THEN ps.row_count ELSE 0 END) AS RowCount,
+                -- Bracketed: ROWCOUNT is a reserved word, so a bare alias is a syntax error.
+                SUM(CASE WHEN ps.index_id IN (0, 1) THEN ps.row_count ELSE 0 END) AS [RowCount],
                 SUM(CAST(ps.reserved_page_count AS bigint)) * 8192 AS TotalBytes,
                 SUM(CASE WHEN ps.index_id > 1 THEN CAST(ps.used_page_count AS bigint) ELSE 0 END) * 8192 AS IndexBytes
               FROM sys.objects o
