@@ -84,7 +84,7 @@ export function LoginPage() {
         </header>
 
         {usesCredentials ? (
-          <PasswordForm
+          <SignInForm
             onError={reportError}
             onSignedIn={() => void navigate(AFTER_SIGN_IN, { replace: true })}
           />
@@ -123,7 +123,7 @@ export function LoginPage() {
   )
 }
 
-function PasswordForm({
+function SignInForm({
   onError,
   onSignedIn,
 }: {

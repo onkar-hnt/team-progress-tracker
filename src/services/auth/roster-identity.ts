@@ -55,7 +55,7 @@ function resolveRole(accessRole: UserRole | undefined, isMentor: boolean): UserR
   return isMentor ? 'mentor' : 'developer'
 }
 
-export function expectedPasswordFor(name: string): string {
+function expectedPasswordFor(name: string): string {
   const firstName = name.trim().split(/\s+/)[0] ?? name
   return `${firstName}${PASSWORD_SUFFIX}`
 }

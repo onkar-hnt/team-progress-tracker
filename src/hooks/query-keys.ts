@@ -26,9 +26,6 @@ export const queryKeys = {
 
   changeLog: (limit: number) => [ROOT, 'change-log', limit] as const,
 
-  recordChanges: (kind: string, recordId: string) =>
-    [ROOT, 'change-log', 'record', kind, recordId] as const,
-
   resourceUsage: () => [ROOT, 'resource-usage'] as const,
 
   /**

@@ -293,15 +293,6 @@ export function useRangeOverview(range: DateRange): UseQueryResult<RangeOverview
   )
 }
 
-export function useDeveloper(id: string): UseQueryResult<Developer | null> {
-  const service = getWorkTrackerService()
-
-  return useScopedQuery(
-    (scopeId) => [...queryKeys.developers(), 'by-id', scopeId, id],
-    (scope) => service.getDeveloperById(scope, id),
-  )
-}
-
 type WriteScope = 'comments' | 'roster' | 'work'
 
 const AFFECTED_BY: Readonly<Record<WriteScope, readonly (readonly unknown[])[]>> = {

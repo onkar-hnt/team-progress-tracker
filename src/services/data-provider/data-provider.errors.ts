@@ -88,14 +88,6 @@ export class RecordNotFoundError extends DataProviderError {
   }
 }
 
-/** A write was attempted against a provider that cannot persist changes. */
-export class ReadOnlyDataSourceError extends DataProviderError {
-  constructor(providerName: string) {
-    super(`The "${providerName}" data source is read-only and cannot save changes.`)
-    this.name = 'ReadOnlyDataSourceError'
-  }
-}
-
 export type ReferenceField = 'developerId' | 'mentorId' | 'projectId' | 'taskId'
 
 const REFERENCE_LABELS: Readonly<Record<ReferenceField, string>> = {

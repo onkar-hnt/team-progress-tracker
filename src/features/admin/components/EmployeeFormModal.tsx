@@ -9,8 +9,8 @@ import { Modal } from '@components/ui/modal/Modal'
 import { USER_ROLES, USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer } from '@models/index'
 import { isAdmin } from '@services/auth/index'
-import { isSupabaseConfigured } from '@services/supabase/index'
 
+import { CAN_PROVISION_LOGINS } from '../hooks/use-login-provisioning'
 import { employeeFormSchema, toEmployeeFormValues } from '../schemas/employee.schema'
 import type { EmployeeFormValues } from '../schemas/employee.schema'
 
@@ -18,9 +18,6 @@ const ACCESS_ROLE_OPTIONS = USER_ROLES.map((role) => ({
   value: role,
   label: USER_ROLE_LABELS[role],
 }))
-
-// Provisioning requires Supabase Auth.
-const CAN_PROVISION_LOGINS = isSupabaseConfigured()
 
 interface EmployeeFormModalProps {
   /** Absent when adding. Seeds the fields when editing. */

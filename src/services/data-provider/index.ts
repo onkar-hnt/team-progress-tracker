@@ -6,7 +6,7 @@ import { SupabaseDataProvider } from './supabase/supabase-data-provider'
 export type { DataProvider, DataProviderCapabilities } from './data-provider.interface'
 export * from './data-provider.errors'
 
-export function createDataProvider(): DataProvider {
+function createDataProvider(): DataProvider {
   return new SupabaseDataProvider({ client: getSupabaseClient() })
 }
 

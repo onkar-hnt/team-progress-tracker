@@ -80,10 +80,7 @@ export async function deleteDeveloperRow(client: AppSupabaseClient, id: string):
   return softDeleteRow(client, 'developers', id)
 }
 
-export async function requireDeveloper(
-  client: AppSupabaseClient,
-  id: string,
-): Promise<Developer> {
+async function requireDeveloper(client: AppSupabaseClient, id: string): Promise<Developer> {
   const { data, error } = await client
     .from('developers')
     .select(DEVELOPER_COLUMNS)

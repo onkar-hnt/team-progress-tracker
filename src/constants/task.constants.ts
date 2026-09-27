@@ -33,7 +33,7 @@ export const PROGRESS_MIN = 0
 
 export const PROGRESS_MAX = 100
 
-export const PROGRESS_STEP = 10
+const PROGRESS_STEP = 10
 
 export const PROGRESS_OPTIONS: readonly SelectOption<string>[] = Array.from(
   { length: PROGRESS_MAX / PROGRESS_STEP + 1 },

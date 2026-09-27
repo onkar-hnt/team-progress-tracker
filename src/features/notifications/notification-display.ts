@@ -55,7 +55,7 @@ export function notificationPath(notification: AppNotification): string {
  * header controls around. The bell's accessible name still announces the exact
  * figure, so the cap is presentational only.
  */
-export const UNREAD_BADGE_CAP = 9
+const UNREAD_BADGE_CAP = 9
 
 export function formatUnreadBadge(count: number): string {
   return count > UNREAD_BADGE_CAP ? `${String(UNREAD_BADGE_CAP)}+` : String(count)

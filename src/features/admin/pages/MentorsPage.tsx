@@ -22,21 +22,13 @@ import { useTableSort } from '@hooks/use-table-sort'
 import type { Mentor } from '@models/index'
 import { canManageMentorAssignments } from '@services/auth/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
-import { isSupabaseConfigured } from '@services/supabase/index'
 import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 import { MentorAssignmentsModal } from '../components/MentorAssignmentsModal'
 import { MentorFormModal } from '../components/MentorFormModal'
 import { ProvisioningNoticeView } from '../components/ProvisioningNotice'
-import {
-  describeProvisionFailure,
-  describeProvisionOutcome,
-} from '../components/provisioning-notice'
-import type { ProvisioningNotice } from '../components/provisioning-notice'
-
-// Provisioning requires Supabase Auth.
-const CAN_PROVISION_LOGINS = isSupabaseConfigured()
+import { CAN_PROVISION_LOGINS, useLoginProvisioning } from '../hooks/use-login-provisioning'
 
 function describeUnprovisionable(mentor: Mentor): string | null {
   if (!mentor.active) {
@@ -73,7 +65,6 @@ export function MentorsPage() {
   const [editing, setEditing] = useState<Mentor | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [assigning, setAssigning] = useState<Mentor | null>(null)
-  const [notice, setNotice] = useState<ProvisioningNotice | null>(null)
   const [search, setSearch] = useState('')
 
   const { sort, toggle } = useTableSort<SortKey>({ key: 'name', direction: 'asc' }, ['assigned'])
@@ -86,6 +77,12 @@ export function MentorsPage() {
   const updateMentor = useUpdateMentor()
   const deleteMentor = useDeleteMentor()
   const provisionLogin = useProvisionMentorLogin()
+
+  const { notice, requestLogin } = useLoginProvisioning<Mentor>({
+    describeRefusal: describeUnprovisionable,
+    nameOf: (mentor) => mentor.name,
+    provision: (mentor) => provisionLogin.mutateAsync({ mentorId: mentor.id, email: mentor.email }),
+  })
 
   const assignmentsByMentor = useMemo(() => {
     const map = new Map<string, string[]>()
@@ -123,44 +120,6 @@ export function MentorsPage() {
     })
 
     if (isDeleted) snackbar.success(`“${mentor.name}” was deleted.`)
-  }
-
-  // Initial password is shown once; row actions confirm before provisioning.
-  const requestLogin = async (mentor: Mentor, isNewRecord = false) => {
-    if (!CAN_PROVISION_LOGINS) return
-
-    setNotice(null)
-
-    const refusal = describeUnprovisionable(mentor)
-
-    if (refusal !== null) {
-      setNotice({ tone: 'problem', message: `${mentor.name} was saved. ${refusal}` })
-      return
-    }
-
-    if (!isNewRecord) {
-      const isConfirmed = await confirm({
-        title: 'Create a login?',
-        message: `A sign-in account will be created for “${mentor.name}”. The initial password is shown here once and cannot be retrieved afterwards, so pass it on before you leave this screen.`,
-        confirmLabel: 'Create login',
-      })
-
-      if (!isConfirmed) return
-    }
-
-    try {
-      const result = await provisionLogin.mutateAsync({
-        mentorId: mentor.id,
-        email: mentor.email,
-      })
-
-      setNotice({ tone: 'success', ...describeProvisionOutcome(result, mentor.name) })
-    } catch (error) {
-      setNotice({
-        tone: 'problem',
-        message: `${mentor.name} was saved, but their login could not be set up. ${describeProvisionFailure(error)} Use “Create login” on their row to try again.`,
-      })
-    }
   }
 
   return (

@@ -33,7 +33,7 @@ function readJwtRole(token: string): string | null {
   }
 }
 
-export function classifySupabaseKey(key: string): SupabaseKeyKind {
+function classifySupabaseKey(key: string): SupabaseKeyKind {
   if (key.startsWith('sb_publishable_')) return 'publishable'
   if (key.startsWith('sb_secret_')) return 'secret'
 
@@ -112,12 +112,4 @@ export function getSupabaseConfig(): SupabaseConfig {
 
 export function isSupabaseConfigured(): boolean {
   return inspectSupabaseConfig(getSupabaseConfig()).length === 0
-}
-
-/** A one-line summary for the UI, or `null` when configuration is sound. */
-export function describeSupabaseConfigProblem(): string | null {
-  const problems = inspectSupabaseConfig(getSupabaseConfig())
-  if (problems.length === 0) return null
-
-  return problems.map((problem) => `${problem.variable}: ${problem.message}`).join(' ')
 }

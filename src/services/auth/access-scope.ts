@@ -92,16 +92,12 @@ export function canViewDeveloper(scope: AccessScope, developerId: string): boole
   return scope.visibleDeveloperIds === null || scope.visibleDeveloperIds.includes(developerId)
 }
 
-export function canViewProject(scope: AccessScope, projectId: string): boolean {
-  return scope.visibleProjectIds === null || scope.visibleProjectIds.includes(projectId)
-}
-
 /**
  * Whether a read naming one project can return anything at all.
  *
- * Wider than `canViewProject`, because somebody who also has an employee row
- * keeps their own work on every project. Only a pure mentor is held to the
- * projects they are responsible for.
+ * Wider than the granted project list, because somebody who also has an
+ * employee row keeps their own work on every project. Only a pure mentor is
+ * held to the projects they are responsible for.
  */
 export function canRequestProject(scope: AccessScope, projectId: string): boolean {
   if (scope.visibleProjectIds === null) return true

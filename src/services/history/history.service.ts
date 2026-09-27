@@ -178,23 +178,6 @@ export async function listChanges(limit: number): Promise<ChangeRecord[]> {
   return parseChanges(data ?? [])
 }
 
-export async function listRecordChanges(
-  kind: HistoryKind,
-  recordId: string,
-): Promise<ChangeRecord[]> {
-  const { data, error } = await requireClient()
-    .from('record_history')
-    .select(HISTORY_COLUMNS)
-    .eq('table_name', kind)
-    .eq('record_id', recordId)
-    .order('changed_at', { ascending: false })
-    .order('id', { ascending: false })
-
-  if (error !== null) throw mapHistoryError(error)
-
-  return parseChanges(data ?? [])
-}
-
 function parseChanges(rows: readonly unknown[]): ChangeRecord[] {
   const parsed = z.array(changeRowSchema).safeParse(rows)
 

@@ -182,16 +182,6 @@ export class WorkTrackerService {
     return projects.filter((project) => project.active)
   }
 
-  /** Returns null for out-of-scope or soft-deleted records. */
-  async getDeveloperById(scope: AccessScope, id: string): Promise<Developer | null> {
-    if (!canViewDeveloper(scope, id)) return null
-
-    const developers = await this.developerLookup.get()
-    const developer = developers.find((candidate) => candidate.id === id)
-
-    return developer !== undefined && onTheRoster(developer) ? developer : null
-  }
-
   async getMentors(scope: AccessScope): Promise<Mentor[]> {
     const mentors = (await this.mentorLookup.get()).filter(onTheRoster)
     if (scope.visibleDeveloperIds === null) return mentors

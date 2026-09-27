@@ -18,21 +18,13 @@ import { useTableSort } from '@hooks/use-table-sort'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import type { Developer } from '@models/index'
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
-import { isSupabaseConfigured } from '@services/supabase/index'
 import { compareFlag, compareText, matchesSearch, sortRows } from '@utils/table.utils'
 
 import { AdminPageLayout } from '../components/AdminPageLayout'
 import { EmployeeFormModal } from '../components/EmployeeFormModal'
 import { ProvisioningNoticeView } from '../components/ProvisioningNotice'
-import {
-  describeProvisionFailure,
-  describeProvisionOutcome,
-} from '../components/provisioning-notice'
-import type { ProvisioningNotice } from '../components/provisioning-notice'
+import { CAN_PROVISION_LOGINS, useLoginProvisioning } from '../hooks/use-login-provisioning'
 import { toEmployeeRequest } from '../schemas/employee.schema'
-
-// Provisioning requires Supabase Auth.
-const CAN_PROVISION_LOGINS = isSupabaseConfigured()
 
 function describeUnprovisionable(developer: Developer): string | null {
   if (!developer.active) {
@@ -87,7 +79,6 @@ export function EmployeesPage() {
 
   const [editing, setEditing] = useState<Developer | null>(null)
   const [isCreating, setIsCreating] = useState(false)
-  const [notice, setNotice] = useState<ProvisioningNotice | null>(null)
   const [search, setSearch] = useState('')
 
   const { sort, toggle } = useTableSort<SortKey>({ key: 'name', direction: 'asc' })
@@ -97,6 +88,18 @@ export function EmployeesPage() {
   const updateDeveloper = useUpdateDeveloper()
   const deleteDeveloper = useDeleteDeveloper()
   const provisionLogin = useProvisionDeveloperLogin()
+
+  const { notice, requestLogin } = useLoginProvisioning<Developer>({
+    describeRefusal: describeUnprovisionable,
+    nameOf: (developer) => developer.name,
+    newRecordReminder:
+      ' Assign them to an active project before they can submit daily updates.',
+    provision: (developer) =>
+      provisionLogin.mutateAsync({
+        developerId: developer.id,
+        ...(developer.email === undefined ? {} : { email: developer.email }),
+      }),
+  })
 
   const visible = useMemo(() => {
     const rows = (developersQuery.data ?? []).filter((developer) =>
@@ -119,50 +122,6 @@ export function EmployeesPage() {
     })
 
     if (isDeleted) snackbar.success(`“${developer.name}” was deleted.`)
-  }
-
-  // Initial password is shown once; row actions confirm before provisioning.
-  const requestLogin = async (developer: Developer, isNewRecord = false) => {
-    if (!CAN_PROVISION_LOGINS) return
-
-    setNotice(null)
-
-    const refusal = describeUnprovisionable(developer)
-
-    if (refusal !== null) {
-      setNotice({ tone: 'problem', message: `${developer.name} was saved. ${refusal}` })
-      return
-    }
-
-    if (!isNewRecord) {
-      const isConfirmed = await confirm({
-        title: 'Create a login?',
-        message: `A sign-in account will be created for “${developer.name}”. The initial password is shown here once and cannot be retrieved afterwards, so pass it on before you leave this screen.`,
-        confirmLabel: 'Create login',
-      })
-
-      if (!isConfirmed) return
-    }
-
-    try {
-      const result = await provisionLogin.mutateAsync({
-        developerId: developer.id,
-        ...(developer.email === undefined ? {} : { email: developer.email }),
-      })
-
-      const reminder = isNewRecord
-        ? ' Assign them to an active project before they can submit daily updates.'
-        : ''
-
-      const outcome = describeProvisionOutcome(result, developer.name)
-
-      setNotice({ tone: 'success', ...outcome, message: `${outcome.message}${reminder}` })
-    } catch (error) {
-      setNotice({
-        tone: 'problem',
-        message: `${developer.name} was saved, but their login could not be set up. ${describeProvisionFailure(error)} Use “Create login” on their row to try again.`,
-      })
-    }
   }
 
   return (

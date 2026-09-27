@@ -7,7 +7,7 @@ import { mapPostgrestError } from './supabase-errors'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
 
-export function isSupabaseUuid(value: string): boolean {
+function isSupabaseUuid(value: string): boolean {
   return UUID_PATTERN.test(value)
 }
 

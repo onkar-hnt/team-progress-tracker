@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@models/index'
 import { PROJECT_STATUSES } from '@models/project.model'
 
-export const PROJECT_COLUMNS =
+const PROJECT_COLUMNS =
   'id, code, name, client, description, status, active, start_date, end_date, mentor_id, deleted_at' as const
 
 /** With the membership rows embedded, which is how a project is read. */

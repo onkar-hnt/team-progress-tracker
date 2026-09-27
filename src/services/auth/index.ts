@@ -14,7 +14,7 @@ export * from './permissions'
 export * from './access-scope'
 
 /** The identity sources the application can be configured to use. */
-export const AUTH_MODES = ['entra', 'local', 'supabase'] as const
+const AUTH_MODES = ['entra', 'local', 'supabase'] as const
 
 export type AuthMode = (typeof AUTH_MODES)[number]
 
@@ -29,7 +29,7 @@ export function resolveAuthMode(): AuthMode {
   return 'local'
 }
 
-export function createAuthProvider(): AuthProvider {
+function createAuthProvider(): AuthProvider {
   switch (resolveAuthMode()) {
     case 'supabase':
       return new SupabaseAuthProvider()

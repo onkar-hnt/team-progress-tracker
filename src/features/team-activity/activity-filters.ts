@@ -136,7 +136,7 @@ function readDate(value: string | null): string | undefined {
   return value !== null && ISO_DATE.test(value) ? value : undefined
 }
 
-export function filtersFromSearchParams(params: URLSearchParams): ActivityFilterState {
+function filtersFromSearchParams(params: URLSearchParams): ActivityFilterState {
   const defaults = createDefaultFilters()
 
   const preset = readPreset(params.get(PARAMS.period)) ?? defaults.preset

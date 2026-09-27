@@ -150,7 +150,7 @@ export async function deleteProjectRow(client: AppSupabaseClient, id: string): P
 }
 
 /** Reads one project that is not in the bin, or reports that there is none. */
-export async function requireProject(client: AppSupabaseClient, id: string): Promise<Project> {
+async function requireProject(client: AppSupabaseClient, id: string): Promise<Project> {
   const { data, error } = await client
     .from('projects')
     .select(PROJECT_WITH_MEMBERS)

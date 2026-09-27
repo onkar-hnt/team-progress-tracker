@@ -23,7 +23,7 @@ export interface ReminderSlot {
   moment: string
 }
 
-export const REMINDER_SLOTS: readonly ReminderSlot[] = [
+const REMINDER_SLOTS: readonly ReminderSlot[] = [
   { id: 'morning', hour: 11, moment: 'It is mid-morning' },
   { id: 'afternoon', hour: 16, moment: 'The day is nearly over' },
 ]
@@ -69,7 +69,7 @@ export function dueReminder(question: ReminderQuestion): ReminderSlot | undefine
  * one browser on one afternoon, and a table for it would outlive the thing it
  * describes. Yesterday's record is dropped by storing the date alongside.
  */
-export const REMINDER_STORAGE_KEY = 'team-progress-tracker.update-reminder'
+const REMINDER_STORAGE_KEY = 'team-progress-tracker.update-reminder'
 
 interface StoredDismissal {
   date: string
