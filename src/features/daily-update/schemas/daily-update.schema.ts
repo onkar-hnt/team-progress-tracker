@@ -4,8 +4,10 @@ import { PROGRESS_MAX, PROGRESS_MIN } from '@constants/task.constants'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@models/daily-work.model'
 import type { CreateDailyWorkEntryRequest, DailyWorkEntry } from '@models/index'
 import { isIsoDateString, todayIsoDate } from '@utils/date.utils'
+import { isRichTextEmpty, normaliseRichText, richTextToPlainText } from '@utils/rich-text.utils'
 
 const TASK_TITLE_MAX = 160
+const WORK_DONE_MAX = 2000
 
 const baseSchema = z
   .object({
@@ -27,6 +29,21 @@ const baseSchema = z
       .trim()
       .min(1, { message: 'Enter what you worked on' })
       .max(TASK_TITLE_MAX, { message: `Keep the title under ${TASK_TITLE_MAX} characters` }),
+
+    /**
+     * What moved today, as formatting markup. The title names the task and
+     * stays the same across the days it takes, so without this the whole day
+     * ends up in the title and the task is named after one afternoon of it.
+     *
+     * Measured on the words rather than the markup, or a long list would be
+     * refused for the tags holding it together.
+     */
+    workDone: z
+      .string()
+      .trim()
+      .refine((value) => richTextToPlainText(value).length <= WORK_DONE_MAX, {
+        message: `Keep this under ${WORK_DONE_MAX} characters`,
+      }),
 
     status: z.enum(TASK_STATUSES),
 
@@ -51,25 +68,34 @@ const baseSchema = z
 const HOURS_MAX = 999.99
 
 /**
- * Both hour figures are required on a new entry and optional when correcting an
- * old one, where the person editing may have no idea what the day cost or what
- * was expected at the time.
+ * The hours and the day's work are required on a new entry and optional when
+ * correcting an old one: the person editing may have no idea what the day cost
+ * or what was expected at the time, and every entry logged before there was a
+ * field for it has nothing to say there.
  */
-export function dailyUpdateFormSchema(options: { requireHours: boolean }) {
+export function dailyUpdateFormSchema(options: { isNewEntry: boolean }) {
   return baseSchema.superRefine((values, ctx) => {
     checkProgress(values, ctx)
+
+    if (options.isNewEntry && isRichTextEmpty(values.workDone)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['workDone'],
+        message: 'Say what you got done today',
+      })
+    }
 
     checkHours(ctx, {
       value: values.estimatedHours,
       field: 'estimatedHours',
-      isRequired: options.requireHours,
+      isRequired: options.isNewEntry,
       missingMessage: 'Enter the hours you expect this task to take',
     })
 
     checkHours(ctx, {
       value: values.hoursSpent,
       field: 'hoursSpent',
-      isRequired: options.requireHours,
+      isRequired: options.isNewEntry,
       missingMessage: 'Enter the hours you spent on this today',
     })
   })
@@ -145,6 +171,7 @@ export function toFormValues(entry: DailyWorkEntry): DailyUpdateFormValues {
     projectId: entry.projectId,
     taskId: entry.taskId ?? '',
     taskTitle: entry.taskTitle,
+    workDone: entry.workDone ?? '',
     status: entry.status,
     progress: String(entry.progress),
     estimatedHours: entry.estimatedHours === undefined ? '' : String(entry.estimatedHours),
@@ -163,6 +190,7 @@ export function createEmptyFormValues(options: {
     projectId: '',
     taskId: '',
     taskTitle: '',
+    workDone: '',
     status: 'in-progress',
     progress: '0',
     estimatedHours: '',
@@ -184,6 +212,10 @@ export function toCreateDailyWorkEntryRequest(
     projectId: values.projectId,
     taskId: values.taskId === '' ? undefined : values.taskId,
     taskTitle: values.taskTitle.trim(),
+    // Sent even when empty, so clearing it on an edit clears the stored value
+    // rather than leaving the previous day's text in place. An editor emptied
+    // by hand still reports an empty paragraph, which is stored as nothing.
+    workDone: normaliseRichText(values.workDone),
     status: values.status,
     priority: values.priority,
     progress: Number(values.progress),

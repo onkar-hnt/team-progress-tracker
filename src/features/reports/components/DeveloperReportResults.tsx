@@ -1,5 +1,6 @@
 import { Button } from '@components/ui/button/Button'
 import { EmptyState } from '@components/ui/feedback/Feedback'
+import { RichText } from '@components/ui/rich-text/RichText'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import type { DailyWorkEntryView } from '@services/work-tracker.service'
@@ -84,7 +85,7 @@ export function DeveloperReportResults({
               <th className="data-table__numeric" scope="col">
                 Hours
               </th>
-              <th scope="col">Work done</th>
+              <th scope="col">Task description</th>
             </tr>
           </thead>
           <tbody>
@@ -101,7 +102,9 @@ export function DeveloperReportResults({
                 </td>
                 <td className="data-table__numeric">{entry.progress}%</td>
                 <td className="data-table__numeric">{entry.hoursSpent ?? '—'}</td>
-                <td>{entry.workDone ?? '—'}</td>
+                <td>
+                  {entry.workDone === undefined ? '—' : <RichText value={entry.workDone} />}
+                </td>
               </tr>
             ))}
           </tbody>

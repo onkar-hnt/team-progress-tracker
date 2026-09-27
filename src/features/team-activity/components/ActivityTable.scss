@@ -20,6 +20,15 @@
     font-size: $font-size-xs;
   }
 
+  /// Darker than the notes around it: this is the day's own account of the work.
+  &__work-done {
+    max-width: 26rem;
+    margin: $space-2 0 0;
+    color: $color-text;
+    font-size: $font-size-xs;
+    line-height: $line-height-base;
+  }
+
   &__blocker {
     max-width: 26rem;
     margin: $space-2 0 0;

@@ -1,0 +1,105 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+@use 'rich-text-content' as *;
+
+/// Toolbar and box read as one control: the seam between them is a single border.
+.rich-text-field {
+  @include grid;
+
+  &__toolbar {
+    @include flex($gap: $space-1, $wrap: wrap);
+    padding: $space-1;
+    border: 1px solid $color-border;
+    border-radius: $radius-md $radius-md 0 0;
+    background: $color-surface-subtle;
+  }
+
+  &__tool {
+    @include flex-center;
+    @include square(1.75rem);
+    padding: 0;
+    border: 0;
+    border-radius: $radius-sm;
+    color: $color-text-muted;
+    background: none;
+    cursor: pointer;
+    transition:
+      color $transition-fast,
+      background-color $transition-fast;
+
+    &:hover:not(:disabled) {
+      color: $color-text;
+      background: $color-white;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+      color: $color-text;
+    }
+
+    /// The formatting under the caret, so the toolbar says where you are.
+    &[aria-pressed='true'] {
+      color: $color-brand;
+      background: $color-white;
+      box-shadow: inset 0 0 0 1px $color-brand-muted;
+    }
+
+    &:disabled {
+      color: $color-neutral-border;
+      cursor: not-allowed;
+    }
+  }
+
+  &__divider {
+    width: 1px;
+    height: 1.25rem;
+    margin: 0 $space-1;
+    background: $color-border;
+  }
+
+  /// One border between the toolbar and the box, not two.
+  &__content {
+    margin-top: -1px;
+  }
+
+  /// Styled like the text inputs beside it: same border, same focus ring.
+  &__area {
+    @include rich-text-content;
+
+    min-height: 9rem;
+    max-height: 24rem;
+    padding: $space-3;
+    overflow-y: auto;
+    border: 1px solid $color-border;
+    border-radius: 0 0 $radius-md $radius-md;
+    color: $color-text;
+    background: $color-white;
+    transition:
+      border-color $transition-fast,
+      box-shadow $transition-fast;
+
+    &:hover:not(:focus) {
+      border-color: $color-neutral-border;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+      border-color: $color-brand;
+      outline-offset: 0;
+    }
+
+    &[aria-invalid='true'] {
+      border-color: $color-danger;
+      background: $color-danger-surface;
+    }
+
+    /// The example text, shown only while nothing has been written.
+    p.is-editor-empty:first-child::before {
+      float: left;
+      height: 0;
+      color: $color-text-muted;
+      content: attr(data-placeholder);
+      pointer-events: none;
+    }
+  }
+}

@@ -4,6 +4,7 @@ export type IconName =
   | 'activity'
   | 'alert'
   | 'bell'
+  | 'bold'
   | 'calendar'
   | 'chart'
   | 'check'
@@ -18,18 +19,25 @@ export type IconName =
   | 'eye'
   | 'eye-off'
   | 'filter'
+  | 'heading'
   | 'inbox'
+  | 'indent'
   | 'history'
   | 'info'
+  | 'italic'
   | 'key'
+  | 'list-bulleted'
+  | 'list-numbered'
   | 'menu'
   | 'mentors'
+  | 'outdent'
   | 'projects'
   | 'refresh'
   | 'sign-out'
   | 'table'
   | 'tasks'
   | 'trash'
+  | 'underline'
   | 'users'
   | 'warning'
 
@@ -192,6 +200,44 @@ const PATHS: Readonly<Record<IconName, ReactElement>> = {
       <circle cx="8" cy="8" r="4" />
       <path d="M10.9 10.9 20 20" />
       <path d="M17.5 17.5 15 20M20 15l-2.5 2.5" />
+    </>
+  ),
+
+  bold: (
+    <>
+      <path d="M8 5h5a3.5 3.5 0 0 1 0 7H8z" />
+      <path d="M8 12h5.8a3.5 3.5 0 0 1 0 7H8z" />
+    </>
+  ),
+  italic: <path d="M11 5h7M6 19h7M15 5l-4 14" />,
+  underline: <path d="M7 4v7a5 5 0 0 0 10 0V4M5.5 20h13" />,
+  heading: <path d="M6 5v14M18 5v14M6 12h12" />,
+  'list-bulleted': (
+    <>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <circle cx="4.5" cy="6" r="1" />
+      <circle cx="4.5" cy="12" r="1" />
+      <circle cx="4.5" cy="18" r="1" />
+    </>
+  ),
+  'list-numbered': (
+    <>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <path d="M3.6 4.7 4.8 4v3.2" />
+      <path d="M3.4 10.8h1.9L3.4 13.4h2" />
+      <path d="M3.4 16.6h1.9L4.2 18h1" />
+    </>
+  ),
+  indent: (
+    <>
+      <path d="M4 5h16M11 10h9M11 14h9M4 19h16" />
+      <path d="M4 9.5 6.8 12 4 14.5" />
+    </>
+  ),
+  outdent: (
+    <>
+      <path d="M4 5h16M11 10h9M11 14h9M4 19h16" />
+      <path d="M6.8 9.5 4 12l2.8 2.5" />
     </>
   ),
 

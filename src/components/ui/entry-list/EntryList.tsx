@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
 import { EmptyState } from '@components/ui/feedback/Feedback'
+import { RichText } from '@components/ui/rich-text/RichText'
 import { ShowMore } from '@components/ui/show-more/ShowMore'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import type { DailyWorkEntryView } from '@services/work-tracker.service'
@@ -67,6 +68,11 @@ export function EntryList({
                 {` · ${String(entry.progress)}%`}
                 {entry.hoursSpent === undefined ? '' : ` · ${String(entry.hoursSpent)}h`}
               </p>
+              {entry.workDone === undefined ? null : (
+                <div className="entry-list__work-done">
+                  <RichText value={entry.workDone} />
+                </div>
+              )}
               {entry.blockerDescription === undefined ? null : (
                 <p className="entry-list__blocker">
                   <Tooltip clips label={entry.blockerDescription}>

@@ -5,6 +5,7 @@ import type { DailyWorkEntryView } from '@services/work-tracker.service'
 import { getStatusLabel, getPriorityLabel } from '@utils/task.utils'
 import { toFilenameSlug } from '@utils/csv.utils'
 import { formatLongDate } from '@utils/date.utils'
+import { richTextToPlainText } from '@utils/rich-text.utils'
 import type { StatusBreakdown } from '@utils/work-summary.utils'
 import { calculateCompletionRate, sumHoursLogged, summariseStatuses } from '@utils/work-summary.utils'
 
@@ -76,13 +77,13 @@ export function buildEntriesCsv(entries: readonly DailyWorkEntryView[]): string[
     'Date',
     'Developer',
     'Project',
-    'Task',
+    'Task title',
     'Status',
     'Priority',
     'Progress (%)',
     'Hours spent',
     'Blocked',
-    'Work done',
+    'Task description',
     'Planned work',
     'Blocker',
     'Remarks',
@@ -99,7 +100,8 @@ export function buildEntriesCsv(entries: readonly DailyWorkEntryView[]): string[
     String(entry.progress),
     entry.hoursSpent === undefined ? '' : String(entry.hoursSpent),
     entry.isBlocked ? 'Yes' : 'No',
-    entry.workDone ?? '',
+    // The words, not the formatting: a spreadsheet cell has no use for markup.
+    richTextToPlainText(entry.workDone ?? ''),
     entry.plannedWork ?? '',
     entry.blockerDescription ?? '',
     entry.remarks ?? '',

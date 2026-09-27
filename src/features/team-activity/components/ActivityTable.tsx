@@ -5,6 +5,7 @@ import { Button } from '@components/ui/button/Button'
 import { SortableHeader } from '@components/ui/data-table/SortableHeader'
 import { EmptyState } from '@components/ui/feedback/Feedback'
 import { PriorityBadge, StatusBadge } from '@components/ui/status-badge/StatusBadge'
+import { RichText } from '@components/ui/rich-text/RichText'
 import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { useTableSort } from '@hooks/use-table-sort'
 import type { AppUser } from '@models/user.model'
@@ -137,6 +138,11 @@ export function ActivityTable({ deletingId, entries, onDelete, onEdit, user }: A
                       {entry.taskTitle}
                     </Tooltip>
                   </p>
+                  {entry.workDone === undefined ? null : (
+                    <div className="activity-table__work-done">
+                      <RichText value={entry.workDone} />
+                    </div>
+                  )}
                   {entry.description === undefined ? null : (
                     <p className="activity-table__description">
                       <Tooltip clips label={entry.description}>

@@ -14,6 +14,7 @@ import { useDailyWorkEntries, useDeleteDailyWorkEntry, useDevelopers, useProject
 import { describeDeleteOutcome } from '@services/recycle-bin/recycle-bin.service'
 import type { DailyWorkEntryView } from '@services/work-tracker.service'
 import { formatLongDate } from '@utils/date.utils'
+import { richTextToPlainText } from '@utils/rich-text.utils'
 import { matchesSearch } from '@utils/table.utils'
 import { calculateCompletionRate, summariseStatuses, sumHoursLogged } from '@utils/work-summary.utils'
 
@@ -66,7 +67,14 @@ export function TeamActivityPage() {
     () =>
       (entriesQuery.data ?? []).filter((entry) =>
         matchesSearch(
-          [entry.taskTitle, entry.description, entry.remarks, entry.blockerDescription],
+          [
+            entry.taskTitle,
+            // Searched on the words, so a tag name never counts as a match.
+            entry.workDone === undefined ? undefined : richTextToPlainText(entry.workDone),
+            entry.description,
+            entry.remarks,
+            entry.blockerDescription,
+          ],
           filters.search,
         ),
       ),

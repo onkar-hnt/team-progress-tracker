@@ -122,7 +122,7 @@ export function ActivityFilters({
         <FilterField isWide label="Search">
           <input
             onChange={(event) => update({ search: event.target.value })}
-            placeholder="Task, description or remarks"
+            placeholder="Task, work done or remarks"
             type="search"
             value={filters.search}
           />

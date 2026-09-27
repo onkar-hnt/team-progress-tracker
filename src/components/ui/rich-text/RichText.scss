@@ -1,0 +1,11 @@
+@use 'rich-text-content' as *;
+
+.rich-text {
+  @include rich-text-content;
+
+  /// Breaks were typed rather than wrapped, so they are kept.
+  &__plain {
+    margin: 0;
+    white-space: pre-line;
+  }
+}

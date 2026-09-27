@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { DataProviderError, DataSourceUnavailableError } from '@services/data-provider/index'
 import { getSupabaseClient, isSupabaseConfigured } from '@services/supabase/index'
+import { richTextToPlainText } from '@utils/rich-text.utils'
 
 export function isHistoryAvailable(): boolean {
   return isSupabaseConfigured()
@@ -71,7 +72,8 @@ const FIELD_LABELS: Readonly<Record<string, string>> = {
   project_id: 'Project',
   developer_id: 'Employee',
   task_id: 'Task',
-  task_title: 'Task',
+  task_title: 'Task title',
+  work_done: 'Task description',
   comment: 'Comment',
 }
 
@@ -86,7 +88,9 @@ function formatValue(value: unknown): string | undefined {
   if (typeof value === 'number') return String(value)
 
   if (typeof value === 'string') {
-    const trimmed = value.trim()
+    // The change log reads as one line per field, so a formatted description is
+    // quoted as the words somebody wrote rather than as the markup holding them.
+    const trimmed = richTextToPlainText(value).replace(/\n+/gu, ' ')
     if (trimmed === '') return undefined
     return trimmed.length > 80 ? `${trimmed.slice(0, 79)}…` : trimmed
   }

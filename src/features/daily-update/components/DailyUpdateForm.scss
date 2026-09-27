@@ -4,27 +4,40 @@
 .daily-update-form {
   @include grid($gap: $space-5);
 
-  &__grid {
-    @include grid(repeat(4, minmax(0, 1fr)), $space-4);
+  /// What is typed on the left, what is picked on the right, so neither the
+  /// writing box nor a date field is stretched across the whole panel.
+  &__columns {
+    @include grid(minmax(0, 1fr) minmax(0, 1fr), $space-6);
+    align-items: start;
 
     @include respond-to-laptop {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr);
+      gap: $space-5;
     }
+  }
+
+  &__group {
+    padding: 0;
+    border: 0;
+    margin: 0;
+  }
+
+  &__legend {
+    @include overline;
+    padding: 0;
+    margin-bottom: $space-3;
+  }
+
+  &__fields {
+    @include grid(repeat(2, minmax(0, 1fr)), $space-4);
 
     @include respond-to-mobile {
       grid-template-columns: minmax(0, 1fr);
     }
 
+    /// Hints sit under fields of differing height; tops stay on one line.
     .form__field {
       align-content: start;
-    }
-
-    .form__field--wide {
-      grid-column: span 2;
-
-      @include respond-to-mobile {
-        grid-column: span 1;
-      }
     }
   }
 
@@ -44,6 +57,13 @@
   }
 
   &__actions {
-    @include flex($gap: $space-4, $wrap: wrap);
+    @include flex($justify: flex-end, $gap: $space-4, $wrap: wrap);
+    padding-top: $space-5;
+    border-top: 1px solid $color-border;
+
+    /// Written before the button so it takes the free space on the left.
+    .form__hint {
+      margin-right: auto;
+    }
   }
 }

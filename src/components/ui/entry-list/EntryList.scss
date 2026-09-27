@@ -63,6 +63,15 @@
     }
   }
 
+  /// Shown whole: a clamp would cut a list off mid-item. The list itself
+  /// scrolls, so a long day pushes no other entry out of reach.
+  &__work-done {
+    margin: $space-2 0 0;
+    color: $color-text;
+    font-size: $font-size-xs;
+    line-height: $line-height-base;
+  }
+
   &__blocker {
     margin: $space-2 0 0;
     color: $color-danger-dark;
