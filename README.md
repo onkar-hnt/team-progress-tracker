@@ -282,8 +282,11 @@ is anchor and skip-link jumps easing rather than teleporting; wheel scrolling st
 
 Kept honest rather than aspirational:
 
-- **No tests, and no test runner.** The data layer and the permission rules are the parts that
-  would repay them most.
+- **Tests cover the reasoning, not the screens.** `npm test` runs 83 cases across 11 files with
+  Vitest: the access-scope and permission rules, the four form schemas, the Supabase mappers and
+  the scoped read query, and the date, rich-text, reminder and update-coverage utilities. They run
+  in Node with no DOM, so no component and no hook is verified — that is the part that would repay
+  tests next.
 - **Paging is in the query where a list can be paged, and in the browser where it cannot.** The
   three record queries now carry a `limit`, which every provider honours newest-first, and the
   notification panel, the feedback lists and a developer's own feedback ask the database for a page
@@ -299,10 +302,14 @@ Kept honest rather than aspirational:
   everything. What it will not do is reassemble a record as it stood on an arbitrary Tuesday:
   diffs are kept rather than snapshots, which is the right trade for "who did this" and the wrong
   one for "show me the whole thing as it was". Project membership is the one write not yet logged.
-- **Deleting is recoverable.** Every delete of a record sets it aside rather than destroying it,
-  and **Recently deleted** stamps who did it and when; an employee, mentor or project can still
-  only be deleted while no live work references it, which is a rule about deleting rather than
-  about the bin.
+- **Deleting is recoverable, and nothing is kept forever.** Every delete of a record sets it aside
+  rather than destroying it, and **Recently deleted** stamps who did it and when; an employee,
+  mentor or project can still only be deleted while no live work references it, which is a rule
+  about deleting rather than about the bin. What nobody restores is destroyed after fifteen days,
+  and the change log is trimmed to the same window. Notifications go thirty days after they are
+  read and ninety while unread — the one table that grew with traffic rather than with head-count.
+  Each of those is a capped sweep on the table itself, carried by the next write rather than by a
+  schedule, so a re-created project keeps its retention along with its schema.
 - **No files, by decision rather than by omission.** There is nowhere to attach a screenshot, a
   log or a review document: the application stores what people write and nothing else. Tasks,
   work entries and feedback could each carry files for a while — private bucket, expiring links,
