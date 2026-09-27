@@ -5,10 +5,10 @@ import {
   useNotificationRealtime,
   useNotifications,
   useUnreadNotificationCount,
-} from '@hooks/use-notifications'
-import { areNotificationsAvailable } from '@services/notifications/notification.service'
+} from '@features/notifications/hooks/use-notifications'
+import { areNotificationsAvailable } from '@features/notifications/services/notification.service'
 
-import { formatUnreadBadge } from '../notification-display'
+import { formatUnreadBadge } from '../utils/notification-display'
 
 import { NotificationPanel } from './NotificationPanel'
 

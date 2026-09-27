@@ -1,4 +1,4 @@
-import { invokePrivilegedFunction } from './provision-login'
+import { invokePrivilegedFunction } from '@services/provisioning/provision-login'
 
 /** Server-side reset; may_reset_password in the database is the authority. */
 

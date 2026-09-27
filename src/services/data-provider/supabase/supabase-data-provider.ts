@@ -34,48 +34,48 @@ import {
   selectDailyUpdateById,
   selectDailyUpdates,
   updateDailyUpdateRow,
-} from './daily-updates.repository'
+} from './daily-updates/daily-updates.repository'
 import {
   deleteDeveloperRow,
   insertDeveloper,
   selectDevelopers,
   updateDeveloperRow,
-} from './developers.repository'
+} from './developers/developers.repository'
 import {
   deleteCommentRow,
   insertComment,
   selectComments,
   updateCommentRow,
-} from './feedback.repository'
+} from './feedback/feedback.repository'
 import {
   deleteLeaveDayRow,
   insertLeaveDay,
   selectLeaveDays,
-} from './leave-days.repository'
+} from './leave/leave-days.repository'
 import {
   replaceMentorAssignments,
   selectMentorAssignments,
-} from './mentor-assignments.repository'
+} from './mentors/mentor-assignments.repository'
 import {
   deleteMentorRow,
   insertMentor,
   selectMentors,
   updateMentorRow,
-} from './mentors.repository'
+} from './mentors/mentors.repository'
 import {
   deleteProjectRow,
   insertProject,
   selectProjects,
   selectResponsibleProjectIds,
   updateProjectRow,
-} from './projects.repository'
+} from './projects/projects.repository'
 import {
   deleteTaskRow,
   insertTask,
   selectTaskById,
   selectTasks,
   updateTaskRow,
-} from './tasks.repository'
+} from './tasks/tasks.repository'
 
 export interface SupabaseDataProviderOptions {
   client: AppSupabaseClient

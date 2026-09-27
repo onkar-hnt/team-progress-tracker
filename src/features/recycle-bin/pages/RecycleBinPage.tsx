@@ -9,7 +9,7 @@ import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { Panel } from '@components/ui/panel/Panel'
 import { useAccessScope } from '@hooks/use-access-scope'
-import { useDeletedRecords, useDestroyRecord, useRestoreRecord } from '@hooks/use-recycle-bin'
+import { useDeletedRecords, useDestroyRecord, useRestoreRecord } from '@features/recycle-bin/hooks/use-recycle-bin'
 import { useTableSort } from '@hooks/use-table-sort'
 import { useDevelopers, useProjects } from '@hooks/use-work-tracker'
 import {

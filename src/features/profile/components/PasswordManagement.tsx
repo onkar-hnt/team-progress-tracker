@@ -16,8 +16,8 @@ import {
 import { isSupabaseConfigured } from '@services/supabase/index'
 import { toUserMessage } from '@services/errors/error-message'
 
-import { buildCandidates } from '../password-candidates'
-import type { Candidate } from '../password-candidates'
+import { buildCandidates } from '../utils/password-candidates'
+import type { Candidate } from '../utils/password-candidates'
 
 import { ResetPasswordModal } from './ResetPasswordModal'
 

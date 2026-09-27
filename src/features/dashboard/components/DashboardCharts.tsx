@@ -8,7 +8,7 @@ import {
 import { DeveloperSummaryTable } from '@components/summaries/SummaryTables'
 import { Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
-import type { ActivitySlice } from '@features/team-activity/activity-filters'
+import type { ActivitySlice } from '@features/team-activity/utils/activity-filters'
 import type { RangeOverview } from '@services/work-tracker.views'
 import type { DateRange } from '@utils/date.utils'
 import { formatLongDate } from '@utils/date.utils'

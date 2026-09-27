@@ -4,8 +4,8 @@ import {
   dueReminder,
   parseDismissal,
   serializeDismissal,
-} from '@features/daily-update/update-reminder'
-import type { ReminderSlotId } from '@features/daily-update/update-reminder'
+} from './update-reminder'
+import type { ReminderSlotId } from './update-reminder'
 
 /** Tuesday 22 September 2026, and the Saturday after it. */
 const tuesday = '2026-09-22'

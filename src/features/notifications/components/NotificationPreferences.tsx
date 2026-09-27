@@ -3,10 +3,10 @@ import { useSnackbar } from '@app/providers/snackbar-context'
 import { CheckboxField } from '@components/ui/field/Field'
 import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Panel } from '@components/ui/panel/Panel'
-import { useMutedNotificationTypes, useSaveMutedNotificationTypes } from '@hooks/use-notifications'
+import { useMutedNotificationTypes, useSaveMutedNotificationTypes } from '@features/notifications/hooks/use-notifications'
 import type { NotificationType } from '@models/index'
 import { logFailure, toUserMessage } from '@services/errors/error-message'
-import { areNotificationsAvailable } from '@services/notifications/notification.service'
+import { areNotificationsAvailable } from '@features/notifications/services/notification.service'
 
 import './NotificationPreferences.scss'
 

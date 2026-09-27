@@ -9,8 +9,8 @@ import { Panel } from '@components/ui/panel/Panel'
 import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { AssignedMentorNames } from '@features/profile/components/AssignedMentors'
-import type { ActivitySlice } from '@features/team-activity/activity-filters'
-import { activityRangeLink } from '@features/team-activity/activity-filters'
+import type { ActivitySlice } from '@features/team-activity/utils/activity-filters'
+import { activityRangeLink } from '@features/team-activity/utils/activity-filters'
 import { TASK_STATUS_LABELS } from '@constants/task.constants'
 import {
   useDayOverview,

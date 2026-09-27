@@ -8,7 +8,7 @@ import { Tooltip } from '@components/ui/tooltip/Tooltip'
 import { APP_EYEBROW } from '@constants/app.constants'
 import { USER_ROLE_LABELS } from '@models/user.model'
 import type { AppUser } from '@models/user.model'
-import { areAccountsAvailable } from '@services/accounts/account.service'
+import { areAccountsAvailable } from '@features/admin/services/account.service'
 import {
   canDeleteRecords,
   canManageTeam,
@@ -18,9 +18,9 @@ import {
   canWriteFeedback,
   isAdmin,
 } from '@services/auth/index'
-import { isHistoryAvailable } from '@services/history/history.service'
+import { isHistoryAvailable } from '@features/history/services/history.service'
 import { isRecycleBinAvailable } from '@services/recycle-bin/recycle-bin.service'
-import { isUsageAvailable } from '@services/usage/usage.service'
+import { isUsageAvailable } from '@features/admin/services/usage.service'
 import { initialsOf } from '@utils/name.utils'
 
 import './Sidebar.scss'

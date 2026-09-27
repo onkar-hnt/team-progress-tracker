@@ -6,15 +6,15 @@ import { ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder'
 import { Panel } from '@components/ui/panel/Panel'
 import { ShowMore } from '@components/ui/show-more/ShowMore'
-import { useChangeLog } from '@hooks/use-history'
+import { useChangeLog } from '@features/history/hooks/use-history'
 import { usePaging } from '@hooks/use-paging'
 import { useTableSort } from '@hooks/use-table-sort'
 import {
   HISTORY_ACTIONS,
   HISTORY_KINDS,
   isHistoryAvailable,
-} from '@services/history/history.service'
-import type { ChangeRecord } from '@services/history/history.service'
+} from '@features/history/services/history.service'
+import type { ChangeRecord } from '@features/history/services/history.service'
 import { formatRelativeTime, formatTimestamp } from '@utils/date.utils'
 import { compareText, matchesSearch, sortRows } from '@utils/table.utils'
 

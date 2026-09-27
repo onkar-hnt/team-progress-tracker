@@ -3,10 +3,10 @@ import type { UseQueryResult } from '@tanstack/react-query'
 
 import { useAuth } from '@app/providers/auth-context'
 import { isAdmin } from '@services/auth/index'
-import { isUsageAvailable, readResourceUsage } from '@services/usage/usage.service'
-import type { ResourceUsage } from '@services/usage/usage.service'
+import { isUsageAvailable, readResourceUsage } from '@features/admin/services/usage.service'
+import type { ResourceUsage } from '@features/admin/services/usage.service'
 
-import { queryKeys } from './query-keys'
+import { queryKeys } from '@hooks/query-keys'
 
 /** Schema-wide size scan; five-minute staleTime because usage changes slowly. */
 export function useResourceUsage(): UseQueryResult<ResourceUsage> {

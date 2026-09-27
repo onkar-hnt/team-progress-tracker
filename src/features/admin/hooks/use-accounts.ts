@@ -7,12 +7,12 @@ import {
   areAccountsAvailable,
   listAccounts,
   setAccountState,
-} from '@services/accounts/account.service'
-import type { Account, SetAccountStateInput, SetAccountStateResult } from '@services/accounts/account.service'
+} from '@features/admin/services/account.service'
+import type { Account, SetAccountStateInput, SetAccountStateResult } from '@features/admin/services/account.service'
 import { isAdmin } from '@services/auth/permissions'
 import { logFailure, toUserMessage } from '@services/errors/error-message'
 
-import { queryKeys } from './query-keys'
+import { queryKeys } from '@hooks/query-keys'
 
 export function useAccounts(): UseQueryResult<Account[]> {
   const { isRestoring, user } = useAuth()

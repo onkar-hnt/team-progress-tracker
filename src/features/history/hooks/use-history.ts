@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import type { UseQueryResult } from '@tanstack/react-query'
 
 import { useAuth } from '@app/providers/auth-context'
-import { isHistoryAvailable, listChanges } from '@services/history/history.service'
-import type { ChangeRecord } from '@services/history/history.service'
+import { isHistoryAvailable, listChanges } from '@features/history/services/history.service'
+import type { ChangeRecord } from '@features/history/services/history.service'
 
-import { queryKeys } from './query-keys'
+import { queryKeys } from '@hooks/query-keys'
 
 export function useChangeLog(limit: number): UseQueryResult<ChangeRecord[]> {
   const { isRestoring, user } = useAuth()

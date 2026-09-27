@@ -12,8 +12,8 @@ import {
   dueReminder,
   readDismissedSlots,
   rememberDismissedSlots,
-} from '../update-reminder'
-import type { ReminderSlotId } from '../update-reminder'
+} from '../utils/update-reminder'
+import type { ReminderSlotId } from '../utils/update-reminder'
 
 import './UpdateReminder.scss'
 

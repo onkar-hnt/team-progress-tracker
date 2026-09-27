@@ -7,15 +7,15 @@ import { PagePlaceholder } from '@components/ui/page-placeholder/PagePlaceholder
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import type { StatCardTone } from '@models/ui.model'
-import { useResourceUsage } from '@hooks/use-resource-usage'
+import { useResourceUsage } from '@features/admin/hooks/use-resource-usage'
 import { useTableSort } from '@hooks/use-table-sort'
 import {
   FREE_PLAN,
   isUsageAvailable,
   usageDashboardUrl,
   usedPercent,
-} from '@services/usage/usage.service'
-import type { ResourceUsage, TableUsage } from '@services/usage/usage.service'
+} from '@features/admin/services/usage.service'
+import type { ResourceUsage, TableUsage } from '@features/admin/services/usage.service'
 import { formatBytes } from '@utils/bytes.utils'
 import { daysSince, formatRelativeTime, formatTimestamp } from '@utils/date.utils'
 import { compareText } from '@utils/table.utils'

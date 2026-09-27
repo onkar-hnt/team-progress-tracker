@@ -1,7 +1,7 @@
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@models/index'
 import type { AppSupabaseClient } from '@services/supabase/index'
 
-import { RecordNotFoundError } from '../data-provider.errors'
+import { RecordNotFoundError } from '../../data-provider.errors'
 import {
   PROJECT_WITH_MEMBERS,
   projectRowSchema,
@@ -9,9 +9,9 @@ import {
   toProjectInsert,
   toProjectUpdate,
 } from './project.mappers'
-import { assertDevelopersExist, assertMentorExists } from './references'
-import { softDeleteRow } from './soft-delete'
-import { mapPostgrestError, parseRows } from './supabase-errors'
+import { assertDevelopersExist, assertMentorExists } from '../references'
+import { softDeleteRow } from '../soft-delete'
+import { mapPostgrestError, parseRows } from '../supabase-errors'
 
 export async function selectProjects(client: AppSupabaseClient): Promise<Project[]> {
   const { data, error } = await client.from('projects').select(PROJECT_WITH_MEMBERS).order('code')

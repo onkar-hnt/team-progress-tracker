@@ -6,7 +6,7 @@ import type {
 } from '@models/index'
 import type { AppSupabaseClient } from '@services/supabase/index'
 
-import { RecordNotFoundError } from '../data-provider.errors'
+import { RecordNotFoundError } from '../../data-provider.errors'
 import {
   DAILY_UPDATE_COLUMNS,
   dailyUpdateRowSchema,
@@ -14,10 +14,10 @@ import {
   toDailyUpdateUpdate,
   toDailyWorkEntry,
 } from './daily-update.mappers'
-import { assertDeveloperExists, assertProjectExists, assertTaskExists } from './references'
-import { filterList } from './rpc-params'
-import { softDeleteRow } from './soft-delete'
-import { mapPostgrestError, parseRows } from './supabase-errors'
+import { assertDeveloperExists, assertProjectExists, assertTaskExists } from '../references'
+import { filterList } from '../rpc-params'
+import { softDeleteRow } from '../soft-delete'
+import { mapPostgrestError, parseRows } from '../supabase-errors'
 
 /** `setof` is an array. A single object is one row, not a failed read. */
 function asDailyUpdateRows(data: unknown): unknown[] {

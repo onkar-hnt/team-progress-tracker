@@ -1,5 +1,5 @@
 import { StatCard } from '@components/ui/stat-card/StatCard'
-import { activityLink } from '@features/team-activity/activity-filters'
+import { activityLink } from '@features/team-activity/utils/activity-filters'
 import type { DayOverview } from '@services/work-tracker.views'
 import { isWorkingDay } from '@utils/date.utils'
 

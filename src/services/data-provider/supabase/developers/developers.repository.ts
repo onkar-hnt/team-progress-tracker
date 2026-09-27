@@ -2,7 +2,7 @@ import type { CreateDeveloperRequest, Developer, UpdateDeveloperRequest } from '
 import type { AppSupabaseClient } from '@services/supabase/index'
 import { todayIsoDate } from '@utils/date.utils'
 
-import { RecordNotFoundError } from '../data-provider.errors'
+import { RecordNotFoundError } from '../../data-provider.errors'
 import {
   DEVELOPER_COLUMNS,
   developerRowSchema,
@@ -10,9 +10,9 @@ import {
   toDeveloperInsert,
   toDeveloperUpdate,
 } from './developer.mappers'
-import { assertProjectExists } from './references'
-import { softDeleteRow } from './soft-delete'
-import { mapPostgrestError, parseRows } from './supabase-errors'
+import { assertProjectExists } from '../references'
+import { softDeleteRow } from '../soft-delete'
+import { mapPostgrestError, parseRows } from '../supabase-errors'
 
 export async function selectDevelopers(client: AppSupabaseClient): Promise<Developer[]> {
   const { data, error } = await client.from('developers').select(DEVELOPER_COLUMNS).order('code')

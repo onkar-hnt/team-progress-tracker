@@ -8,8 +8,8 @@ import {
   toMentorAssignment,
 } from './mentor.mappers'
 import { requireMentor } from './mentors.repository'
-import { assertDevelopersExist } from './references'
-import { mapPostgrestError, parseRows } from './supabase-errors'
+import { assertDevelopersExist } from '../references'
+import { mapPostgrestError, parseRows } from '../supabase-errors'
 
 export async function selectMentorAssignments(
   client: AppSupabaseClient,

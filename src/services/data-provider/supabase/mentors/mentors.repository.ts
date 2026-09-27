@@ -2,7 +2,7 @@ import type { CreateMentorRequest, Mentor, UpdateMentorRequest } from '@models/i
 import type { AppSupabaseClient } from '@services/supabase/index'
 import { todayIsoDate } from '@utils/date.utils'
 
-import { RecordNotFoundError } from '../data-provider.errors'
+import { RecordNotFoundError } from '../../data-provider.errors'
 import {
   MENTOR_COLUMNS,
   mentorRowSchema,
@@ -10,8 +10,8 @@ import {
   toMentorInsert,
   toMentorUpdate,
 } from './mentor.mappers'
-import { softDeleteRow } from './soft-delete'
-import { mapPostgrestError, parseRows } from './supabase-errors'
+import { softDeleteRow } from '../soft-delete'
+import { mapPostgrestError, parseRows } from '../supabase-errors'
 
 export async function selectMentors(client: AppSupabaseClient): Promise<Mentor[]> {
   const { data, error } = await client.from('mentors').select(MENTOR_COLUMNS).order('code')

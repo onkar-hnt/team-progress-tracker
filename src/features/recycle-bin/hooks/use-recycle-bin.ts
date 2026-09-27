@@ -13,7 +13,7 @@ import {
 import type { DeletedRecord, DeletedRecordKind } from '@services/recycle-bin/recycle-bin.service'
 import { getWorkTrackerService } from '@services/work-tracker.service'
 
-import { queryKeys } from './query-keys'
+import { queryKeys } from '@hooks/query-keys'
 
 export function useDeletedRecords(): UseQueryResult<DeletedRecord[]> {
   const { isRestoring, user } = useAuth()

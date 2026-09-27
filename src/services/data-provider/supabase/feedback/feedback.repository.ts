@@ -6,7 +6,7 @@ import type {
 } from '@models/index'
 import type { AppSupabaseClient } from '@services/supabase/index'
 
-import { RecordNotFoundError } from '../data-provider.errors'
+import { RecordNotFoundError } from '../../data-provider.errors'
 import {
   FEEDBACK_COLUMNS,
   feedbackRowSchema,
@@ -14,10 +14,10 @@ import {
   toFeedbackUpdate,
   toMentorComment,
 } from './feedback.mappers'
-import { assertDeveloperExists, assertMentorExists, assertProjectExists, assertTaskExists } from './references'
-import { filterList } from './rpc-params'
-import { softDeleteRow } from './soft-delete'
-import { mapPostgrestError, parseRows } from './supabase-errors'
+import { assertDeveloperExists, assertMentorExists, assertProjectExists, assertTaskExists } from '../references'
+import { filterList } from '../rpc-params'
+import { softDeleteRow } from '../soft-delete'
+import { mapPostgrestError, parseRows } from '../supabase-errors'
 
 function matchesNothing(query: MentorCommentQuery): boolean {
   return (

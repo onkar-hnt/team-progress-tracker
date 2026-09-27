@@ -6,11 +6,11 @@ import type {
 } from '@models/index'
 import type { AppSupabaseClient } from '@services/supabase/index'
 
-import { RecordNotFoundError } from '../data-provider.errors'
-import { assertDeveloperExists, assertMentorExists, assertProjectExists } from './references'
-import { filterList } from './rpc-params'
-import { softDeleteRow } from './soft-delete'
-import { mapPostgrestError, parseRows } from './supabase-errors'
+import { RecordNotFoundError } from '../../data-provider.errors'
+import { assertDeveloperExists, assertMentorExists, assertProjectExists } from '../references'
+import { filterList } from '../rpc-params'
+import { softDeleteRow } from '../soft-delete'
+import { mapPostgrestError, parseRows } from '../supabase-errors'
 import { TASK_COLUMNS, taskRowSchema, toAssignedTask, toTaskInsert, toTaskUpdate } from './task.mappers'
 
 function matchesNothing(query: AssignedTaskQuery): boolean {

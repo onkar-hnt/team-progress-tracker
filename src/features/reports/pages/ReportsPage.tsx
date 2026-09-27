@@ -17,8 +17,8 @@ import { EntryList } from '@components/ui/entry-list/EntryList'
 import { Panel } from '@components/ui/panel/Panel'
 import { StatCard } from '@components/ui/stat-card/StatCard'
 import { DeveloperReportPanel } from '@features/reports/components/DeveloperReportPanel'
-import type { ActivitySlice } from '@features/team-activity/activity-filters'
-import { activityRangeLink } from '@features/team-activity/activity-filters'
+import type { ActivitySlice } from '@features/team-activity/utils/activity-filters'
+import { activityRangeLink } from '@features/team-activity/utils/activity-filters'
 import { useDevelopers, useProjects, useRangeOverview } from '@hooks/use-work-tracker'
 import { downloadCsv, toCsv } from '@utils/csv.utils'
 import type { DateRange } from '@utils/date.utils'
@@ -38,7 +38,7 @@ import {
   buildDeveloperTotalsCsv,
   buildProjectTotalsCsv,
   buildTeamReportFilename,
-} from '../team-report-csv'
+} from '../utils/team-report-csv'
 
 import './ReportsPage.scss'
 

@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@components/ui/button/Button'
 import { EmptyState, ErrorState, Skeleton } from '@components/ui/feedback/Feedback'
 import { Icon } from '@components/ui/icons/Icon'
-import { useMarkAllNotificationsRead, useMarkNotificationRead } from '@hooks/use-notifications'
+import { useMarkAllNotificationsRead, useMarkNotificationRead } from '@features/notifications/hooks/use-notifications'
 import type { AppNotification } from '@models/index'
 import { formatRelativeTime, formatTimestamp } from '@utils/date.utils'
 
-import { NOTIFICATION_DISPLAY, notificationPath } from '../notification-display'
+import { NOTIFICATION_DISPLAY, notificationPath } from '../utils/notification-display'
 
 import './NotificationPanel.scss'
 

@@ -6,12 +6,12 @@ import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { PasswordField } from '@components/ui/field/Field'
 import { Modal } from '@components/ui/modal/Modal'
-import { useResetUserPassword } from '@hooks/use-password-reset'
+import { useResetUserPassword } from '@features/profile/hooks/use-password-reset'
 import { PASSWORD_MIN_LENGTH, buildPasswordSchema } from '@services/auth/password-policy'
 import type { PasswordFormValues } from '@services/auth/password-policy'
-import type { ResetPasswordResult } from '@services/provisioning/reset-password'
+import type { ResetPasswordResult } from '@features/profile/services/reset-password'
 
-import type { Candidate } from '../password-candidates'
+import type { Candidate } from '../utils/password-candidates'
 
 // The note below is styled by the panel's sheet; imported here too so this
 // dialog does not depend on the panel having been rendered first.

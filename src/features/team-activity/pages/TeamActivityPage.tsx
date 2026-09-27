@@ -25,8 +25,8 @@ import {
   resolvePeriod,
   toDailyWorkQuery,
   unreachableFilter,
-} from '../activity-filters'
-import type { ActivityFilterState } from '../activity-filters'
+} from '../utils/activity-filters'
+import type { ActivityFilterState } from '../utils/activity-filters'
 
 import './TeamActivityPage.scss'
 

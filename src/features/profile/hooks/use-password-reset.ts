@@ -3,8 +3,8 @@ import type { UseMutationResult } from '@tanstack/react-query'
 
 import { useSnackbar } from '@app/providers/snackbar-context'
 import { logFailure, toUserMessage } from '@services/errors/error-message'
-import { resetUserPassword } from '@services/provisioning/reset-password'
-import type { ResetPasswordInput, ResetPasswordResult } from '@services/provisioning/reset-password'
+import { resetUserPassword } from '@features/profile/services/reset-password'
+import type { ResetPasswordInput, ResetPasswordResult } from '@features/profile/services/reset-password'
 
 export function useResetUserPassword(): UseMutationResult<
   ResetPasswordResult,

@@ -73,7 +73,7 @@ describe('toUserMessage', () => {
     expect(toUserMessage(new InvalidCredentialsError(), FALLBACK)).toBe(
       'Email or password is incorrect.',
     )
-    expect(toUserMessage(new ProvisioningError('No email is on file.'), FALLBACK)).toBe(
+    expect(toUserMessage(new ProvisioningError('No email is on file.', 'no_email'), FALLBACK)).toBe(
       'No email is on file.',
     )
   })

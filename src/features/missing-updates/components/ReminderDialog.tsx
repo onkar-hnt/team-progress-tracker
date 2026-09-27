@@ -4,7 +4,7 @@ import { useSnackbar } from '@app/providers/snackbar-context'
 import { Button } from '@components/ui/button/Button'
 import { TextAreaField } from '@components/ui/field/Field'
 import { Modal } from '@components/ui/modal/Modal'
-import { useSendUpdateReminder } from '@hooks/use-notifications'
+import { useSendUpdateReminder } from '@features/notifications/hooks/use-notifications'
 import type { ReminderTarget } from '@models/notification.model'
 import { formatLongDate } from '@utils/date.utils'
 

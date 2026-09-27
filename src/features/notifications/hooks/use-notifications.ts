@@ -6,7 +6,7 @@ import { useAuth } from '@app/providers/auth-context'
 import { useSnackbar } from '@app/providers/snackbar-context'
 import type { AppNotification, NotificationType } from '@models/index'
 import { logFailure, toUserMessage } from '@services/errors/error-message'
-import type { DailyUpdateReminder } from '@services/notifications/notification.service'
+import type { DailyUpdateReminder } from '@features/notifications/services/notification.service'
 import {
   NOTIFICATION_PAGE_SIZE,
   areNotificationsAvailable,
@@ -18,9 +18,9 @@ import {
   saveMutedNotificationTypes,
   sendDailyUpdateReminder,
   subscribeToNotifications,
-} from '@services/notifications/notification.service'
+} from '@features/notifications/services/notification.service'
 
-import { queryKeys } from './query-keys'
+import { queryKeys } from '@hooks/query-keys'
 
 function useNotificationAudience(): { isReady: boolean; scopeId: string } {
   const { isRestoring, user } = useAuth()

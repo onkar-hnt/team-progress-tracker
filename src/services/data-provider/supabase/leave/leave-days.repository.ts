@@ -2,8 +2,8 @@ import type { CreateLeaveDayRequest, LeaveDay, LeaveDayQuery } from '@models/ind
 import type { AppSupabaseClient } from '@services/supabase/index'
 
 import { LEAVE_DAY_COLUMNS, leaveDayRowSchema, toLeaveDay, toLeaveDayInsert } from './leave.mappers'
-import { assertDeveloperExists } from './references'
-import { mapPostgrestError, parseRows } from './supabase-errors'
+import { assertDeveloperExists } from '../references'
+import { mapPostgrestError, parseRows } from '../supabase-errors'
 
 /**
  * Read straight from the table rather than through a list function. The row is

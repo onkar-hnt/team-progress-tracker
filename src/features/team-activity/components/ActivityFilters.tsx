@@ -3,8 +3,8 @@ import { FilterField } from '@components/ui/field/Field'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '@constants/task.constants'
 import type { Developer, Project, TaskPriority, TaskStatus } from '@models/index'
 
-import { PERIOD_PRESETS, PERIOD_PRESET_LABELS } from '../activity-filters'
-import type { ActivityFilterState } from '../activity-filters'
+import { PERIOD_PRESETS, PERIOD_PRESET_LABELS } from '../utils/activity-filters'
+import type { ActivityFilterState } from '../utils/activity-filters'
 
 import './ActivityFilters.scss'
 
